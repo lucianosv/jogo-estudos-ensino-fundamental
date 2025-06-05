@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Brain, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,13 @@ const QuestionStep = ({
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const { toast } = useToast();
+
+  // Reset state when content changes (new question)
+  useEffect(() => {
+    setSelectedAnswer("");
+    setShowResult(false);
+    setIsCorrect(false);
+  }, [content]);
 
   const handleSubmit = () => {
     if (!selectedAnswer) {
