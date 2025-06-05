@@ -1,0 +1,88 @@
+
+{
+  "title": "Desafio Matemático Demon Slayer",
+  "description": "Um jogo interativo para crianças de 9 anos com temas de matemática e universo do mangá Demon Slayer.",
+  "steps": [
+    {
+      "type": "text",
+      "content": "Olá! Vamos jogar um desafio de matemática com os personagens de Demon Slayer!\n\nVocê vai escolher um tema e responder 4 perguntas. A cada acerto, você ganha uma palavra secreta. Se acertar tudo, desbloqueia uma história exclusiva de Demon Slayer!\n\nPreparado?"
+    },
+    {
+      "type": "choice",
+      "content": "Escolha um tema para começar:",
+      "choices": [
+        "Adição e Subtração",
+        "Medidas",
+        "Dinheiro"
+      ]
+    },
+    {
+      "type": "question",
+      "content": "Tanjiro comprou 5 dangos e depois mais 3. Quantos dangos ele tem no total?",
+      "choices": [
+        "7",
+        "8",
+        "9"
+      ],
+      "answer": "8",
+      "correct_response": "Muito bem! A primeira palavra da senha é **Tanjiro**.",
+      "incorrect_response": "Você errou. Deseja tentar de novo?"
+    },
+    {
+      "type": "question",
+      "content": "A espada de Tanjiro tem 1 metro. Quantos centímetros isso representa?",
+      "choices": [
+        "10",
+        "100",
+        "1000"
+      ],
+      "answer": "100",
+      "correct_response": "Ótimo! A segunda palavra da senha é **Nichirin**.",
+      "incorrect_response": "Você errou. Deseja tentar de novo?"
+    },
+    {
+      "type": "question",
+      "content": "Zenitsu pagou R$20 e recebeu R$5 de troco. Quanto custou o item?",
+      "choices": [
+        "R$15",
+        "R$10",
+        "R$25"
+      ],
+      "answer": "R$15",
+      "correct_response": "Mandou bem! A terceira palavra da senha é **Hashira**.",
+      "incorrect_response": "Você errou. Deseja tentar de novo?"
+    },
+    {
+      "type": "question",
+      "content": "Tanjiro treinou das 14h às 16h. Quanto tempo durou o treino?",
+      "choices": [
+        "1 hora",
+        "2 horas",
+        "3 horas"
+      ],
+      "answer": "2 horas",
+      "correct_response": "Incrível! A quarta palavra da senha é **Nezuko**.",
+      "incorrect_response": "Você errou. Deseja tentar de novo?"
+    },
+    {
+      "type": "text",
+      "content": "Parabéns! Você acertou todas as perguntas! 👏\n\nResumo do que você aprendeu: fizemos contas de adição, medimos comprimentos, trabalhamos com dinheiro e vimos noções de tempo.\n\nAgora você desbloqueou a história: **A Primeira Missão de Tanjiro e Nezuko**. Deseja ler?"
+    },
+    {
+      "type": "input",
+      "content": "Digite a senha completa para desbloquear a história:"
+    },
+    {
+      "type": "text",
+      "content": "História desbloqueada!\n\nTanjiro e Nezuko estão em sua primeira missão como caçadores de demônios. Em uma vila escondida, eles encontram um inimigo invisível que só aparece com a luz da lua cheia. Será que eles conseguem vencê-lo usando trabalho em equipe e inteligência?\n\nFim! Deseja jogar novamente?"
+    },
+    {
+      "type": "choice",
+      "content": "Quer jogar outra partida?",
+      "choices": [
+        "Sim, quero jogar de novo!",
+        "Não, por hoje acabou."
+      ]
+    }
+  ]
+}
