@@ -63,6 +63,15 @@ const GameEngine = () => {
     }
   };
 
+  const handleFinalChoice = (choice: string) => {
+    if (choice === "Sim, quero jogar de novo!") {
+      handleRestart();
+    } else {
+      // "Não, por hoje acabou."
+      alert("Obrigado por jogar! Até a próxima!");
+    }
+  };
+
   if (!gameStarted) {
     return (
       <Card className="w-full max-w-2xl mx-auto bg-white/95 backdrop-blur-sm shadow-2xl">
@@ -111,7 +120,9 @@ const GameEngine = () => {
           <ChoiceStep 
             content={currentStep.content}
             choices={currentStep.choices || []}
-            onChoice={currentStepIndex === 1 ? handleThemeChoice : handleNext}
+            onChoice={currentStepIndex === 1 ? handleThemeChoice : 
+                     currentStepIndex === gameData.steps.length - 1 ? handleFinalChoice : 
+                     handleNext}
             selectedTheme={selectedTheme}
           />
         );
