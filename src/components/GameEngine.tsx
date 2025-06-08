@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,7 +77,19 @@ const GameEngine = () => {
   };
 
   const handleThemeChoice = (theme: string) => {
-    const game = games.find(g => theme.includes(g.theme.split(' ').slice(-1)[0]));
+    let game: Game | null = null;
+    
+    // Improved game selection logic
+    if (theme.includes("Tanjiro")) {
+      game = games.find(g => g.theme.includes("Tanjiro")) || null;
+    } else if (theme.includes("Nezuko")) {
+      game = games.find(g => g.theme.includes("Nezuko")) || null;
+    } else if (theme.includes("Zenitsu")) {
+      game = games.find(g => g.theme.includes("Zenitsu")) || null;
+    } else if (theme.includes("Inosuke")) {
+      game = games.find(g => g.theme.includes("Inosuke")) || null;
+    }
+    
     if (game) {
       setSelectedGame(game);
       setCurrentQuestionIndex(0);

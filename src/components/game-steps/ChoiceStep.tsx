@@ -41,39 +41,59 @@ const ChoiceStep = ({ content, choices, onChoice, selectedGame }: ChoiceStepProp
     };
   };
 
-  const getBackgroundImage = () => {
-    if (!selectedGame) return "";
+  const getBackgroundImages = () => {
+    if (!selectedGame) return {};
     
     if (selectedGame.theme.includes("Tanjiro")) {
-      return "https://images.unsplash.com/photo-1523712999610-f77fbcfc3843";
+      return {
+        left: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400", // Samurai/warrior
+        right: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400"
+      };
     } else if (selectedGame.theme.includes("Nezuko")) {
-      return "https://images.unsplash.com/photo-1469474968028-56623f02e42e";
+      return {
+        left: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400",
+        right: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400"
+      };
     } else if (selectedGame.theme.includes("Zenitsu")) {
-      return "https://images.unsplash.com/photo-1472396961693-142e6e269027";
+      return {
+        left: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400",
+        right: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400"
+      };
     } else if (selectedGame.theme.includes("Inosuke")) {
-      return "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9";
+      return {
+        left: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400",
+        right: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400"
+      };
     }
     
-    return "";
+    return {};
   };
 
   const colors = getThemeColors();
-  const backgroundImage = getBackgroundImage();
+  const backgroundImages = getBackgroundImages();
 
   return (
-    <div 
-      className="text-center relative overflow-hidden rounded-lg"
-      style={{
-        backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      {/* Overlay for better text readability */}
-      {backgroundImage && (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] rounded-lg"></div>
+    <div className="text-center relative overflow-hidden rounded-lg min-h-[600px]">
+      {/* Background Images */}
+      {backgroundImages.left && (
+        <>
+          <div 
+            className="absolute top-0 left-0 w-32 h-full opacity-20 bg-cover bg-center"
+            style={{ backgroundImage: `url(${backgroundImages.left})` }}
+          />
+          <div 
+            className="absolute top-0 right-0 w-32 h-full opacity-20 bg-cover bg-center transform scale-x-[-1]"
+            style={{ backgroundImage: `url(${backgroundImages.right})` }}
+          />
+          <div 
+            className="absolute bottom-0 left-32 right-32 h-24 opacity-15 bg-cover bg-center"
+            style={{ backgroundImage: `url(${backgroundImages.left})` }}
+          />
+        </>
       )}
+      
+      {/* Main gradient background */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} opacity-80`}></div>
       
       <div className="relative z-10 p-6">
         <div className="flex items-center justify-center mb-6">
