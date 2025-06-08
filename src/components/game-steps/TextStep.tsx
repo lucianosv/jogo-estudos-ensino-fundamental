@@ -72,29 +72,63 @@ const TextStep = ({ content, onNext, collectedWords, selectedGame }: TextStepPro
     };
   };
 
+  const getBackgroundImage = () => {
+    if (!selectedGame) return "";
+    
+    if (selectedGame.theme.includes("Tanjiro")) {
+      return "https://images.unsplash.com/photo-1472396961693-142e6e269027";
+    } else if (selectedGame.theme.includes("Nezuko")) {
+      return "https://images.unsplash.com/photo-1466721591366-2d5fba72006d";
+    } else if (selectedGame.theme.includes("Zenitsu")) {
+      return "https://images.unsplash.com/photo-1493962853295-0fd70327578a";
+    } else if (selectedGame.theme.includes("Inosuke")) {
+      return "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9";
+    }
+    
+    return "";
+  };
+
   const colors = getThemeColors();
+  const backgroundImage = getBackgroundImage();
 
   return (
-    <div className="text-center">
-      <div className="flex items-center justify-center mb-6">
-        <Scroll className={`w-8 h-8 text-transparent bg-gradient-to-r ${colors.gradient} bg-clip-text mr-2`} />
-        <h2 className={`text-2xl font-bold text-transparent bg-gradient-to-r ${colors.gradient} bg-clip-text`}>
-          📜 História Épica
-        </h2>
-        <Scroll className={`w-8 h-8 text-transparent bg-gradient-to-r ${colors.gradient} bg-clip-text ml-2`} />
-      </div>
+    <div 
+      className="text-center relative overflow-hidden rounded-lg"
+      style={{
+        backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Overlay for better text readability */}
+      {backgroundImage && (
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] rounded-lg"></div>
+      )}
       
-      <div className={`text-lg text-gray-700 leading-relaxed mb-8 text-left bg-gradient-to-br ${colors.bg} p-6 rounded-lg border-l-4 ${colors.border} shadow-lg`}>
-        {formatContent(content)}
-      </div>
+      <div className="relative z-10 p-6">
+        <div className="flex items-center justify-center mb-6">
+          <Scroll className={`w-8 h-8 text-transparent bg-gradient-to-r ${colors.gradient} bg-clip-text mr-2`} />
+          <h2 className={`text-2xl font-bold text-white drop-shadow-lg`}>
+            📜 História Épica
+          </h2>
+          <Scroll className={`w-8 h-8 text-transparent bg-gradient-to-r ${colors.gradient} bg-clip-text ml-2`} />
+        </div>
+        
+        <div className={`text-lg leading-relaxed mb-8 text-left bg-white/90 backdrop-blur-sm p-6 rounded-lg border-l-4 ${colors.border} shadow-lg`}>
+          <div className="text-gray-700">
+            {formatContent(content)}
+          </div>
+        </div>
 
-      <Button 
-        onClick={onNext}
-        className={`bg-gradient-to-r ${colors.button} text-white font-semibold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105`}
-      >
-        <Sparkles className="w-5 h-5 mr-2" />
-        Continuar Aventura
-      </Button>
+        <Button 
+          onClick={onNext}
+          className={`bg-gradient-to-r ${colors.button} text-white font-semibold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105`}
+        >
+          <Sparkles className="w-5 h-5 mr-2" />
+          Continuar Aventura
+        </Button>
+      </div>
     </div>
   );
 };

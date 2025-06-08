@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Brain, CheckCircle, XCircle, Sparkles } from "lucide-react";
@@ -91,7 +90,24 @@ const QuestionStep = ({
     };
   };
 
+  const getBackgroundImage = () => {
+    if (!selectedGame) return "";
+    
+    if (selectedGame.theme.includes("Tanjiro")) {
+      return "https://images.unsplash.com/photo-1466721591366-2d5fba72006d";
+    } else if (selectedGame.theme.includes("Nezuko")) {
+      return "https://images.unsplash.com/photo-1493962853295-0fd70327578a";
+    } else if (selectedGame.theme.includes("Zenitsu")) {
+      return "https://images.unsplash.com/photo-1523712999610-f77fbcfc3843";
+    } else if (selectedGame.theme.includes("Inosuke")) {
+      return "https://images.unsplash.com/photo-1469474968028-56623f02e42e";
+    }
+    
+    return "";
+  };
+
   const colors = getThemeColors();
+  const backgroundImage = getBackgroundImage();
 
   const handleSubmit = () => {
     if (!selectedAnswer) {
@@ -137,80 +153,95 @@ const QuestionStep = ({
   };
 
   return (
-    <div className="text-center">
-      <div className="flex items-center justify-center mb-6">
-        <Brain className={`w-8 h-8 text-transparent bg-gradient-to-r ${colors.gradient} bg-clip-text mr-2`} />
-        <h2 className={`text-2xl font-bold text-transparent bg-gradient-to-r ${colors.gradient} bg-clip-text`}>
-          ⚔️ Desafio Matemático
-        </h2>
-        <Brain className={`w-8 h-8 text-transparent bg-gradient-to-r ${colors.gradient} bg-clip-text ml-2`} />
-      </div>
-
-      <div className={`bg-gradient-to-br ${colors.bg} p-6 rounded-lg border-l-4 ${colors.border} mb-8 shadow-lg`}>
-        <p className="text-xl text-gray-700 font-medium">{content}</p>
-      </div>
-
-      {!showResult && (
-        <>
-          <div className="space-y-4 mb-8">
-            {choices.map((choice, index) => (
-              <Button
-                key={index}
-                onClick={() => setSelectedAnswer(choice)}
-                variant={selectedAnswer === choice ? "default" : "outline"}
-                className={`w-full py-4 text-lg font-medium transition-all duration-200 rounded-full border-2 transform hover:scale-105 ${
-                  selectedAnswer === choice 
-                    ? colors.button
-                    : colors.buttonHover
-                }`}
-              >
-                <Sparkles className="w-5 h-5 mr-2" />
-                {choice}
-              </Button>
-            ))}
-          </div>
-
-          <Button 
-            onClick={handleSubmit}
-            disabled={!selectedAnswer}
-            className={`bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white font-semibold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105`}
-          >
-            ⚔️ Confirmar Resposta
-          </Button>
-        </>
+    <div 
+      className="text-center relative overflow-hidden rounded-lg"
+      style={{
+        backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Overlay for better text readability */}
+      {backgroundImage && (
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] rounded-lg"></div>
       )}
+      
+      <div className="relative z-10 p-6">
+        <div className="flex items-center justify-center mb-6">
+          <Brain className={`w-8 h-8 text-white drop-shadow-lg mr-2`} />
+          <h2 className={`text-2xl font-bold text-white drop-shadow-lg`}>
+            ⚔️ Desafio Matemático
+          </h2>
+          <Brain className={`w-8 h-8 text-white drop-shadow-lg ml-2`} />
+        </div>
 
-      {showResult && (
-        <div className="text-center">
-          <div className={`p-6 rounded-lg mb-6 border-2 shadow-lg ${
-            isCorrect 
-              ? "bg-green-50 border-green-300" 
-              : "bg-red-50 border-red-300"
-          }`}>
-            <div className="flex items-center justify-center mb-4">
-              {isCorrect ? (
-                <CheckCircle className="w-12 h-12 text-green-600 animate-pulse" />
-              ) : (
-                <XCircle className="w-12 h-12 text-red-600" />
-              )}
+        <div className={`bg-white/90 backdrop-blur-sm p-6 rounded-lg border-l-4 ${colors.border} mb-8 shadow-lg`}>
+          <p className="text-xl text-gray-700 font-medium">{content}</p>
+        </div>
+
+        {!showResult && (
+          <>
+            <div className="space-y-4 mb-8">
+              {choices.map((choice, index) => (
+                <Button
+                  key={index}
+                  onClick={() => setSelectedAnswer(choice)}
+                  variant={selectedAnswer === choice ? "default" : "outline"}
+                  className={`w-full py-4 text-lg font-medium transition-all duration-200 rounded-full border-2 transform hover:scale-105 bg-white/90 backdrop-blur-sm ${
+                    selectedAnswer === choice 
+                      ? colors.button
+                      : colors.buttonHover
+                  }`}
+                >
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  {choice}
+                </Button>
+              ))}
             </div>
-            <p className={`text-lg font-medium ${
-              isCorrect ? "text-green-800" : "text-red-800"
-            }`}>
-              {isCorrect ? correctResponse.replace(/\*\*/g, "") : incorrectResponse}
-            </p>
-          </div>
 
-          {!isCorrect && (
             <Button 
-              onClick={handleTryAgain}
+              onClick={handleSubmit}
+              disabled={!selectedAnswer}
               className={`bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white font-semibold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105`}
             >
-              🔄 Tentar Novamente
+              ⚔️ Confirmar Resposta
             </Button>
-          )}
-        </div>
-      )}
+          </>
+        )}
+
+        {showResult && (
+          <div className="text-center">
+            <div className={`p-6 rounded-lg mb-6 border-2 shadow-lg bg-white/90 backdrop-blur-sm ${
+              isCorrect 
+                ? "border-green-300" 
+                : "border-red-300"
+            }`}>
+              <div className="flex items-center justify-center mb-4">
+                {isCorrect ? (
+                  <CheckCircle className="w-12 h-12 text-green-600 animate-pulse" />
+                ) : (
+                  <XCircle className="w-12 h-12 text-red-600" />
+                )}
+              </div>
+              <p className={`text-lg font-medium ${
+                isCorrect ? "text-green-800" : "text-red-800"
+              }`}>
+                {isCorrect ? correctResponse.replace(/\*\*/g, "") : incorrectResponse}
+              </p>
+            </div>
+
+            {!isCorrect && (
+              <Button 
+                onClick={handleTryAgain}
+                className={`bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white font-semibold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105`}
+              >
+                🔄 Tentar Novamente
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

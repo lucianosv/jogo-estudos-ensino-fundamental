@@ -41,40 +41,74 @@ const ChoiceStep = ({ content, choices, onChoice, selectedGame }: ChoiceStepProp
     };
   };
 
+  const getBackgroundImage = () => {
+    if (!selectedGame) return "";
+    
+    if (selectedGame.theme.includes("Tanjiro")) {
+      return "https://images.unsplash.com/photo-1523712999610-f77fbcfc3843";
+    } else if (selectedGame.theme.includes("Nezuko")) {
+      return "https://images.unsplash.com/photo-1469474968028-56623f02e42e";
+    } else if (selectedGame.theme.includes("Zenitsu")) {
+      return "https://images.unsplash.com/photo-1472396961693-142e6e269027";
+    } else if (selectedGame.theme.includes("Inosuke")) {
+      return "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9";
+    }
+    
+    return "";
+  };
+
   const colors = getThemeColors();
+  const backgroundImage = getBackgroundImage();
 
   return (
-    <div className="text-center">
-      <div className="flex items-center justify-center mb-6">
-        <BookOpen className={`w-8 h-8 text-transparent bg-gradient-to-r ${colors.gradient} bg-clip-text mr-2`} />
-        <h2 className={`text-2xl font-bold text-transparent bg-gradient-to-r ${colors.gradient} bg-clip-text`}>
-          Escolha seu Destino
-        </h2>
-        <BookOpen className={`w-8 h-8 text-transparent bg-gradient-to-r ${colors.gradient} bg-clip-text ml-2`} />
-      </div>
-
-      <p className="text-xl text-gray-700 mb-8 font-medium">{content}</p>
-
-      {selectedGame && (
-        <div className={`mb-6 p-4 bg-gradient-to-r ${colors.gradient} rounded-lg border-2 border-white/50 shadow-lg`}>
-          <p className="text-white font-bold text-lg drop-shadow-md">
-            ⚔️ Herói Selecionado: {selectedGame.theme} ⚔️
-          </p>
-        </div>
+    <div 
+      className="text-center relative overflow-hidden rounded-lg"
+      style={{
+        backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Overlay for better text readability */}
+      {backgroundImage && (
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] rounded-lg"></div>
       )}
+      
+      <div className="relative z-10 p-6">
+        <div className="flex items-center justify-center mb-6">
+          <BookOpen className={`w-8 h-8 text-white drop-shadow-lg mr-2`} />
+          <h2 className={`text-2xl font-bold text-white drop-shadow-lg`}>
+            Escolha seu Destino
+          </h2>
+          <BookOpen className={`w-8 h-8 text-white drop-shadow-lg ml-2`} />
+        </div>
 
-      <div className="space-y-4">
-        {choices.map((choice, index) => (
-          <Button
-            key={index}
-            onClick={() => onChoice(choice)}
-            variant="outline"
-            className={`w-full py-4 px-6 text-lg font-medium border-2 ${colors.hover} transition-all duration-200 transform hover:scale-105 shadow-md rounded-full`}
-          >
-            <Sparkles className="w-5 h-5 mr-2" />
-            {choice}
-          </Button>
-        ))}
+        <p className="text-xl text-white drop-shadow-lg mb-8 font-medium bg-black/30 backdrop-blur-sm p-4 rounded-lg">
+          {content}
+        </p>
+
+        {selectedGame && (
+          <div className={`mb-6 p-4 bg-gradient-to-r ${colors.gradient} rounded-lg border-2 border-white/50 shadow-lg`}>
+            <p className="text-white font-bold text-lg drop-shadow-md">
+              ⚔️ Herói Selecionado: {selectedGame.theme} ⚔️
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {choices.map((choice, index) => (
+            <Button
+              key={index}
+              onClick={() => onChoice(choice)}
+              variant="outline"
+              className={`w-full py-4 px-6 text-lg font-medium border-2 bg-white/90 backdrop-blur-sm ${colors.hover} transition-all duration-200 transform hover:scale-105 shadow-md rounded-full`}
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              {choice}
+            </Button>
+          ))}
+        </div>
       </div>
     </div>
   );
