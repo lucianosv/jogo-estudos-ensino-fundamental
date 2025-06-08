@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Scroll, Sparkles } from "lucide-react";
 
@@ -72,9 +73,44 @@ const TextStep = ({ content, onNext, collectedWords, selectedGame }: TextStepPro
   };
 
   const getBackgroundImages = () => {
+    if (!selectedGame) {
+      return {
+        left: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600",
+        right: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600",
+        bottom: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800"
+      };
+    }
+
+    if (selectedGame.theme.includes("Tanjiro")) {
+      return {
+        left: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600", // Samurai com katana
+        right: "https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=600", // Guerreiro em ação
+        bottom: "https://images.unsplash.com/photo-1528164344705-47542687000d?w=800" // Montanhas japonesas
+      };
+    } else if (selectedGame.theme.includes("Nezuko")) {
+      return {
+        left: "https://images.unsplash.com/photo-1528164344705-47542687000d?w=600", // Flor de cerejeira
+        right: "https://images.unsplash.com/photo-1520637836862-4d197d17c55a?w=600", // Kimono japonês
+        bottom: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800" // Lua cheia
+      };
+    } else if (selectedGame.theme.includes("Zenitsu")) {
+      return {
+        left: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600", // Raio dourado
+        right: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600", // Montanha com raios
+        bottom: "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=800" // Tempestade elétrica
+      };
+    } else if (selectedGame.theme.includes("Inosuke")) {
+      return {
+        left: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600", // Floresta selvagem
+        right: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600", // Montanha rochosa
+        bottom: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800" // Paisagem montanhosa
+      };
+    }
+
     return {
-      left: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400",
-      right: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400"
+      left: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600",
+      right: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600",
+      bottom: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800"
     };
   };
 
@@ -83,22 +119,30 @@ const TextStep = ({ content, onNext, collectedWords, selectedGame }: TextStepPro
 
   return (
     <div className="text-center relative overflow-hidden rounded-lg min-h-[600px]">
-      {/* Background Images */}
+      {/* Background Images - Laterais mais visíveis */}
       <div 
-        className="absolute top-0 left-0 w-32 h-full opacity-20 bg-cover bg-center"
+        className="absolute top-0 left-0 w-48 h-full opacity-40 bg-cover bg-center"
         style={{ backgroundImage: `url(${backgroundImages.left})` }}
       />
       <div 
-        className="absolute top-0 right-0 w-32 h-full opacity-20 bg-cover bg-center transform scale-x-[-1]"
+        className="absolute top-0 right-0 w-48 h-full opacity-40 bg-cover bg-center"
         style={{ backgroundImage: `url(${backgroundImages.right})` }}
       />
+      
+      {/* Fundo inferior mais visível */}
       <div 
-        className="absolute bottom-0 left-32 right-32 h-24 opacity-15 bg-cover bg-center"
-        style={{ backgroundImage: `url(${backgroundImages.left})` }}
+        className="absolute bottom-0 left-0 right-0 h-32 opacity-30 bg-cover bg-center"
+        style={{ backgroundImage: `url(${backgroundImages.bottom})` }}
       />
       
-      {/* Main gradient background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} opacity-80`}></div>
+      {/* Fundo superior */}
+      <div 
+        className="absolute top-0 left-48 right-48 h-24 opacity-25 bg-cover bg-center"
+        style={{ backgroundImage: `url(${backgroundImages.bottom})` }}
+      />
+      
+      {/* Main gradient background - mais transparente para mostrar as imagens */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} opacity-60`}></div>
       
       <div className="relative z-10 p-6">
         <div className="flex items-center justify-center mb-6">
@@ -109,7 +153,7 @@ const TextStep = ({ content, onNext, collectedWords, selectedGame }: TextStepPro
           <Scroll className={`w-8 h-8 text-white drop-shadow-lg ml-2`} />
         </div>
         
-        <div className={`text-lg leading-relaxed mb-8 text-left bg-white/90 backdrop-blur-sm p-6 rounded-lg border-l-4 ${colors.border} shadow-lg`}>
+        <div className={`text-lg leading-relaxed mb-8 text-left bg-white/95 backdrop-blur-sm p-6 rounded-lg border-l-4 ${colors.border} shadow-lg mx-12`}>
           <div className="text-gray-700">
             {formatContent(content)}
           </div>
