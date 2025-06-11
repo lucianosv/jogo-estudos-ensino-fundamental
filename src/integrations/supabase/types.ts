@@ -9,7 +9,60 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      game_settings: {
+        Row: {
+          cache_duration_hours: number | null
+          created_at: string
+          difficulty_level: string
+          id: string
+          preferred_characters: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          cache_duration_hours?: number | null
+          created_at?: string
+          difficulty_level?: string
+          id?: string
+          preferred_characters?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          cache_duration_hours?: number | null
+          created_at?: string
+          difficulty_level?: string
+          id?: string
+          preferred_characters?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      generated_content: {
+        Row: {
+          content: Json
+          content_type: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          theme: string
+        }
+        Insert: {
+          content: Json
+          content_type: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          theme: string
+        }
+        Update: {
+          content?: Json
+          content_type?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          theme?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
