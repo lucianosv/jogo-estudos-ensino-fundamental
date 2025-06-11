@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Brain, CheckCircle, XCircle, Sparkles } from "lucide-react";
@@ -28,6 +27,7 @@ const QuestionStep = ({
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [showContinueButton, setShowContinueButton] = useState(false);
   const { toast } = useToast();
 
   // Reset state when content changes (new question)
@@ -35,6 +35,7 @@ const QuestionStep = ({
     setSelectedAnswer("");
     setShowResult(false);
     setIsCorrect(false);
+    setShowContinueButton(false);
   }, [content]);
 
   const getThemeColors = () => {
@@ -111,9 +112,10 @@ const QuestionStep = ({
         description: correctResponse.replace(/\*\*/g, ""),
       });
       
+      // Show continue button after a short delay
       setTimeout(() => {
-        onCorrect(word);
-      }, 2000);
+        setShowContinueButton(true);
+      }, 1500);
     } else {
       toast({
         title: "❌ Resposta Incorreta",
@@ -124,10 +126,18 @@ const QuestionStep = ({
     }
   };
 
+  const handleContinue = () => {
+    // Extract the word from the correct response
+    const wordMatch = correctResponse.match(/\*\*(.*?)\*\*/);
+    const word = wordMatch ? wordMatch[1] : "";
+    onCorrect(word);
+  };
+
   const handleTryAgain = () => {
     setSelectedAnswer("");
     setShowResult(false);
     setIsCorrect(false);
+    setShowContinueButton(false);
   };
 
   return (
@@ -194,6 +204,15 @@ const QuestionStep = ({
               {isCorrect ? correctResponse.replace(/\*\*/g, "") : incorrectResponse}
             </p>
           </div>
+
+          {isCorrect && showContinueButton && (
+            <Button 
+              onClick={handleContinue}
+              className={`bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white font-semibold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105`}
+            >
+              ✨ Continuar Aventura
+            </Button>
+          )}
 
           {!isCorrect && (
             <Button 
