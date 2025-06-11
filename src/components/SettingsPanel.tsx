@@ -44,7 +44,12 @@ const SettingsPanel = () => {
       }
 
       if (data) {
-        setSettings(data);
+        // Type assertion para garantir que difficulty_level seja do tipo correto
+        const typedSettings: GameSettings = {
+          ...data,
+          difficulty_level: data.difficulty_level as 'easy' | 'medium' | 'hard'
+        };
+        setSettings(typedSettings);
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
