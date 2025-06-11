@@ -22,6 +22,10 @@ interface GenerateContentRequest {
 const generateWithGemini = async (prompt: string) => {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   
+  if (!geminiApiKey) {
+    throw new Error('GEMINI_API_KEY not configured');
+  }
+  
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
     method: 'POST',
     headers: {
@@ -42,7 +46,16 @@ const generateWithGemini = async (prompt: string) => {
     }),
   });
 
+  if (!response.ok) {
+    throw new Error(`Gemini API error: ${response.status}`);
+  }
+
   const data = await response.json();
+  
+  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+    throw new Error('Invalid response from Gemini API');
+  }
+  
   return data.candidates[0].content.parts[0].text;
 };
 
