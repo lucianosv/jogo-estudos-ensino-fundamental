@@ -26,6 +26,8 @@ const generateWithGemini = async (prompt: string) => {
     throw new Error('GEMINI_API_KEY not configured');
   }
   
+  console.log('Chamando API Gemini...');
+  
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
     method: 'POST',
     headers: {
@@ -47,13 +49,17 @@ const generateWithGemini = async (prompt: string) => {
   });
 
   if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.status}`);
+    const errorText = await response.text();
+    console.error('Erro da API Gemini:', response.status, errorText);
+    throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
+  console.log('Resposta da API Gemini recebida:', JSON.stringify(data, null, 2));
   
-  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-    throw new Error('Invalid response from Gemini API');
+  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+    console.error('Estrutura de resposta inválida:', data);
+    throw new Error('Invalid response structure from Gemini API');
   }
   
   return data.candidates[0].content.parts[0].text;
@@ -73,18 +79,26 @@ const generateStory = async (theme: string) => {
   Formato: Retorne apenas o texto da história, sem formatação extra.
   `;
   
-  const content = await generateWithGemini(prompt);
-  
-  return {
-    title: `A Aventura de ${theme}`,
-    content: content.trim()
-  };
+  try {
+    const content = await generateWithGemini(prompt);
+    return {
+      title: `A Aventura de ${theme}`,
+      content: content.trim()
+    };
+  } catch (error) {
+    console.error('Erro ao gerar história:', error);
+    // Fallback para história padrão
+    return {
+      title: `A Aventura de ${theme}`,
+      content: `${theme} estava caminhando pela floresta quando encontrou um grupo de demônios. Para derrotá-los, precisava calcular quantos golpes seriam necessários. Se cada demônio precisa de 3 golpes e há 4 demônios, quantos golpes no total ${theme} precisa dar?`
+    };
+  }
 };
 
 const generateQuestion = async (theme: string, difficulty: string) => {
   const difficultyLevels = {
     easy: "números de 1 a 20, operações básicas",
-    medium: "números de 1 a 100, multiplicação e divisão simples",
+    medium: "números de 1 a 100, multiplicação e divisão simples", 
     hard: "números maiores, frações simples, problemas de múltiplas etapas"
   };
   
@@ -100,25 +114,37 @@ const generateQuestion = async (theme: string, difficulty: string) => {
   - Incluir uma palavra secreta relacionada ao tema (ex: "coragem", "técnica", "respiração")
   - Ser adequada para crianças brasileiras
   
-  Formato JSON:
+  Retorne APENAS um JSON válido no seguinte formato:
   {
     "content": "texto da questão aqui",
     "choices": ["alternativa A", "alternativa B", "alternativa C", "alternativa D"],
     "answer": "alternativa correta exata",
     "word": "palavra secreta de uma palavra"
   }
-  
-  Retorne apenas o JSON válido, sem formatação extra.
   `;
   
-  const content = await generateWithGemini(prompt);
-  
   try {
+    const content = await generateWithGemini(prompt);
+    
     // Limpar possível formatação markdown
     const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleanContent);
+    console.log('Conteúdo limpo para parsing:', cleanContent);
+    
+    const parsed = JSON.parse(cleanContent);
+    
+    // Validar estrutura
+    if (!parsed.content || !parsed.choices || !parsed.answer || !parsed.word) {
+      throw new Error('JSON inválido - campos obrigatórios ausentes');
+    }
+    
+    if (!Array.isArray(parsed.choices) || parsed.choices.length !== 4) {
+      throw new Error('JSON inválido - choices deve ser array com 4 elementos');
+    }
+    
+    return parsed;
+    
   } catch (error) {
-    console.error('Erro ao parsear JSON:', error);
+    console.error('Erro ao gerar questão:', error);
     // Fallback para questão padrão
     return {
       content: `${theme} precisa calcular quantos demônios derrotou. Se derrotou 3 demônios pela manhã e 5 à tarde, quantos derrotou no total?`,
@@ -133,22 +159,29 @@ const generateCharacterInfo = async (theme: string) => {
   const prompt = `
   Crie informações sobre o personagem ${theme} de Demon Slayer.
   
-  Retorne um JSON com:
-  - background_description: descrição para buscar imagens de fundo temáticas
-  - personality_traits: 3 características marcantes
-  - special_abilities: habilidades especiais do personagem
-  - motivations: motivações principais
-  
-  Formato JSON válido, sem formatação extra.
+  Retorne APENAS um JSON válido no seguinte formato:
+  {
+    "background_description": "descrição para buscar imagens de fundo temáticas",
+    "personality_traits": ["característica1", "característica2", "característica3"],
+    "special_abilities": ["habilidade1", "habilidade2"],
+    "motivations": ["motivação1", "motivação2"]
+  }
   `;
   
-  const content = await generateWithGemini(prompt);
-  
   try {
+    const content = await generateWithGemini(prompt);
     const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleanContent);
+    const parsed = JSON.parse(cleanContent);
+    
+    // Validar estrutura básica
+    if (!parsed.background_description || !parsed.personality_traits || !parsed.special_abilities || !parsed.motivations) {
+      throw new Error('JSON inválido - campos obrigatórios ausentes');
+    }
+    
+    return parsed;
+    
   } catch (error) {
-    console.error('Erro ao parsear character info:', error);
+    console.error('Erro ao gerar info do personagem:', error);
     return {
       background_description: `${theme} em paisagem japonesa tradicional com elementos místicos`,
       personality_traits: ["Determinado", "Corajoso", "Leal"],
@@ -168,21 +201,25 @@ serve(async (req) => {
 
     console.log(`Gerando conteúdo: ${contentType} para ${theme}`);
 
-    // Verificar se já existe conteúdo em cache
+    // Verificar se já existe conteúdo em cache (se não forçar regeneração)
     if (!forceRegenerate) {
-      const { data: cachedContent } = await supabase
-        .from('generated_content')
-        .select('content')
-        .eq('content_type', contentType)
-        .eq('theme', theme)
-        .gt('expires_at', new Date().toISOString())
-        .single();
+      try {
+        const { data: cachedContent } = await supabase
+          .from('generated_content')
+          .select('content')
+          .eq('content_type', contentType)
+          .eq('theme', theme)
+          .gt('expires_at', new Date().toISOString())
+          .single();
 
-      if (cachedContent) {
-        console.log('Retornando conteúdo do cache');
-        return new Response(JSON.stringify(cachedContent.content), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        if (cachedContent) {
+          console.log('Retornando conteúdo do cache');
+          return new Response(JSON.stringify(cachedContent.content), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      } catch (cacheError) {
+        console.log('Nenhum cache encontrado, gerando novo conteúdo');
       }
     }
 
@@ -204,16 +241,27 @@ serve(async (req) => {
     }
 
     // Salvar no cache
-    await supabase
-      .from('generated_content')
-      .insert({
-        content_type: contentType,
-        theme: theme,
-        content: generatedContent,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 dias
-      });
+    try {
+      const { error: saveError } = await supabase
+        .from('generated_content')
+        .insert({
+          content_type: contentType,
+          theme: theme,
+          content: generatedContent,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 dias
+        });
 
-    console.log('Conteúdo gerado e salvo no cache');
+      if (saveError) {
+        console.error('Erro ao salvar no cache:', saveError);
+        // Não falhar a request por causa de erro de cache
+      } else {
+        console.log('Conteúdo salvo no cache com sucesso');
+      }
+    } catch (cacheError) {
+      console.error('Erro ao salvar cache:', cacheError);
+    }
+
+    console.log('Conteúdo gerado com sucesso:', JSON.stringify(generatedContent));
 
     return new Response(JSON.stringify(generatedContent), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
