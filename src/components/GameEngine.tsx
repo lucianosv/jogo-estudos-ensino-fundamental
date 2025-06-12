@@ -130,41 +130,43 @@ const GameEngine = () => {
     console.log('Current question index:', currentQuestionIndex);
     console.log('Current collected words:', collectedWords);
     
-    // Add the word to collected words
-    const newCollectedWords = [...collectedWords, word];
-    setCollectedWords(newCollectedWords);
-    
-    console.log('New collected words:', newCollectedWords);
+    // Add the word to collected words (prevent duplicates)
+    if (!collectedWords.includes(word)) {
+      const newCollectedWords = [...collectedWords, word];
+      setCollectedWords(newCollectedWords);
+      console.log('New collected words:', newCollectedWords);
+    }
     
     // Check if we have more questions to ask
     const totalQuestions = dynamicQuestions.length > 0 ? dynamicQuestions.length : (selectedGame?.questions.length || 0);
     console.log('Total questions available:', totalQuestions);
+    console.log('Current question index before increment:', currentQuestionIndex);
     
     if (currentQuestionIndex < totalQuestions - 1) {
       // Move to next question
-      console.log('Moving to next question:', currentQuestionIndex + 1);
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      const nextQuestionIndex = currentQuestionIndex + 1;
+      console.log('Moving to next question:', nextQuestionIndex);
+      setCurrentQuestionIndex(nextQuestionIndex);
     } else {
-      // All questions answered, move to next step
+      // All questions answered, move to next step and reset question index
       console.log('All questions answered, moving to next step');
+      setCurrentQuestionIndex(0);
       handleNext();
     }
   };
 
   const handleIncorrectAnswer = () => {
     console.log('handleIncorrectAnswer called');
-    // For incorrect answers, we can either:
-    // 1. Move to next question anyway, or 
-    // 2. Stay on same question
-    // Based on your game logic, I'll move to next question
     
     const totalQuestions = dynamicQuestions.length > 0 ? dynamicQuestions.length : (selectedGame?.questions.length || 0);
     
     if (currentQuestionIndex < totalQuestions - 1) {
-      console.log('Incorrect answer, moving to next question:', currentQuestionIndex + 1);
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      const nextQuestionIndex = currentQuestionIndex + 1;
+      console.log('Incorrect answer, moving to next question:', nextQuestionIndex);
+      setCurrentQuestionIndex(nextQuestionIndex);
     } else {
       console.log('Incorrect answer on last question, moving to next step');
+      setCurrentQuestionIndex(0);
       handleNext();
     }
   };
