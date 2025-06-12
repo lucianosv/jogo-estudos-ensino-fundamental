@@ -35,6 +35,7 @@ const QuestionStep = ({
 
   // Reset state when content changes (new question)
   useEffect(() => {
+    console.log('QuestionStep: New question loaded, resetting state');
     setSelectedAnswer("");
     setShowResult(false);
     setIsCorrect(false);
@@ -53,6 +54,7 @@ const QuestionStep = ({
       return;
     }
 
+    console.log('QuestionStep: Submitting answer', selectedAnswer, 'correct answer:', answer);
     const correct = selectedAnswer === answer;
     setIsCorrect(correct);
     setShowResult(true);
@@ -62,37 +64,37 @@ const QuestionStep = ({
         title: "🎉 Resposta Correta!",
         description: correctResponse.replace(/\*\*/g, ""),
       });
-      
-      // Show continue button after a short delay for correct answers
-      setTimeout(() => {
-        setShowContinueButton(true);
-      }, 1500);
     } else {
       toast({
         title: "❌ Resposta Incorreta",
         description: incorrectResponse,
         variant: "destructive"
       });
-      
-      // Show continue button immediately for incorrect answers
-      setTimeout(() => {
-        setShowContinueButton(true);
-      }, 1500);
     }
+    
+    // Show continue button after a short delay
+    setTimeout(() => {
+      setShowContinueButton(true);
+    }, 1500);
   };
 
   const handleContinue = () => {
+    console.log('QuestionStep: Continue button clicked, isCorrect:', isCorrect);
+    
     if (isCorrect) {
       // Extract the word from the correct response
       const wordMatch = correctResponse.match(/\*\*(.*?)\*\*/);
       const word = wordMatch ? wordMatch[1] : "";
+      console.log('QuestionStep: Calling onCorrect with word:', word);
       onCorrect(word);
     } else {
+      console.log('QuestionStep: Calling onIncorrect');
       onIncorrect();
     }
   };
 
   const handleTryAgain = () => {
+    console.log('QuestionStep: Try again clicked');
     setSelectedAnswer("");
     setShowResult(false);
     setIsCorrect(false);

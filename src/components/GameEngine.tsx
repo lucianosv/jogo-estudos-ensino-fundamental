@@ -126,12 +126,45 @@ const GameEngine = () => {
   };
 
   const handleCorrectAnswer = (word: string) => {
-    setCollectedWords([...collectedWords, word]);
+    console.log('handleCorrectAnswer called with word:', word);
+    console.log('Current question index:', currentQuestionIndex);
+    console.log('Current collected words:', collectedWords);
     
-    if (currentQuestionIndex < 2) {
+    // Add the word to collected words
+    const newCollectedWords = [...collectedWords, word];
+    setCollectedWords(newCollectedWords);
+    
+    console.log('New collected words:', newCollectedWords);
+    
+    // Check if we have more questions to ask
+    const totalQuestions = dynamicQuestions.length > 0 ? dynamicQuestions.length : (selectedGame?.questions.length || 0);
+    console.log('Total questions available:', totalQuestions);
+    
+    if (currentQuestionIndex < totalQuestions - 1) {
+      // Move to next question
+      console.log('Moving to next question:', currentQuestionIndex + 1);
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      handleNext();
     } else {
+      // All questions answered, move to next step
+      console.log('All questions answered, moving to next step');
+      handleNext();
+    }
+  };
+
+  const handleIncorrectAnswer = () => {
+    console.log('handleIncorrectAnswer called');
+    // For incorrect answers, we can either:
+    // 1. Move to next question anyway, or 
+    // 2. Stay on same question
+    // Based on your game logic, I'll move to next question
+    
+    const totalQuestions = dynamicQuestions.length > 0 ? dynamicQuestions.length : (selectedGame?.questions.length || 0);
+    
+    if (currentQuestionIndex < totalQuestions - 1) {
+      console.log('Incorrect answer, moving to next question:', currentQuestionIndex + 1);
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      console.log('Incorrect answer on last question, moving to next step');
       handleNext();
     }
   };
@@ -232,7 +265,14 @@ const GameEngine = () => {
         );
       case "question":
         const question = getCurrentQuestion();
-        if (!question) return null;
+        if (!question) {
+          console.log('No question available, moving to next step');
+          handleNext();
+          return null;
+        }
+        
+        console.log('Rendering question:', question);
+        console.log('Current question index:', currentQuestionIndex);
         
         return (
           <QuestionStep 
@@ -242,7 +282,7 @@ const GameEngine = () => {
             correctResponse={`🎉 Excelente! A palavra secreta é **${question.word}**.`}
             incorrectResponse="❌ Resposta incorreta! Tente novamente."
             onCorrect={handleCorrectAnswer}
-            onIncorrect={() => {}}
+            onIncorrect={handleIncorrectAnswer}
             selectedGame={selectedGame}
           />
         );
