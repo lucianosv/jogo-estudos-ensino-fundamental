@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Brain, CheckCircle, XCircle, Sparkles } from "lucide-react";
@@ -112,7 +113,7 @@ const QuestionStep = ({
         description: correctResponse.replace(/\*\*/g, ""),
       });
       
-      // Show continue button after a short delay
+      // Show continue button after a short delay for correct answers
       setTimeout(() => {
         setShowContinueButton(true);
       }, 1500);
@@ -122,15 +123,23 @@ const QuestionStep = ({
         description: incorrectResponse,
         variant: "destructive"
       });
-      onIncorrect();
+      
+      // Show continue button immediately for incorrect answers
+      setTimeout(() => {
+        setShowContinueButton(true);
+      }, 1500);
     }
   };
 
   const handleContinue = () => {
-    // Extract the word from the correct response
-    const wordMatch = correctResponse.match(/\*\*(.*?)\*\*/);
-    const word = wordMatch ? wordMatch[1] : "";
-    onCorrect(word);
+    if (isCorrect) {
+      // Extract the word from the correct response
+      const wordMatch = correctResponse.match(/\*\*(.*?)\*\*/);
+      const word = wordMatch ? wordMatch[1] : "";
+      onCorrect(word);
+    } else {
+      onIncorrect();
+    }
   };
 
   const handleTryAgain = () => {
@@ -205,22 +214,25 @@ const QuestionStep = ({
             </p>
           </div>
 
-          {isCorrect && showContinueButton && (
-            <Button 
-              onClick={handleContinue}
-              className={`bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white font-semibold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105`}
-            >
-              ✨ Continuar Aventura
-            </Button>
-          )}
-
-          {!isCorrect && (
-            <Button 
-              onClick={handleTryAgain}
-              className={`bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white font-semibold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105`}
-            >
-              🔄 Tentar Novamente
-            </Button>
+          {showContinueButton && (
+            <div className="space-y-4">
+              <Button 
+                onClick={handleContinue}
+                className={`bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white font-semibold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105`}
+              >
+                {isCorrect ? "✨ Continuar Aventura" : "➡️ Próxima Pergunta"}
+              </Button>
+              
+              {!isCorrect && (
+                <Button 
+                  onClick={handleTryAgain}
+                  variant="outline"
+                  className="bg-white/90 hover:bg-white border-2 border-gray-300 text-gray-600 hover:text-gray-700 font-medium py-2 px-6 rounded-full"
+                >
+                  🔄 Tentar Novamente
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}
