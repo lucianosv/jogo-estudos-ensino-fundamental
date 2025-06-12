@@ -12,7 +12,7 @@ interface QuestionStepProps {
   answer: string;
   correctResponse: string;
   incorrectResponse: string;
-  onCorrect: (word: string) => void;
+  onCorrect: () => void;
   onIncorrect: () => void;
   selectedGame?: any;
 }
@@ -82,11 +82,8 @@ const QuestionStep = ({
     console.log('QuestionStep: Continue button clicked, isCorrect:', isCorrect);
     
     if (isCorrect) {
-      // Extract the word from the correct response
-      const wordMatch = correctResponse.match(/\*\*(.*?)\*\*/);
-      const word = wordMatch ? wordMatch[1] : "";
-      console.log('QuestionStep: Calling onCorrect with word:', word);
-      onCorrect(word);
+      console.log('QuestionStep: Calling onCorrect');
+      onCorrect();
     } else {
       console.log('QuestionStep: Calling onIncorrect');
       onIncorrect();

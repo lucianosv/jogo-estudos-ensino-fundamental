@@ -125,16 +125,20 @@ const GameEngine = () => {
     setDynamicStory(null);
   };
 
-  const handleCorrectAnswer = (word: string) => {
-    console.log('handleCorrectAnswer called with word:', word);
+  const handleCorrectAnswer = () => {
+    console.log('handleCorrectAnswer called');
     console.log('Current question index:', currentQuestionIndex);
     console.log('Current collected words:', collectedWords);
     
-    // Add the word to collected words (prevent duplicates)
-    if (!collectedWords.includes(word)) {
-      const newCollectedWords = [...collectedWords, word];
-      setCollectedWords(newCollectedWords);
-      console.log('New collected words:', newCollectedWords);
+    // Get the current question to extract the word
+    const currentQuestion = getCurrentQuestion();
+    if (currentQuestion && currentQuestion.word) {
+      // Add the word to collected words (prevent duplicates)
+      if (!collectedWords.includes(currentQuestion.word)) {
+        const newCollectedWords = [...collectedWords, currentQuestion.word];
+        setCollectedWords(newCollectedWords);
+        console.log('New collected words:', newCollectedWords);
+      }
     }
     
     // Check if we have more questions to ask
