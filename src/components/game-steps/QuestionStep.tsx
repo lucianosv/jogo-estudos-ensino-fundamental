@@ -36,6 +36,7 @@ const QuestionStep = ({
   // Reset state when content changes (new question)
   useEffect(() => {
     console.log('QuestionStep: New question loaded, resetting state');
+    console.log('Question content:', content);
     setSelectedAnswer("");
     setShowResult(false);
     setIsCorrect(false);
@@ -54,17 +55,22 @@ const QuestionStep = ({
       return;
     }
 
-    console.log('QuestionStep: Submitting answer', selectedAnswer, 'correct answer:', answer);
+    console.log('=== QUESTION STEP SUBMIT ===');
+    console.log('Selected answer:', selectedAnswer);
+    console.log('Correct answer:', answer);
+    
     const correct = selectedAnswer === answer;
     setIsCorrect(correct);
     setShowResult(true);
 
     if (correct) {
+      console.log('Answer is correct!');
       toast({
         title: "🎉 Resposta Correta!",
         description: correctResponse.replace(/\*\*/g, ""),
       });
     } else {
+      console.log('Answer is incorrect!');
       toast({
         title: "❌ Resposta Incorreta",
         description: incorrectResponse,
@@ -79,19 +85,20 @@ const QuestionStep = ({
   };
 
   const handleContinue = () => {
-    console.log('QuestionStep: Continue button clicked, isCorrect:', isCorrect);
+    console.log('=== QUESTION STEP CONTINUE ===');
+    console.log('Is correct:', isCorrect);
     
     if (isCorrect) {
-      console.log('QuestionStep: Calling onCorrect');
+      console.log('Calling onCorrect callback');
       onCorrect();
     } else {
-      console.log('QuestionStep: Calling onIncorrect');
+      console.log('Calling onIncorrect callback');
       onIncorrect();
     }
   };
 
   const handleTryAgain = () => {
-    console.log('QuestionStep: Try again clicked');
+    console.log('QuestionStep: Try again clicked - resetting question state');
     setSelectedAnswer("");
     setShowResult(false);
     setIsCorrect(false);

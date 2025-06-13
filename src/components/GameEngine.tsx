@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,6 +47,7 @@ const GameEngine = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [dynamicQuestions, setDynamicQuestions] = useState<any[]>([]);
   const [dynamicStory, setDynamicStory] = useState<any>(null);
+  const [questionsGenerated, setQuestionsGenerated] = useState(false);
   
   const { generateStory, generateQuestion, isLoading } = useAIContent();
   const { toast } = useToast();
@@ -54,44 +56,65 @@ const GameEngine = () => {
   const steps = gameData.steps as GameStep[];
   const currentStep = steps[currentStepIndex];
 
-  // Gerar conteúdo dinâmico quando um tema é selecionado
+  // Reset game state completely when restarting
+  const resetGameState = () => {
+    setCurrentStepIndex(0);
+    setCollectedWords([]);
+    setSelectedGame(null);
+    setGameStarted(false);
+    setCurrentQuestionIndex(0);
+    setDynamicQuestions([]);
+    setDynamicStory(null);
+    setQuestionsGenerated(false);
+  };
+
+  // Generate fresh content when a theme is selected
   useEffect(() => {
-    if (selectedGame && !dynamicStory) {
+    if (selectedGame && !questionsGenerated) {
       generateGameContent();
     }
-  }, [selectedGame]);
+  }, [selectedGame, questionsGenerated]);
 
   const generateGameContent = async () => {
     if (!selectedGame) return;
 
+    console.log('Starting AI content generation for:', selectedGame.theme);
+    
     try {
       toast({
         title: "🎯 Criando aventura personalizada...",
         description: `Gerando conteúdo único para ${selectedGame.theme}`,
       });
 
-      // Gerar história dinâmica
+      // Generate dynamic story
+      console.log('Generating story...');
       const story = await generateStory(selectedGame.theme);
       if (story) {
         setDynamicStory(story);
+        console.log('Story generated:', story);
       }
 
-      // Gerar 3 questões dinâmicas
+      // Generate 3 fresh questions
+      console.log('Generating questions...');
       const questions = [];
       for (let i = 0; i < 3; i++) {
-        const question = await generateQuestion(selectedGame.theme);
+        const question = await generateQuestion(selectedGame.theme, 'medium');
         if (question) {
           questions.push(question);
+          console.log(`Question ${i + 1} generated:`, question);
         }
       }
       
       if (questions.length > 0) {
         setDynamicQuestions(questions);
+        setQuestionsGenerated(true);
         
         toast({
           title: "✨ Aventura criada!",
           description: `${questions.length} desafios únicos gerados com IA`,
         });
+        
+        console.log('All questions generated:', questions);
       }
 
     } catch (error) {
@@ -104,47 +127,70 @@ const GameEngine = () => {
     }
   };
 
+  const getCurrentQuestion = () => {
+    console.log('Getting current question. Index:', currentQuestionIndex);
+    console.log('Dynamic questions available:', dynamicQuestions.length);
+    console.log('Static questions available:', selectedGame?.questions.length || 0);
+    
+    // Always prefer dynamic questions if available
+    if (dynamicQuestions.length > 0 && currentQuestionIndex < dynamicQuestions.length) {
+      const question = dynamicQuestions[currentQuestionIndex];
+      console.log('Returning dynamic question:', question);
+      return question;
+    }
+    
+    // Fallback to static questions
+    if (selectedGame && currentQuestionIndex < selectedGame.questions.length) {
+      const question = selectedGame.questions[currentQuestionIndex];
+      console.log('Returning static question:', question);
+      return question;
+    }
+    
+    console.log('No question available for index:', currentQuestionIndex);
+    return null;
+  };
+
   const handleNext = () => {
+    console.log('handleNext called. Current step:', currentStepIndex);
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(currentStepIndex + 1);
     }
   };
 
   const handleStart = () => {
+    console.log('Starting game');
     setGameStarted(true);
     setCurrentStepIndex(0);
   };
 
   const handleRestart = () => {
-    setCurrentStepIndex(0);
-    setCollectedWords([]);
-    setSelectedGame(null);
-    setGameStarted(false);
-    setCurrentQuestionIndex(0);
-    setDynamicQuestions([]);
-    setDynamicStory(null);
+    console.log('Restarting game - full reset');
+    resetGameState();
   };
 
   const handleCorrectAnswer = () => {
-    console.log('handleCorrectAnswer called');
+    console.log('=== CORRECT ANSWER HANDLER ===');
     console.log('Current question index:', currentQuestionIndex);
     console.log('Current collected words:', collectedWords);
     
     // Get the current question to extract the word
     const currentQuestion = getCurrentQuestion();
+    console.log('Current question:', currentQuestion);
+    
     if (currentQuestion && currentQuestion.word) {
       // Add the word to collected words (prevent duplicates)
       if (!collectedWords.includes(currentQuestion.word)) {
         const newCollectedWords = [...collectedWords, currentQuestion.word];
         setCollectedWords(newCollectedWords);
-        console.log('New collected words:', newCollectedWords);
+        console.log('Added new word. New collected words:', newCollectedWords);
+      } else {
+        console.log('Word already collected, skipping');
       }
     }
     
     // Check if we have more questions to ask
     const totalQuestions = dynamicQuestions.length > 0 ? dynamicQuestions.length : (selectedGame?.questions.length || 0);
     console.log('Total questions available:', totalQuestions);
-    console.log('Current question index before increment:', currentQuestionIndex);
     
     if (currentQuestionIndex < totalQuestions - 1) {
       // Move to next question
@@ -152,30 +198,35 @@ const GameEngine = () => {
       console.log('Moving to next question:', nextQuestionIndex);
       setCurrentQuestionIndex(nextQuestionIndex);
     } else {
-      // All questions answered, move to next step and reset question index
-      console.log('All questions answered, moving to next step');
-      setCurrentQuestionIndex(0);
+      // All questions answered, move to next step
+      console.log('All questions completed, moving to next step');
+      setCurrentQuestionIndex(0); // Reset for potential future use
       handleNext();
     }
   };
 
   const handleIncorrectAnswer = () => {
-    console.log('handleIncorrectAnswer called');
+    console.log('=== INCORRECT ANSWER HANDLER ===');
+    console.log('Current question index:', currentQuestionIndex);
     
     const totalQuestions = dynamicQuestions.length > 0 ? dynamicQuestions.length : (selectedGame?.questions.length || 0);
+    console.log('Total questions available:', totalQuestions);
     
     if (currentQuestionIndex < totalQuestions - 1) {
+      // Move to next question
       const nextQuestionIndex = currentQuestionIndex + 1;
       console.log('Incorrect answer, moving to next question:', nextQuestionIndex);
       setCurrentQuestionIndex(nextQuestionIndex);
     } else {
-      console.log('Incorrect answer on last question, moving to next step');
-      setCurrentQuestionIndex(0);
+      // All questions answered, move to next step
+      console.log('All questions completed, moving to next step');
+      setCurrentQuestionIndex(0); // Reset for potential future use
       handleNext();
     }
   };
 
   const handleThemeChoice = (theme: string) => {
+    console.log('Theme chosen:', theme);
     let game: Game | null = null;
     
     if (theme.includes("Tanjiro")) {
@@ -189,8 +240,10 @@ const GameEngine = () => {
     }
     
     if (game) {
+      console.log('Selected game:', game);
       setSelectedGame(game);
       setCurrentQuestionIndex(0);
+      setQuestionsGenerated(false); // Reset to trigger new generation
       handleNext();
     }
   };
@@ -199,31 +252,31 @@ const GameEngine = () => {
     if (!selectedGame) return;
     
     const correctPassword = collectedWords.join(" ");
+    console.log('Password check. Input:', password, 'Expected:', correctPassword);
+    
     if (password.trim().toLowerCase() === correctPassword.toLowerCase()) {
+      console.log('Password correct!');
       handleNext();
     } else {
-      alert("Senha incorreta! Use as palavras que você coletou na ordem correta.");
+      console.log('Password incorrect');
+      toast({
+        title: "❌ Senha incorreta!",
+        description: "Use as palavras que você coletou na ordem correta.",
+        variant: "destructive"
+      });
     }
   };
 
   const handleFinalChoice = (choice: string) => {
     if (choice.includes("Sim")) {
+      console.log('User chose to play again');
       handleRestart();
     } else {
-      alert("🌸 Obrigado por jogar! Até a próxima aventura! 🌸");
+      toast({
+        title: "🌸 Obrigado por jogar!",
+        description: "Até a próxima aventura! 🌸",
+      });
     }
-  };
-
-  const getCurrentQuestion = () => {
-    // Usar questões dinâmicas se disponíveis, senão usar as estáticas
-    if (dynamicQuestions.length > 0 && currentQuestionIndex < dynamicQuestions.length) {
-      return dynamicQuestions[currentQuestionIndex];
-    }
-    
-    if (!selectedGame || currentQuestionIndex >= selectedGame.questions.length) {
-      return null;
-    }
-    return selectedGame.questions[currentQuestionIndex];
   };
 
   if (!gameStarted) {
@@ -242,7 +295,7 @@ const GameEngine = () => {
         let content = currentStep.content;
         
         if (content.includes("[STORY_PLACEHOLDER]") && selectedGame) {
-          // Usar história dinâmica se disponível
+          // Use dynamic story if available
           const storyToUse = dynamicStory || selectedGame.story;
           content = content.replace(
             "[STORY_PLACEHOLDER]", 
