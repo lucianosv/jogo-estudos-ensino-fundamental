@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Settings, RefreshCw, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -14,15 +15,20 @@ interface GameSettings {
   cache_duration_hours: number;
 }
 
+// Explicitly type variant for use in both getBadgeVariant and prop (prevents TS2345)
+type MyBadgeVariant = Extract<BadgeProps['variant'], 'default' | 'outline'>;
+
 const SettingsSecure = () => {
   const [settings, setSettings] = useState<GameSettings | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
-  // Explicit union type - this ensures the return value is type-safe for the Badge
-  const getBadgeVariant = (isActive: boolean): "default" | "outline" =>
+
+  // Helper returns correct type for Badge variant prop:
+  const getBadgeVariant = (isActive: boolean): MyBadgeVariant =>
     isActive ? "default" : "outline";
+
   const difficultyLevels = {
     easy: 'Fácil (1-20)',
     medium: 'Médio (1-100)', 
@@ -144,7 +150,6 @@ const SettingsSecure = () => {
               return (
                 <Badge
                   key={character}
-                  // Explicit type cast for Badge variant (safe after getBadgeVariant fix)
                   variant={getBadgeVariant(isActive)}
                   className="cursor-default"
                 >
