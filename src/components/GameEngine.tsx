@@ -388,6 +388,7 @@ const GameEngine = () => {
         console.log('Rendering question:', question);
         console.log('Current question index:', currentQuestionIndex);
         
+        // Novo prop onRestart passado para QuestionStep
         return (
           <QuestionStep 
             content={question.content}
@@ -398,7 +399,7 @@ const GameEngine = () => {
             onCorrect={handleCorrectAnswer}
             onIncorrect={handleIncorrectAnswer}
             selectedGame={selectedGame}
-            onRestart={handleRestart} {/* Novo prop */}
+            onRestart={handleRestart}
           />
         );
       case "input":
