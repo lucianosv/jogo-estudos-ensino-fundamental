@@ -1,10 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getThemeColors } from "./question/ThemeUtils";
 import QuestionDisplay from "./question/QuestionDisplay";
 import ChoiceButtons from "./question/ChoiceButtons";
 import ResultDisplay from "./question/ResultDisplay";
+import { RefreshCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface QuestionStepProps {
   content: string;
@@ -15,6 +16,7 @@ interface QuestionStepProps {
   onCorrect: () => void;
   onIncorrect: () => void;
   selectedGame?: any;
+  onRestart?: () => void; // Adicionando o novo prop opcional
 }
 
 const QuestionStep = ({ 
@@ -25,7 +27,8 @@ const QuestionStep = ({
   incorrectResponse, 
   onCorrect, 
   onIncorrect,
-  selectedGame 
+  selectedGame,
+  onRestart
 }: QuestionStepProps) => {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [showResult, setShowResult] = useState(false);
@@ -106,7 +109,22 @@ const QuestionStep = ({
   };
 
   return (
-    <div className="text-center">
+    <div className="text-center relative">
+      {/* Botão de reiniciar jogo sempre visível nas perguntas */}
+      {onRestart && (
+        <div className="absolute top-0 right-0 z-10">
+          <Button
+            onClick={onRestart}
+            variant="outline"
+            className="bg-white/90 border-2 border-red-500 text-red-600 hover:text-red-700 font-bold px-4 py-2 rounded-full shadow transition-all flex items-center gap-2"
+            title="Reiniciar Jogo"
+          >
+            <RefreshCcw className="w-4 h-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Reiniciar Jogo</span>
+          </Button>
+        </div>
+      )}
+      
       <QuestionDisplay content={content} borderColor={colors.border} />
 
       {!showResult && (

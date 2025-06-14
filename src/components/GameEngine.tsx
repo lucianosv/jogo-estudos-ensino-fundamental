@@ -398,6 +398,7 @@ const GameEngine = () => {
             onCorrect={handleCorrectAnswer}
             onIncorrect={handleIncorrectAnswer}
             selectedGame={selectedGame}
+            onRestart={handleRestart} {/* Novo prop */}
           />
         );
       case "input":
