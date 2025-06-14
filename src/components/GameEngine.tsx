@@ -56,6 +56,10 @@ const GameEngine = () => {
   const steps = gameData.steps as GameStep[];
   const currentStep = steps[currentStepIndex];
 
+  // Revisamos o controle do step e resultado
+  const [showQuestionResult, setShowQuestionResult] = useState(false);
+  const [lastQuestionCorrect, setLastQuestionCorrect] = useState<boolean | null>(null);
+
   // Security: Add rate limiting for AI content generation
   const generateGameContentSecure = async () => {
     if (!selectedGame) return;
@@ -165,6 +169,7 @@ const GameEngine = () => {
     }
   }, [selectedGame, questionsGenerated]);
 
+  // Corrigido: Obtenha a pergunta atual SEM avançar de índice antes da hora
   const getCurrentQuestion = () => {
     console.log('Getting current question. Index:', currentQuestionIndex);
     console.log('Dynamic questions available:', dynamicQuestions.length);
@@ -201,64 +206,51 @@ const GameEngine = () => {
     setCurrentStepIndex(0);
   };
 
+  // Recomeçar limpa controles extras de estado
   const handleRestart = () => {
-    console.log('Restarting game - full reset');
     resetGameState();
+    setShowQuestionResult(false);
+    setLastQuestionCorrect(null);
   };
 
+  // HANDLER CORRIGIDO: Para feedback após cada resposta
   const handleCorrectAnswer = () => {
-    console.log('=== CORRECT ANSWER HANDLER ===');
-    console.log('Current question index:', currentQuestionIndex);
-    console.log('Current collected words:', collectedWords);
-    
-    // Get the current question to extract the word
-    const currentQuestion = getCurrentQuestion();
-    console.log('Current question:', currentQuestion);
-    
-    if (currentQuestion && currentQuestion.word) {
-      // Add the word to collected words (prevent duplicates)
-      if (!collectedWords.includes(currentQuestion.word)) {
-        const newCollectedWords = [...collectedWords, currentQuestion.word];
-        setCollectedWords(newCollectedWords);
-        console.log('Added new word. New collected words:', newCollectedWords);
-      } else {
-        console.log('Word already collected, skipping');
-      }
-    }
-    
-    // Check if we have more questions to ask
-    const totalQuestions = dynamicQuestions.length > 0 ? dynamicQuestions.length : (selectedGame?.questions.length || 0);
-    console.log('Total questions available:', totalQuestions);
-    
-    if (currentQuestionIndex < totalQuestions - 1) {
-      // Move to next question
-      const nextQuestionIndex = currentQuestionIndex + 1;
-      console.log('Moving to next question:', nextQuestionIndex);
-      setCurrentQuestionIndex(nextQuestionIndex);
-    } else {
-      // All questions answered, move to next step
-      console.log('All questions completed, moving to next step');
-      setCurrentQuestionIndex(0); // Reset for potential future use
-      handleNext();
-    }
+    setLastQuestionCorrect(true);
+    setShowQuestionResult(true);
+
+    // NÃO avança de pergunta aqui! Avança só ao clicar continuar.
   };
 
   const handleIncorrectAnswer = () => {
-    console.log('=== INCORRECT ANSWER HANDLER ===');
-    console.log('Current question index:', currentQuestionIndex);
-    
+    setLastQuestionCorrect(false);
+    setShowQuestionResult(true);
+
+    // NÃO avança de pergunta aqui! Avança só ao clicar continuar.
+  };
+
+  // Handler para avançar DEPOIS de mostrar feedback
+  const handleAdvanceAfterResult = () => {
+    // Pegar total de perguntas correto
     const totalQuestions = dynamicQuestions.length > 0 ? dynamicQuestions.length : (selectedGame?.questions.length || 0);
-    console.log('Total questions available:', totalQuestions);
-    
+
+    // Se acertou, coletar palavra
+    if (lastQuestionCorrect) {
+      const currentQuestion = getCurrentQuestion();
+      if (currentQuestion && currentQuestion.word && !collectedWords.includes(currentQuestion.word)) {
+        setCollectedWords([...collectedWords, currentQuestion.word]);
+      }
+    }
+
+    // Se ainda tem próximas perguntas
     if (currentQuestionIndex < totalQuestions - 1) {
-      // Move to next question
-      const nextQuestionIndex = currentQuestionIndex + 1;
-      console.log('Incorrect answer, moving to next question:', nextQuestionIndex);
-      setCurrentQuestionIndex(nextQuestionIndex);
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setShowQuestionResult(false);
+      setLastQuestionCorrect(null);
     } else {
-      // All questions answered, move to next step
-      console.log('All questions completed, moving to next step');
-      setCurrentQuestionIndex(0); // Reset for potential future use
+      // Fim das perguntas, avança passo (step) geral
+      setCurrentQuestionIndex(0);
+      setShowQuestionResult(false);
+      setLastQuestionCorrect(null);
       handleNext();
     }
   };
@@ -344,20 +336,56 @@ const GameEngine = () => {
     );
   }
 
+  // TELA DE FEEDBACK/CONFIRMAÇÃO APÓS CADA RESPOSTA
+  const renderQuestionResultStep = () => {
+    const currentQuestion = getCurrentQuestion();
+    if (!currentQuestion) return null;
+
+    const word = currentQuestion.word;
+    const isCorrect = lastQuestionCorrect;
+
+    return (
+      <div className="flex flex-col items-center py-12 gap-8">
+        <div className="rounded-lg border-2 p-8 shadow bg-white/95">
+          <h2 className="text-2xl font-bold mb-4">
+            {isCorrect ? "🎉 Acertou!" : "❌ Errou!"}
+          </h2>
+          <p className="text-lg mb-4">
+            {isCorrect
+              ? <>Parabéns! A palavra secreta é <span className="font-extrabold">{word}</span>.</>
+              : <>Ops! Resposta incorreta. Tente de novo ou avance.</>
+            }
+          </p>
+        </div>
+        <button
+          onClick={handleAdvanceAfterResult}
+          className={`bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 text-white rounded-full px-8 py-3 font-bold text-lg shadow-lg hover:scale-105 transition-all`}
+        >
+          {currentQuestionIndex < (dynamicQuestions.length > 0 ? dynamicQuestions.length : (selectedGame?.questions.length || 0)) - 1
+            ? "Próxima Pergunta"
+            : "Avançar"}
+        </button>
+      </div>
+    );
+  };
+
+  // Corrige renderização do passo de pergunta
   const renderStep = () => {
+    // Se no passo de pergunta E resultado está para ser mostrado, mostra tela de resultado
+    if (currentStep.type === "question" && showQuestionResult) {
+      return renderQuestionResultStep();
+    }
+
     switch (currentStep.type) {
       case "text":
-        let content = currentStep.content;
-        
+        let content = currentStep.content;        
         if (content.includes("[STORY_PLACEHOLDER]") && selectedGame) {
-          // Use dynamic story if available
           const storyToUse = dynamicStory || selectedGame.story;
           content = content.replace(
             "[STORY_PLACEHOLDER]", 
             `**${storyToUse.title}**\n\n${storyToUse.content}`
           );
         }
-        
         return (
           <TextStep 
             content={content} 
@@ -380,15 +408,9 @@ const GameEngine = () => {
       case "question":
         const question = getCurrentQuestion();
         if (!question) {
-          console.log('No question available, moving to next step');
           handleNext();
           return null;
         }
-        
-        console.log('Rendering question:', question);
-        console.log('Current question index:', currentQuestionIndex);
-        
-        // Novo prop onRestart passado para QuestionStep
         return (
           <QuestionStep 
             content={question.content}
