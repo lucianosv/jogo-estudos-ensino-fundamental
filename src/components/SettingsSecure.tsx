@@ -22,7 +22,7 @@ const SettingsSecure = () => {
   const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
 
   // Helper returns correct type for Badge variant prop:
-  const getBadgeVariant = (isActive: boolean): BadgeProps["variant"] =>
+  const getBadgeVariant = (isActive: boolean): "default" | "outline" =>
     isActive ? "default" : "outline";
 
   const difficultyLevels = {
