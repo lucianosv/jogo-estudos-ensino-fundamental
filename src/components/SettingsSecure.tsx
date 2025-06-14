@@ -146,7 +146,8 @@ const SettingsSecure = () => {
               return (
                 <Badge
                   key={character}
-                  variant={getBadgeVariant(isActive)}
+                  // Cast is required to ensure only accepted variants go to Badge
+                  variant={getBadgeVariant(isActive) as "default" | "outline"}
                   className="cursor-default"
                 >
                   {character}
