@@ -230,28 +230,34 @@ const GameEngine = () => {
 
   // Handler para avançar DEPOIS de mostrar feedback
   const handleAdvanceAfterResult = () => {
-    // Pegar total de perguntas correto
+    // Pega o número total de perguntas disponível (dinâmicas ou estáticas)
     const totalQuestions = dynamicQuestions.length > 0 ? dynamicQuestions.length : (selectedGame?.questions.length || 0);
 
-    // Se acertou, coletar palavra
     if (lastQuestionCorrect) {
+      // Se acertou, coleta a palavra
       const currentQuestion = getCurrentQuestion();
       if (currentQuestion && currentQuestion.word && !collectedWords.includes(currentQuestion.word)) {
         setCollectedWords([...collectedWords, currentQuestion.word]);
       }
     }
 
-    // Se ainda tem próximas perguntas
+    // CONTROLE CORRIGIDO: Avança questão antes de liberar feedback,
+    // e só avança step ao FINAL das perguntas, sem repetir issue
     if (currentQuestionIndex < totalQuestions - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setShowQuestionResult(false);
       setLastQuestionCorrect(null);
     } else {
-      // Fim das perguntas, avança passo (step) geral
-      setCurrentQuestionIndex(0);
+      // Terminou as perguntas, avança para o próximo STEP, e reinicia estado de perguntas
       setShowQuestionResult(false);
       setLastQuestionCorrect(null);
-      handleNext();
+      setCurrentQuestionIndex(0);
+
+      // OPÇÃO: Para evitar race conditions com o currentQuestionIndex,
+      // aguarde limpar antes de ir para próximo step
+      setTimeout(() => {
+        handleNext();
+      }, 0);
     }
   };
 
