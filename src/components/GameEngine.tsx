@@ -4,13 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import gameData from "@/data/demon-slayer-math-game.json";
 import TextStep from "./game-steps/TextStep";
 import ChoiceStep from "./game-steps/ChoiceStep";
-import QuestionStep from "./game-steps/QuestionStep";
 import InputStep from "./game-steps/InputStep";
 import BackgroundImages from "./BackgroundImages";
 import GameHeader from "./GameHeader";
 import StartScreen from "./StartScreen";
 import { useToast } from "@/hooks/use-toast";
 import { validateGameTheme, sanitizeText, logSecurityEvent } from "@/utils/securityUtils";
+import QuestionsFlow from "./game-steps/QuestionsFlow";
 
 interface GameStep {
   type: "text" | "choice" | "question" | "input";
@@ -55,26 +55,10 @@ const GameEngine = () => {
   const [showQuestionResult, setShowQuestionResult] = useState(false);
   const [lastQuestionCorrect, setLastQuestionCorrect] = useState<boolean | null>(null);
 
-  // Removendo IA: sempre perguntas estáticas do game selecionado
-  const getCurrentQuestion = () => {
-    if (selectedGame && currentQuestionIndex < selectedGame.questions.length) {
-      return selectedGame.questions[currentQuestionIndex];
-    }
-    return null;
-  };
+  // Identifica se o passo é de perguntas
+  const isQuestionStep = currentStep.type === "question";
 
-  const handleNext = () => {
-    if (currentStepIndex < steps.length - 1) {
-      setCurrentStepIndex(currentStepIndex + 1);
-    }
-  };
-
-  const handleStart = () => {
-    setGameStarted(true);
-    setCurrentStepIndex(0);
-  };
-
-  // Recomeçar limpa tudo
+  // Reinicia tudo
   const handleRestart = () => {
     setCurrentStepIndex(0);
     setCollectedWords([]);
@@ -85,43 +69,19 @@ const GameEngine = () => {
     setLastQuestionCorrect(null);
   };
 
-  const handleCorrectAnswer = () => {
-    setLastQuestionCorrect(true);
-    setShowQuestionResult(true);
-    // Não avança pergunta aqui
+  // Função para coleta de palavra única e evita duplicatas
+  const handleCollectWord = (word: string) => {
+    setCollectedWords((prev) =>
+      prev.includes(word) ? prev : [...prev, word]
+    );
   };
 
-  const handleIncorrectAnswer = () => {
-    setLastQuestionCorrect(false);
-    setShowQuestionResult(true);
-    // Não avança pergunta aqui
-  };
-
-  // Após feedback, avança corretamente
-  const handleAdvanceAfterResult = () => {
-    if (!selectedGame) return;
-
-    if (lastQuestionCorrect) {
-      const currentQuestion = getCurrentQuestion();
-      if (currentQuestion && currentQuestion.word && !collectedWords.includes(currentQuestion.word)) {
-        setCollectedWords([...collectedWords, currentQuestion.word]);
-      }
-    }
-
-    if (currentQuestionIndex < selectedGame.questions.length - 1) {
-      // Avança para a próxima pergunta
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setShowQuestionResult(false);
-      setLastQuestionCorrect(null);
-    } else {
-      // Fim das perguntas desse bloco, avança para o próximo passo
-      setShowQuestionResult(false);
-      setLastQuestionCorrect(null);
-      setCurrentQuestionIndex(0);
-      setTimeout(() => {
-        handleNext();
-      }, 0);
-    }
+  // O que fazer após terminar todas as perguntas? Avança para a próxima etapa (história)
+  const handleFinishQuestions = () => {
+    setCurrentStepIndex((idx) => idx + 1);
+    setCurrentQuestionIndex(0);
+    setShowQuestionResult(false);
+    setLastQuestionCorrect(null);
   };
 
   // Escolha de tema
@@ -136,31 +96,26 @@ const GameEngine = () => {
       });
       return;
     }
-    let game: Game | null = null;
-    if (sanitizedTheme.includes("Tanjiro")) {
-      game = games.find(g => g.theme.includes("Tanjiro")) || null;
-    } else if (sanitizedTheme.includes("Nezuko")) {
-      game = games.find(g => g.theme.includes("Nezuko")) || null;
-    } else if (sanitizedTheme.includes("Zenitsu")) {
-      game = games.find(g => g.theme.includes("Zenitsu")) || null;
-    } else if (sanitizedTheme.includes("Inosuke")) {
-      game = games.find(g => g.theme.includes("Inosuke")) || null;
-    }
+    const game = games.find(g => sanitizedTheme.includes(g.theme.split(" ")[0])) || null;
     if (game) {
       setSelectedGame(game);
+      setCollectedWords([]);
       setCurrentQuestionIndex(0);
-      handleNext();
+      setTimeout(() => setCurrentStepIndex(2), 150); // Garante que vai para a 1ª pergunta
     }
   };
 
   const handlePasswordSubmit = (password: string) => {
     if (!selectedGame) return;
     const sanitizedPassword = sanitizeText(password);
-    const correctPassword = collectedWords.join(" ");
+    const correctPassword = selectedGame.password.join(" ");
     if (sanitizedPassword.trim().toLowerCase() === correctPassword.toLowerCase()) {
-      handleNext();
+      setCurrentStepIndex(currentStepIndex + 1);
     } else {
-      logSecurityEvent('Incorrect password attempt', { expected: correctPassword.length });
+      logSecurityEvent('Incorrect password attempt', {
+        expected: correctPassword,
+        received: sanitizedPassword
+      });
       toast({
         title: "❌ Senha incorreta!",
         description: "Use as palavras que você coletou na ordem correta.",
@@ -185,49 +140,24 @@ const GameEngine = () => {
       <StartScreen 
         title={gameData.title}
         description={gameData.description}
-        onStart={handleStart}
+        onStart={() => { setGameStarted(true); setCurrentStepIndex(0); }}
       />
     );
   }
 
-  // Página de confirmação pós resposta (feedback)
-  const renderQuestionResultStep = () => {
-    const currentQuestion = getCurrentQuestion();
-    if (!currentQuestion) return null;
-
-    const word = currentQuestion.word;
-    const isCorrect = lastQuestionCorrect;
-
-    return (
-      <div className="flex flex-col items-center py-12 gap-8">
-        <div className="rounded-lg border-2 p-8 shadow bg-white/95">
-          <h2 className="text-2xl font-bold mb-4">
-            {isCorrect ? "🎉 Acertou!" : "❌ Errou!"}
-          </h2>
-          <p className="text-lg mb-4">
-            {isCorrect
-              ? <>Parabéns! A palavra secreta é <span className="font-extrabold">{word}</span>.</>
-              : <>Ops! Resposta incorreta. Tente de novo ou avance.</>
-            }
-          </p>
-        </div>
-        <button
-          onClick={handleAdvanceAfterResult}
-          className={`bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 text-white rounded-full px-8 py-3 font-bold text-lg shadow-lg hover:scale-105 transition-all`}
-        >
-          {currentQuestionIndex < (selectedGame?.questions.length || 0) - 1
-            ? "Próxima Pergunta"
-            : "Avançar"}
-        </button>
-      </div>
-    );
-  };
-
-  // Renderização dos passos
+  // Renderização do passo (agora delegando perguntas p/ QuestionsFlow)
   const renderStep = () => {
-    // Se for passo de pergunta e feedback ativado, mostra tela de confirmação
-    if (currentStep.type === "question" && showQuestionResult) {
-      return renderQuestionResultStep();
+    // Se for passo de perguntas (índices 2 a 5), renderizamos QuestionsFlow passando SÓ as perguntas do herói escolhido
+    if (isQuestionStep && selectedGame) {
+      return (
+        <QuestionsFlow
+          questions={selectedGame.questions}
+          onCollectWord={handleCollectWord}
+          onFinish={handleFinishQuestions}
+          selectedGame={selectedGame}
+          onRestart={handleRestart}
+        />
+      );
     }
     switch (currentStep.type) {
       case "text":
@@ -242,7 +172,7 @@ const GameEngine = () => {
         return (
           <TextStep 
             content={content}
-            onNext={handleNext}
+            onNext={() => setCurrentStepIndex(idx => idx + 1)}
             collectedWords={collectedWords}
             selectedGame={selectedGame}
           />
@@ -252,29 +182,10 @@ const GameEngine = () => {
           <ChoiceStep 
             content={currentStep.content}
             choices={currentStep.choices || []}
-            onChoice={currentStepIndex === 1 ? handleThemeChoice : 
-                     currentStepIndex === steps.length - 1 ? handleFinalChoice : 
-                     handleNext}
+            onChoice={currentStepIndex === 1 ? handleThemeChoice :
+              currentStepIndex === steps.length - 1 ? handleFinalChoice :
+              () => setCurrentStepIndex(idx => idx + 1)}
             selectedGame={selectedGame}
-          />
-        );
-      case "question":
-        const question = getCurrentQuestion();
-        if (!question) {
-          handleNext();
-          return null;
-        }
-        return (
-          <QuestionStep 
-            content={question.content}
-            choices={question.choices}
-            answer={question.answer}
-            correctResponse={`🎉 Excelente! A palavra secreta é **${question.word}**.`}
-            incorrectResponse="❌ Resposta incorreta! Tente novamente."
-            onCorrect={handleCorrectAnswer}
-            onIncorrect={handleIncorrectAnswer}
-            selectedGame={selectedGame}
-            onRestart={handleRestart}
           />
         );
       case "input":
@@ -293,12 +204,7 @@ const GameEngine = () => {
 
   return (
     <div className="w-full max-w-3xl mx-auto relative min-h-screen">
-      {/* Security indicator */}
-      <div className="absolute top-2 right-2 z-20">
-        <div className="bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
-          🛡️ Seguro
-        </div>
-      </div>
+      {/* Security indicator removido conforme solicitado */}
 
       <BackgroundImages selectedGame={selectedGame} />
 
@@ -309,14 +215,12 @@ const GameEngine = () => {
         collectedWords={collectedWords}
       />
 
-      {/* Main Game Content */}
       <Card className="bg-white/85 backdrop-blur-lg shadow-2xl border-2 border-white/60 relative z-10">
         <CardContent className="p-8">
           {renderStep()}
         </CardContent>
       </Card>
 
-      {/* Restart Button */}
       {currentStepIndex === steps.length - 1 && (
         <div className="mt-6 text-center relative z-10">
           <Button 
