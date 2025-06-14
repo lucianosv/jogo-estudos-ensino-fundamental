@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,11 @@ const SettingsSecure = () => {
   const { toast } = useToast();
 
   const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
+  // O tipo "variant" do Badge pode ser só "default" | "secondary" | "destructive" | "outline"
+  // Vamos fazer um helper para garantir o tipo correto:
+  type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+  const getBadgeVariant = (isActive: boolean): BadgeVariant =>
+    isActive ? "default" : "outline";
   const difficultyLevels = {
     easy: 'Fácil (1-20)',
     medium: 'Médio (1-100)', 
@@ -140,11 +144,7 @@ const SettingsSecure = () => {
             {availableCharacters.map((character) => (
               <Badge
                 key={character}
-                variant={
-                  settings.preferred_characters.includes(character)
-                    ? "default"
-                    : "outline"
-                }
+                variant={getBadgeVariant(settings.preferred_characters.includes(character))}
                 className="cursor-default"
               >
                 {character}
