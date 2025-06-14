@@ -20,9 +20,7 @@ const SettingsSecure = () => {
   const { toast } = useToast();
 
   const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
-  // O tipo "variant" do Badge pode ser só "default" | "secondary" | "destructive" | "outline"
-  // Vamos fazer um helper para garantir o tipo correto:
-  type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+  // Helper returns correct type for Badge variant prop:
   const getBadgeVariant = (isActive: boolean): "default" | "outline" =>
     isActive ? "default" : "outline";
   const difficultyLevels = {
@@ -143,11 +141,11 @@ const SettingsSecure = () => {
           <div className="flex flex-wrap gap-2">
             {availableCharacters.map((character) => {
               const isActive = settings.preferred_characters.includes(character);
-              const variant: "default" | "outline" = getBadgeVariant(isActive);
+              // This cast is now unnecessary since getBadgeVariant returns the correct type:
               return (
                 <Badge
                   key={character}
-                  variant={variant}
+                  variant={getBadgeVariant(isActive)}
                   className="cursor-default"
                 >
                   {character}
