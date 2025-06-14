@@ -108,7 +108,10 @@ const SettingsSecure = () => {
         <CardTitle className="flex items-center gap-2">
           <Settings className="w-5 h-5" />
           Configurações do Jogo
-          <Shield className="w-4 h-4 ml-auto" title="Configurações seguras" />
+          <span className="ml-auto flex items-center">
+            <Shield className="w-4 h-4" aria-hidden="true" />
+            <span className="sr-only">Configurações seguras</span>
+          </span>
         </CardTitle>
       </CardHeader>
       
@@ -120,7 +123,7 @@ const SettingsSecure = () => {
           </label>
           <div className="p-3 bg-gray-50 border rounded-md">
             <span className="text-sm text-gray-800">
-              {difficultyLevels[settings.difficulty_level]}
+              {difficultyLevels[settings.difficulty_level as keyof typeof difficultyLevels]}
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-1">
@@ -137,7 +140,11 @@ const SettingsSecure = () => {
             {availableCharacters.map((character) => (
               <Badge
                 key={character}
-                variant={settings.preferred_characters.includes(character) ? "default" : "outline"}
+                variant={
+                  settings.preferred_characters.includes(character)
+                    ? "default"
+                    : "outline"
+                }
                 className="cursor-default"
               >
                 {character}
