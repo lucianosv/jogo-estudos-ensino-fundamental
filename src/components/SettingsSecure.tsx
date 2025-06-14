@@ -22,8 +22,8 @@ const SettingsSecure = () => {
 
   const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
 
-  // Explicitly type the return value as the allowed Badge variant string literals
-  const getBadgeVariant = (isActive: boolean): "default" | "outline" => 
+  // Força retorno correto para TS usando tipo do BadgeProps
+  const getBadgeVariant = (isActive: boolean): BadgeProps['variant'] =>
     isActive ? "default" : "outline";
 
   const difficultyLevels = {
@@ -144,7 +144,6 @@ const SettingsSecure = () => {
           <div className="flex flex-wrap gap-2">
             {availableCharacters.map((character) => {
               const isActive = settings.preferred_characters.includes(character);
-              // Now, TypeScript knows getBadgeVariant returns only the allowed types
               return (
                 <Badge
                   key={character}
@@ -197,4 +196,3 @@ const SettingsSecure = () => {
 };
 
 export default SettingsSecure;
-
