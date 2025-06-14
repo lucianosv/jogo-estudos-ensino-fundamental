@@ -52,7 +52,7 @@ const CharactersField = ({ preferred }: { preferred: string[] }) => (
         return (
           <Badge
             key={character}
-            variant={getBadgeVariant(isActive)}
+            variant={getBadgeVariant(isActive) as "default" | "secondary" | "destructive" | "outline" | undefined}
             className="cursor-default"
           >
             {character}
