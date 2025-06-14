@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,8 +22,8 @@ const SettingsSecure = () => {
 
   const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
 
-  // Helper returns correct type for Badge variant prop:
-  const getBadgeVariant = (isActive: boolean): "default" | "outline" =>
+  // Explicitly type the return value as the allowed Badge variant string literals
+  const getBadgeVariant = (isActive: boolean): "default" | "outline" => 
     isActive ? "default" : "outline";
 
   const difficultyLevels = {
@@ -143,11 +144,11 @@ const SettingsSecure = () => {
           <div className="flex flex-wrap gap-2">
             {availableCharacters.map((character) => {
               const isActive = settings.preferred_characters.includes(character);
+              // Now, TypeScript knows getBadgeVariant returns only the allowed types
               return (
                 <Badge
                   key={character}
-                  // Cast is required to ensure only accepted variants go to Badge
-                  variant={getBadgeVariant(isActive) as "default" | "outline"}
+                  variant={getBadgeVariant(isActive)}
                   className="cursor-default"
                 >
                   {character}
@@ -196,3 +197,4 @@ const SettingsSecure = () => {
 };
 
 export default SettingsSecure;
+
