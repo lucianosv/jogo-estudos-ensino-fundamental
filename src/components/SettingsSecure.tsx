@@ -15,9 +15,9 @@ interface GameSettings {
 
 // Restringe explicitamente os tipos aceitos pelo Badge
 
-// use exatamente o tipo aceito pelo Badge
-const getBadgeVariant = (isActive: boolean): "default" | "outline" =>
-  isActive ? "default" : "outline";
+// use exatamente o tipo aceito pelo Badge, garantido como literal union
+const getBadgeVariant = (isActive: boolean) => 
+  isActive ? "default" as const : "outline" as const;
 
 // Subcomponentes pequenos
 const DifficultyField = ({ level }: { level: GameSettings['difficulty_level'] }) => (
