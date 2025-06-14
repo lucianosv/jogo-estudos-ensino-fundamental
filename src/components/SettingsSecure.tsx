@@ -20,7 +20,7 @@ const SettingsSecure = () => {
   const { toast } = useToast();
 
   const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
-  // Helper returns correct type for Badge variant prop:
+  // Explicit union type - this ensures the return value is type-safe for the Badge
   const getBadgeVariant = (isActive: boolean): "default" | "outline" =>
     isActive ? "default" : "outline";
   const difficultyLevels = {
@@ -141,10 +141,10 @@ const SettingsSecure = () => {
           <div className="flex flex-wrap gap-2">
             {availableCharacters.map((character) => {
               const isActive = settings.preferred_characters.includes(character);
-              // This cast is now unnecessary since getBadgeVariant returns the correct type:
               return (
                 <Badge
                   key={character}
+                  // Explicit type cast for Badge variant (safe after getBadgeVariant fix)
                   variant={getBadgeVariant(isActive)}
                   className="cursor-default"
                 >
