@@ -23,8 +23,8 @@ const SettingsSecure = () => {
   // O tipo "variant" do Badge pode ser só "default" | "secondary" | "destructive" | "outline"
   // Vamos fazer um helper para garantir o tipo correto:
   type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
-  const getBadgeVariant = (isActive: boolean): BadgeVariant =>
-    isActive ? "default" : "outline";
+  const getBadgeVariant = (isActive: boolean) =>
+    (isActive ? "default" : "outline") as "default" | "outline";
   const difficultyLevels = {
     easy: 'Fácil (1-20)',
     medium: 'Médio (1-100)', 
