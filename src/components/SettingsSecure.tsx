@@ -141,15 +141,19 @@ const SettingsSecure = () => {
             Personagens Disponíveis
           </label>
           <div className="flex flex-wrap gap-2">
-            {availableCharacters.map((character) => (
-              <Badge
-                key={character}
-                variant={getBadgeVariant(settings.preferred_characters.includes(character))}
-                className="cursor-default"
-              >
-                {character}
-              </Badge>
-            ))}
+            {availableCharacters.map((character) => {
+              const isActive = settings.preferred_characters.includes(character);
+              const variant: "default" | "outline" = getBadgeVariant(isActive);
+              return (
+                <Badge
+                  key={character}
+                  variant={variant}
+                  className="cursor-default"
+                >
+                  {character}
+                </Badge>
+              );
+            })}
           </div>
           <p className="text-xs text-gray-500 mt-1">
             Personagens configurados pelo sistema
