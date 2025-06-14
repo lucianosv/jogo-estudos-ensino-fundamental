@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getThemeColors } from "./question/ThemeUtils";
@@ -16,7 +17,7 @@ interface QuestionStepProps {
   onCorrect: () => void;
   onIncorrect: () => void;
   selectedGame?: any;
-  onRestart?: () => void; // Adicionando o novo prop opcional
+  onRestart?: () => void;
 }
 
 const QuestionStep = ({ 
@@ -38,8 +39,6 @@ const QuestionStep = ({
 
   // Reset state when content changes (new question)
   useEffect(() => {
-    console.log('QuestionStep: New question loaded, resetting state');
-    console.log('Question content:', content);
     setSelectedAnswer("");
     setShowResult(false);
     setIsCorrect(false);
@@ -58,50 +57,26 @@ const QuestionStep = ({
       return;
     }
 
-    console.log('=== QUESTION STEP SUBMIT ===');
-    console.log('Selected answer:', selectedAnswer);
-    console.log('Correct answer:', answer);
-    
+    // Não mostrar pop-up de feedback aqui:
     const correct = selectedAnswer === answer;
     setIsCorrect(correct);
     setShowResult(true);
 
-    if (correct) {
-      console.log('Answer is correct!');
-      toast({
-        title: "🎉 Resposta Correta!",
-        description: correctResponse.replace(/\*\*/g, ""),
-      });
-    } else {
-      console.log('Answer is incorrect!');
-      toast({
-        title: "❌ Resposta Incorreta",
-        description: incorrectResponse,
-        variant: "destructive"
-      });
-    }
-    
-    // Show continue button after a short delay
+    // Removidas chamadas toast de feedback
     setTimeout(() => {
       setShowContinueButton(true);
     }, 1500);
   };
 
   const handleContinue = () => {
-    console.log('=== QUESTION STEP CONTINUE ===');
-    console.log('Is correct:', isCorrect);
-    
     if (isCorrect) {
-      console.log('Calling onCorrect callback');
       onCorrect();
     } else {
-      console.log('Calling onIncorrect callback');
       onIncorrect();
     }
   };
 
   const handleTryAgain = () => {
-    console.log('QuestionStep: Try again clicked - resetting question state');
     setSelectedAnswer("");
     setShowResult(false);
     setIsCorrect(false);
@@ -110,7 +85,6 @@ const QuestionStep = ({
 
   return (
     <div className="text-center relative">
-      {/* Botão de reiniciar jogo sempre visível nas perguntas */}
       {onRestart && (
         <div className="absolute top-0 right-0 z-10">
           <Button
