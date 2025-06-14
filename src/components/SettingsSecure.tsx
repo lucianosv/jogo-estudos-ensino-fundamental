@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Badge, BadgeProps } from '@/components/ui/badge';
 import { Settings, RefreshCw, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -15,16 +14,9 @@ interface GameSettings {
 }
 
 // Restringe explicitamente os tipos aceitos pelo Badge
-type BadgeVariant = "default" | "outline";
 
-const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
-const difficultyLevels = {
-  easy: 'Fácil (1-20)',
-  medium: 'Médio (1-100)', 
-  hard: 'Difícil (números maiores)'
-};
-
-const getBadgeVariant = (isActive: boolean): BadgeVariant =>
+// use exatamente o tipo aceito pelo Badge
+const getBadgeVariant = (isActive: boolean): NonNullable<BadgeProps['variant']> =>
   isActive ? "default" : "outline";
 
 // Subcomponentes pequenos
@@ -41,6 +33,13 @@ const DifficultyField = ({ level }: { level: GameSettings['difficulty_level'] })
     </p>
   </div>
 );
+
+const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
+const difficultyLevels = {
+  easy: 'Fácil (1-20)',
+  medium: 'Médio (1-100)', 
+  hard: 'Difícil (números maiores)'
+};
 
 const CharactersField = ({ preferred }: { preferred: string[] }) => (
   <div>
