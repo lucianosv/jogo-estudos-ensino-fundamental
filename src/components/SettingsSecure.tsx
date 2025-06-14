@@ -16,7 +16,7 @@ interface GameSettings {
 // Restringe explicitamente os tipos aceitos pelo Badge
 
 // use exatamente o tipo aceito pelo Badge
-const getBadgeVariant = (isActive: boolean): NonNullable<BadgeProps['variant']> =>
+const getBadgeVariant = (isActive: boolean): "default" | "outline" =>
   isActive ? "default" : "outline";
 
 // Subcomponentes pequenos
@@ -52,7 +52,7 @@ const CharactersField = ({ preferred }: { preferred: string[] }) => (
         return (
           <Badge
             key={character}
-            variant={getBadgeVariant(isActive) as "default" | "secondary" | "destructive" | "outline" | undefined}
+            variant={getBadgeVariant(isActive)}
             className="cursor-default"
           >
             {character}
