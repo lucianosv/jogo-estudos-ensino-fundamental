@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,9 +14,6 @@ interface GameSettings {
   cache_duration_hours: number;
 }
 
-// Explicitly type variant for use in both getBadgeVariant and prop (prevents TS2345)
-type MyBadgeVariant = Extract<BadgeProps['variant'], 'default' | 'outline'>;
-
 const SettingsSecure = () => {
   const [settings, setSettings] = useState<GameSettings | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +22,7 @@ const SettingsSecure = () => {
   const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
 
   // Helper returns correct type for Badge variant prop:
-  const getBadgeVariant = (isActive: boolean): MyBadgeVariant =>
+  const getBadgeVariant = (isActive: boolean): 'default' | 'outline' =>
     isActive ? "default" : "outline";
 
   const difficultyLevels = {
