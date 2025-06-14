@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge, BadgeProps } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Settings, RefreshCw, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -12,12 +12,6 @@ interface GameSettings {
   preferred_characters: string[];
   cache_duration_hours: number;
 }
-
-// Restringe explicitamente os tipos aceitos pelo Badge
-
-// use exatamente o tipo aceito pelo Badge
-const getBadgeVariant = (isActive: boolean): "default" | "outline" =>
-  isActive ? "default" : "outline";
 
 // Subcomponentes pequenos
 const DifficultyField = ({ level }: { level: GameSettings['difficulty_level'] }) => (
@@ -52,7 +46,7 @@ const CharactersField = ({ preferred }: { preferred: string[] }) => (
         return (
           <Badge
             key={character}
-            variant={getBadgeVariant(isActive) as "default" | "outline"}
+            variant={isActive ? 'default' : 'outline'}
             className="cursor-default"
           >
             {character}
