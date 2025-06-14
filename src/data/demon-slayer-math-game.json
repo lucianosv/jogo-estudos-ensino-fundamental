@@ -1,4 +1,3 @@
-
 {
   "title": "Desafio Matemático Demon Slayer",
   "description": "Um jogo interativo para crianças de 9 anos com temas de matemática e universo do mangá Demon Slayer.",
@@ -162,30 +161,6 @@
         "⚡ Zenitsu e os Raios",
         "🏔️ Inosuke e a Natureza"
       ]
-    },
-    {
-      "type": "question",
-      "content": "",
-      "choices": [],
-      "answer": "",
-      "correct_response": "",
-      "incorrect_response": "Você errou. Deseja tentar de novo?"
-    },
-    {
-      "type": "question", 
-      "content": "",
-      "choices": [],
-      "answer": "",
-      "correct_response": "",
-      "incorrect_response": "Você errou. Deseja tentar de novo?"
-    },
-    {
-      "type": "question",
-      "content": "",
-      "choices": [],
-      "answer": "",
-      "correct_response": "",
-      "incorrect_response": "Você errou. Deseja tentar de novo?"
     },
     {
       "type": "question",

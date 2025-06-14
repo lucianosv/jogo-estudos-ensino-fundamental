@@ -101,7 +101,8 @@ const GameEngine = () => {
       setSelectedGame(game);
       setCollectedWords([]);
       setCurrentQuestionIndex(0);
-      setTimeout(() => setCurrentStepIndex(2), 150); // Garante que vai para a 1ª pergunta
+      // > A partir de agora, só tem 1 etapa de question
+      setTimeout(() => setCurrentStepIndex(2), 150); // vai para a etapa questions
     }
   };
 
@@ -147,7 +148,7 @@ const GameEngine = () => {
 
   // Renderização do passo (agora delegando perguntas p/ QuestionsFlow)
   const renderStep = () => {
-    // Se for passo de perguntas (índices 2 a 5), renderizamos QuestionsFlow passando SÓ as perguntas do herói escolhido
+    // Apenas UMA etapa questions agora, então ela cobre as 4 perguntas
     if (isQuestionStep && selectedGame) {
       return (
         <QuestionsFlow
@@ -178,6 +179,7 @@ const GameEngine = () => {
           />
         );
       case "choice":
+        // > Ajustar para novos índices: etapa de final (nova) é no steps.length-1
         return (
           <ChoiceStep 
             content={currentStep.content}
