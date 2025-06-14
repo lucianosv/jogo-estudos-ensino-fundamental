@@ -35,31 +35,6 @@ const difficultyLevels = {
   hard: 'Difícil (números maiores)'
 };
 
-const CharactersField = ({ preferred }: { preferred: string[] }) => (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">
-      Personagens Disponíveis
-    </label>
-    <div className="flex flex-wrap gap-2">
-      {availableCharacters.map((character) => {
-        const isActive = preferred.includes(character);
-        return (
-          <Badge
-            key={character}
-            variant={isActive ? 'default' : 'outline'}
-            className="cursor-default"
-          >
-            {character}
-          </Badge>
-        );
-      })}
-    </div>
-    <p className="text-xs text-gray-500 mt-1">
-      Personagens configurados pelo sistema
-    </p>
-  </div>
-);
-
 const CacheField = ({ hours }: { hours: number }) => (
   <div>
     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -183,7 +158,28 @@ const SettingsSecure = () => {
       </CardHeader>
       <CardContent className="p-6 space-y-6">
         <DifficultyField level={settings.difficulty_level} />
-        <CharactersField preferred={settings.preferred_characters} />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Personagens Disponíveis
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {availableCharacters.map((character) => {
+              const isActive = settings.preferred_characters.includes(character);
+              return (
+                <Badge
+                  key={character}
+                  variant={isActive ? 'default' : 'outline'}
+                  className="cursor-default"
+                >
+                  {character}
+                </Badge>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Personagens configurados pelo sistema
+          </p>
+        </div>
         <CacheField hours={settings.cache_duration_hours} />
         <CacheClearButton clearCache={clearCache} isLoading={isLoading} />
       </CardContent>
