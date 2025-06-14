@@ -2,8 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge, type BadgeProps } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Settings, RefreshCw, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -15,25 +14,100 @@ interface GameSettings {
   cache_duration_hours: number;
 }
 
+// Restringe explicitamente os tipos aceitos pelo Badge
+type BadgeVariant = "default" | "outline";
+
+const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
+const difficultyLevels = {
+  easy: 'Fácil (1-20)',
+  medium: 'Médio (1-100)', 
+  hard: 'Difícil (números maiores)'
+};
+
+const getBadgeVariant = (isActive: boolean): BadgeVariant =>
+  isActive ? "default" : "outline";
+
+// Subcomponentes pequenos
+const DifficultyField = ({ level }: { level: GameSettings['difficulty_level'] }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Nível de Dificuldade
+    </label>
+    <div className="p-3 bg-gray-50 border rounded-md">
+      <span className="text-sm text-gray-800">{difficultyLevels[level]}</span>
+    </div>
+    <p className="text-xs text-gray-500 mt-1">
+      Configuração protegida contra alterações
+    </p>
+  </div>
+);
+
+const CharactersField = ({ preferred }: { preferred: string[] }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Personagens Disponíveis
+    </label>
+    <div className="flex flex-wrap gap-2">
+      {availableCharacters.map((character) => {
+        const isActive = preferred.includes(character);
+        return (
+          <Badge
+            key={character}
+            variant={getBadgeVariant(isActive)}
+            className="cursor-default"
+          >
+            {character}
+          </Badge>
+        );
+      })}
+    </div>
+    <p className="text-xs text-gray-500 mt-1">
+      Personagens configurados pelo sistema
+    </p>
+  </div>
+);
+
+const CacheField = ({ hours }: { hours: number }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Cache de Conteúdo
+    </label>
+    <div className="p-3 bg-gray-50 border rounded-md">
+      <span className="text-sm text-gray-800">
+        {hours} horas
+      </span>
+    </div>
+    <p className="text-xs text-gray-500 mt-1">
+      Duração do cache otimizada para segurança
+    </p>
+  </div>
+);
+
+const CacheClearButton = ({ clearCache, isLoading }: { clearCache: () => void, isLoading: boolean }) => (
+  <div>
+    <Button
+      onClick={clearCache}
+      disabled={isLoading}
+      variant="outline"
+      className="w-full border-blue-300 text-blue-600 hover:bg-blue-50"
+    >
+      <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+      {isLoading ? 'Limpando...' : 'Limpar Cache Expirado'}
+    </Button>
+    <p className="text-xs text-gray-500 mt-1">
+      Remove apenas conteúdo expirado com segurança
+    </p>
+  </div>
+);
+
 const SettingsSecure = () => {
   const [settings, setSettings] = useState<GameSettings | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
-
-  // Força retorno correto para TS usando tipo do BadgeProps
-  const getBadgeVariant = (isActive: boolean): BadgeProps['variant'] =>
-    isActive ? "default" : "outline";
-
-  const difficultyLevels = {
-    easy: 'Fácil (1-20)',
-    medium: 'Médio (1-100)', 
-    hard: 'Difícil (números maiores)'
-  };
-
   useEffect(() => {
     loadSettings();
+    // eslint-disable-next-line
   }, []);
 
   const loadSettings = async () => {
@@ -73,13 +147,8 @@ const SettingsSecure = () => {
   const clearCache = async () => {
     setIsLoading(true);
     try {
-      // Call cleanup function to remove expired content
       const { error } = await supabase.rpc('cleanup_expired_content');
-
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
       toast({
         title: "🗑️ Cache limpo!",
         description: "Conteúdo expirado foi removido com segurança.",
@@ -119,77 +188,11 @@ const SettingsSecure = () => {
           </span>
         </CardTitle>
       </CardHeader>
-      
       <CardContent className="p-6 space-y-6">
-        {/* Display current difficulty (read-only for security) */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Nível de Dificuldade
-          </label>
-          <div className="p-3 bg-gray-50 border rounded-md">
-            <span className="text-sm text-gray-800">
-              {difficultyLevels[settings.difficulty_level as keyof typeof difficultyLevels]}
-            </span>
-          </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Configuração protegida contra alterações
-          </p>
-        </div>
-
-        {/* Display preferred characters (read-only) */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Personagens Disponíveis
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {availableCharacters.map((character) => {
-              const isActive = settings.preferred_characters.includes(character);
-              return (
-                <Badge
-                  key={character}
-                  variant={getBadgeVariant(isActive)}
-                  className="cursor-default"
-                >
-                  {character}
-                </Badge>
-              );
-            })}
-          </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Personagens configurados pelo sistema
-          </p>
-        </div>
-
-        {/* Cache duration (read-only) */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Cache de Conteúdo
-          </label>
-          <div className="p-3 bg-gray-50 border rounded-md">
-            <span className="text-sm text-gray-800">
-              {settings.cache_duration_hours} horas
-            </span>
-          </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Duração do cache otimizada para segurança
-          </p>
-        </div>
-
-        {/* Secure cache clear button */}
-        <div>
-          <Button
-            onClick={clearCache}
-            disabled={isLoading}
-            variant="outline"
-            className="w-full border-blue-300 text-blue-600 hover:bg-blue-50"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Limpando...' : 'Limpar Cache Expirado'}
-          </Button>
-          <p className="text-xs text-gray-500 mt-1">
-            Remove apenas conteúdo expirado com segurança
-          </p>
-        </div>
+        <DifficultyField level={settings.difficulty_level} />
+        <CharactersField preferred={settings.preferred_characters} />
+        <CacheField hours={settings.cache_duration_hours} />
+        <CacheClearButton clearCache={clearCache} isLoading={isLoading} />
       </CardContent>
     </Card>
   );
