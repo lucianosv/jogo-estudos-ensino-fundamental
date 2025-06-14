@@ -1,5 +1,5 @@
 
-import SettingsPanel from '@/components/SettingsPanel';
+import SettingsSecure from '@/components/SettingsSecure';
 
 const Settings = () => {
   return (
@@ -11,7 +11,7 @@ const Settings = () => {
         <div className="absolute bottom-32 right-1/3 w-14 h-14 bg-white rounded-full animate-pulse delay-3000"></div>
       </div>
       
-      <SettingsPanel />
+      <SettingsSecure />
     </div>
   );
 };

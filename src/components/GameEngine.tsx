@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +11,7 @@ import GameHeader from "./GameHeader";
 import StartScreen from "./StartScreen";
 import { useAIContent } from "@/hooks/useAIContent";
 import { useToast } from "@/hooks/use-toast";
+import { validateGameTheme, sanitizeText, logSecurityEvent, checkRateLimit } from "@/utils/securityUtils";
 
 interface GameStep {
   type: "text" | "choice" | "question" | "input";
@@ -56,6 +56,96 @@ const GameEngine = () => {
   const steps = gameData.steps as GameStep[];
   const currentStep = steps[currentStepIndex];
 
+  // Security: Add rate limiting for AI content generation
+  const generateGameContentSecure = async () => {
+    if (!selectedGame) return;
+
+    // Rate limiting check
+    if (!checkRateLimit('ai-generation', 5, 300000)) { // 5 requests per 5 minutes
+      toast({
+        title: "⚠️ Muitas solicitações",
+        description: "Aguarde alguns minutos antes de gerar novo conteúdo.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate theme
+    if (!validateGameTheme(selectedGame.theme)) {
+      logSecurityEvent('Invalid theme attempted', { theme: selectedGame.theme });
+      toast({
+        title: "❌ Tema inválido",
+        description: "Tema não permitido para segurança.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('Starting secure AI content generation for:', selectedGame.theme);
+    
+    try {
+      toast({
+        title: "🛡️ Gerando conteúdo seguro...",
+        description: `Criando aventura validada para ${selectedGame.theme}`,
+      });
+
+      // Generate dynamic story with security validation
+      console.log('Generating story securely...');
+      const story = await generateStory(selectedGame.theme);
+      if (story) {
+        // Sanitize story content
+        const sanitizedStory = {
+          ...story,
+          title: sanitizeText(story.title || ''),
+          content: sanitizeText(story.content || '')
+        };
+        setDynamicStory(sanitizedStory);
+        console.log('Secure story generated');
+      }
+
+      // Generate 3 fresh questions with validation
+      console.log('Generating questions securely...');
+      const questions = [];
+      for (let i = 0; i < 3; i++) {
+        const question = await generateQuestion(selectedGame.theme, 'medium');
+        if (question) {
+          // Sanitize question content
+          const sanitizedQuestion = {
+            ...question,
+            content: sanitizeText(question.content || ''),
+            choices: (question.choices || []).map((choice: string) => sanitizeText(choice)),
+            answer: sanitizeText(question.answer || ''),
+            word: sanitizeText(question.word || '')
+          };
+          questions.push(sanitizedQuestion);
+          console.log(`Secure question ${i + 1} generated`);
+        }
+      }
+      
+      if (questions.length > 0) {
+        setDynamicQuestions(questions);
+        setQuestionsGenerated(true);
+        
+        toast({
+          title: "✅ Conteúdo seguro criado!",
+          description: `${questions.length} desafios validados gerados`,
+        });
+        
+        console.log('All secure questions generated');
+      }
+
+    } catch (error) {
+      console.error('Error in secure content generation:', error);
+      logSecurityEvent('Content generation failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+      
+      toast({
+        title: "⚠️ Usando conteúdo padrão",
+        description: "Erro na geração segura, mas o jogo continua!",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Reset game state completely when restarting
   const resetGameState = () => {
     setCurrentStepIndex(0);
@@ -71,61 +161,9 @@ const GameEngine = () => {
   // Generate fresh content when a theme is selected
   useEffect(() => {
     if (selectedGame && !questionsGenerated) {
-      generateGameContent();
+      generateGameContentSecure();
     }
   }, [selectedGame, questionsGenerated]);
-
-  const generateGameContent = async () => {
-    if (!selectedGame) return;
-
-    console.log('Starting AI content generation for:', selectedGame.theme);
-    
-    try {
-      toast({
-        title: "🎯 Criando aventura personalizada...",
-        description: `Gerando conteúdo único para ${selectedGame.theme}`,
-      });
-
-      // Generate dynamic story
-      console.log('Generating story...');
-      const story = await generateStory(selectedGame.theme);
-      if (story) {
-        setDynamicStory(story);
-        console.log('Story generated:', story);
-      }
-
-      // Generate 3 fresh questions
-      console.log('Generating questions...');
-      const questions = [];
-      for (let i = 0; i < 3; i++) {
-        const question = await generateQuestion(selectedGame.theme, 'medium');
-        if (question) {
-          questions.push(question);
-          console.log(`Question ${i + 1} generated:`, question);
-        }
-      }
-      
-      if (questions.length > 0) {
-        setDynamicQuestions(questions);
-        setQuestionsGenerated(true);
-        
-        toast({
-          title: "✨ Aventura criada!",
-          description: `${questions.length} desafios únicos gerados com IA`,
-        });
-        
-        console.log('All questions generated:', questions);
-      }
-
-    } catch (error) {
-      console.error('Erro ao gerar conteúdo:', error);
-      toast({
-        title: "⚠️ Usando conteúdo padrão",
-        description: "Houve um problema na geração, mas o jogo continua!",
-        variant: "destructive"
-      });
-    }
-  };
 
   const getCurrentQuestion = () => {
     console.log('Getting current question. Index:', currentQuestionIndex);
@@ -227,15 +265,28 @@ const GameEngine = () => {
 
   const handleThemeChoice = (theme: string) => {
     console.log('Theme chosen:', theme);
+    
+    // Security: Validate and sanitize theme choice
+    const sanitizedTheme = sanitizeText(theme);
+    if (!validateGameTheme(sanitizedTheme)) {
+      logSecurityEvent('Invalid theme choice', { theme, sanitizedTheme });
+      toast({
+        title: "❌ Tema inválido",
+        description: "Por favor, escolha um tema válido.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     let game: Game | null = null;
     
-    if (theme.includes("Tanjiro")) {
+    if (sanitizedTheme.includes("Tanjiro")) {
       game = games.find(g => g.theme.includes("Tanjiro")) || null;
-    } else if (theme.includes("Nezuko")) {
+    } else if (sanitizedTheme.includes("Nezuko")) {
       game = games.find(g => g.theme.includes("Nezuko")) || null;
-    } else if (theme.includes("Zenitsu")) {
+    } else if (sanitizedTheme.includes("Zenitsu")) {
       game = games.find(g => g.theme.includes("Zenitsu")) || null;
-    } else if (theme.includes("Inosuke")) {
+    } else if (sanitizedTheme.includes("Inosuke")) {
       game = games.find(g => g.theme.includes("Inosuke")) || null;
     }
     
@@ -243,7 +294,7 @@ const GameEngine = () => {
       console.log('Selected game:', game);
       setSelectedGame(game);
       setCurrentQuestionIndex(0);
-      setQuestionsGenerated(false); // Reset to trigger new generation
+      setQuestionsGenerated(false);
       handleNext();
     }
   };
@@ -251,14 +302,18 @@ const GameEngine = () => {
   const handlePasswordSubmit = (password: string) => {
     if (!selectedGame) return;
     
+    // Security: Sanitize password input
+    const sanitizedPassword = sanitizeText(password);
     const correctPassword = collectedWords.join(" ");
-    console.log('Password check. Input:', password, 'Expected:', correctPassword);
     
-    if (password.trim().toLowerCase() === correctPassword.toLowerCase()) {
+    console.log('Secure password check. Input sanitized, comparing with expected');
+    
+    if (sanitizedPassword.trim().toLowerCase() === correctPassword.toLowerCase()) {
       console.log('Password correct!');
       handleNext();
     } else {
       console.log('Password incorrect');
+      logSecurityEvent('Incorrect password attempt', { expected: correctPassword.length });
       toast({
         title: "❌ Senha incorreta!",
         description: "Use as palavras que você coletou na ordem correta.",
@@ -361,6 +416,13 @@ const GameEngine = () => {
 
   return (
     <div className="w-full max-w-3xl mx-auto relative min-h-screen">
+      {/* Security indicator */}
+      <div className="absolute top-2 right-2 z-20">
+        <div className="bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+          🛡️ Seguro
+        </div>
+      </div>
+
       <BackgroundImages selectedGame={selectedGame} />
 
       <GameHeader 
