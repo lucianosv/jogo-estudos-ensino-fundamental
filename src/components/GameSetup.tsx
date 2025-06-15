@@ -4,40 +4,48 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Book, User, Sparkles } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Book, User, Sparkles, GraduationCap } from "lucide-react";
 
 export interface GameParameters {
   subject: string;
   theme: string;
+  schoolGrade: string;
+  themeDetails: string;
 }
 
 interface GameSetupProps {
   onSetupComplete: (params: GameParameters) => void;
 }
 
-const subjects = ['Matemática', 'História', 'Ciências'];
+const subjects = ['Matemática', 'História', 'Ciências', 'Português', 'Geografia'];
+const schoolGrades = ['Fundamental I', 'Fundamental II', 'Ensino Médio', 'Superior'];
 const themes: Record<string, string[]> = {
-  'Matemática': ['Demon Slayer', 'Naruto', 'One Piece'],
-  'História': ['Antigo Egito', 'Roma Antiga', 'Grandes Navegações'],
-  'Ciências': ['Sistema Solar', 'Corpo Humano', 'Dinossauros'],
+  'Matemática': ['Demon Slayer', 'Naruto', 'One Piece', 'Geometria Espacial'],
+  'História': ['Antigo Egito', 'Roma Antiga', 'Grandes Navegações', 'Revolução Francesa'],
+  'Ciências': ['Sistema Solar', 'Corpo Humano', 'Dinossauros', 'Genética'],
+  'Português': ['Modernismo Brasileiro', 'Trovadorismo', 'Machado de Assis'],
+  'Geografia': ['Relevo Brasileiro', 'Climas do Mundo', 'Globalização'],
 };
 
 const GameSetup = ({ onSetupComplete }: GameSetupProps) => {
   const [subject, setSubject] = useState<string>(subjects[0]);
   const [theme, setTheme] = useState<string>(themes[subject][0]);
+  const [schoolGrade, setSchoolGrade] = useState<string>(schoolGrades[0]);
+  const [themeDetails, setThemeDetails] = useState<string>('');
   const [availableThemes, setAvailableThemes] = useState<string[]>(themes['Matemática']);
 
   const handleSubjectChange = (newSubject: string) => {
     setSubject(newSubject);
     const newThemes = themes[newSubject] || [];
     setAvailableThemes(newThemes);
-    setTheme(newThemes[0]);
+    setTheme(newThemes[0] || '');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (subject && theme) {
-      onSetupComplete({ subject, theme });
+    if (subject && theme && schoolGrade) {
+      onSetupComplete({ subject, theme, schoolGrade, themeDetails });
     }
   };
 
@@ -62,6 +70,17 @@ const GameSetup = ({ onSetupComplete }: GameSetupProps) => {
                 </Select>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="schoolGrade" className="text-lg font-semibold flex items-center gap-2"><GraduationCap className="w-5 h-5" /> Série Escolar</Label>
+              <Select value={schoolGrade} onValueChange={setSchoolGrade}>
+                <SelectTrigger id="schoolGrade" className="w-full text-base py-6">
+                  <SelectValue placeholder="Selecione a série..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {schoolGrades.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
                 <Label htmlFor="theme" className="text-lg font-semibold flex items-center gap-2"><User className="w-5 h-5" /> Tema</Label>
                 <Select value={theme} onValueChange={setTheme} disabled={!availableThemes.length}>
                 <SelectTrigger id="theme" className="w-full text-base py-6">
@@ -71,6 +90,16 @@ const GameSetup = ({ onSetupComplete }: GameSetupProps) => {
                     {availableThemes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
                 </Select>
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="themeDetails" className="text-lg font-semibold flex items-center gap-2"><Sparkles className="w-5 h-5" /> Detalhes do Tema (Opcional)</Label>
+                <Textarea
+                    id="themeDetails"
+                    value={themeDetails}
+                    onChange={(e) => setThemeDetails(e.target.value)}
+                    placeholder="Ex: Crie perguntas sobre as técnicas de respiração do Tanjiro, focando em problemas de multiplicação."
+                    className="text-base"
+                />
             </div>
             <Button
                 type="submit"

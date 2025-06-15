@@ -76,10 +76,30 @@ const GameEngine = () => {
 
   const handleSetupComplete = (params: GameParameters) => {
     setGameParams(params);
-    // This logic can be expanded to fetch dynamic themes. For now, it matches
-    // existing visual themes if the name corresponds to a character.
-    const game = games.find(g => params.theme.includes(g.theme.split(" ")[0])) || games[0];
-    setSelectedGame(game);
+    // Try to find a game that matches a character theme from the static data.
+    const game = games.find(g => params.theme.includes(g.theme.split(" ")[0]));
+    
+    if (game) {
+      // If a matching game is found (e.g., Demon Slayer), use it.
+      setSelectedGame(game);
+    } else {
+      // If no specific game is found, create a generic one to avoid defaulting to incorrect content.
+      // This ensures the theme and subject are respected, and the lack of questions
+      // is handled gracefully by QuestionsFlow.
+      const genericGame: Game = {
+        ...games[0], // Use the first game as a structural template.
+        id: Date.now(),
+        theme: params.theme,
+        background: 'default',
+        password: ['aventura'],
+        story: {
+          title: `Aventura de ${params.subject}: ${params.theme}`,
+          content: `Prepare-se para uma jornada sobre ${params.theme} para a série ${params.schoolGrade}. (O conteúdo para esta aventura será gerado em breve!)`
+        },
+        questions: [] // An empty array will show "Nenhuma pergunta disponível...".
+      };
+      setSelectedGame(genericGame);
+    }
   };
 
   // Função para coleta de palavra única e evita duplicatas
