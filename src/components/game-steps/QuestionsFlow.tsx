@@ -1,6 +1,8 @@
 
 import { useState } from "react";
 import QuestionStep from "./QuestionStep";
+import ResultDisplay from "./question/ResultDisplay";
+import { getThemeColors } from "./question/ThemeUtils";
 
 interface Question {
   content: string;
@@ -49,34 +51,32 @@ const QuestionsFlow = ({
     }
   };
 
+  const tryAgain = () => {
+    setShowResult(false);
+    setWasCorrect(null);
+  };
+
   if (!questions || questions.length === 0) {
     return <div className="text-center py-12">Nenhuma pergunta disponível.</div>;
   }
 
+  const colors = getThemeColors(selectedGame);
+
   // Página de feedback após resposta
   if (showResult) {
+    const correctResponse = `🎉 Excelente! A palavra secreta é **${questions[currentIndex].word}**.`;
+    const incorrectResponse = "❌ Resposta incorreta! Tente novamente.";
+
     return (
-      <div className="flex flex-col items-center py-12 gap-8">
-        <div className="rounded-lg border-2 p-8 shadow bg-white/95">
-          <h2 className="text-2xl font-bold mb-4">
-            {wasCorrect ? "🎉 Acertou!" : "❌ Errou!"}
-          </h2>
-          <p className="text-lg mb-4">
-            {wasCorrect
-              ? <>Parabéns! A palavra secreta é <span className="font-extrabold">{questions[currentIndex].word}</span>.</>
-              : <>Ops! Resposta incorreta. Tente de novo ou avance.</>
-            }
-          </p>
-        </div>
-        <button
-          onClick={nextQuestion}
-          className={`bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 text-white rounded-full px-8 py-3 font-bold text-lg shadow-lg hover:scale-105 transition-all`}
-        >
-          {currentIndex < questions.length - 1
-            ? "Próxima Pergunta"
-            : "Avançar"}
-        </button>
-      </div>
+      <ResultDisplay
+        isCorrect={wasCorrect!}
+        correctResponse={correctResponse}
+        incorrectResponse={incorrectResponse}
+        showContinueButton={true}
+        onContinue={nextQuestion}
+        onTryAgain={tryAgain}
+        colors={colors}
+      />
     );
   }
 
@@ -88,8 +88,6 @@ const QuestionsFlow = ({
       content={thisQuestion.content}
       choices={thisQuestion.choices}
       answer={thisQuestion.answer}
-      correctResponse={`🎉 Excelente! A palavra secreta é **${thisQuestion.word}**.`}
-      incorrectResponse="❌ Resposta incorreta! Tente novamente."
       onCorrect={handleCorrect}
       onIncorrect={handleIncorrect}
       selectedGame={selectedGame}
@@ -99,4 +97,3 @@ const QuestionsFlow = ({
 };
 
 export default QuestionsFlow;
-

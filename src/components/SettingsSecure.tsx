@@ -164,16 +164,19 @@ const SettingsSecure = () => {
           </label>
           <div className="flex flex-wrap gap-2">
             {availableCharacters.map((character) => {
-              const isActive = settings.preferred_characters.includes(character);
-              return (
-                <Badge
-                  key={character}
-                  variant={isActive ? 'default' : 'outline'}
-                  className="cursor-default"
-                >
-                  {character}
-                </Badge>
-              );
+                const isActive = settings.preferred_characters.includes(character);
+                if (isActive) {
+                  return (
+                    <Badge key={character} variant="default" className="cursor-default">
+                      {character}
+                    </Badge>
+                  );
+                }
+                return (
+                  <Badge key={character} variant="outline" className="cursor-default">
+                    {character}
+                  </Badge>
+                );
             })}
           </div>
           <p className="text-xs text-gray-500 mt-1">
