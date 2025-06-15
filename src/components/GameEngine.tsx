@@ -9,8 +9,9 @@ import BackgroundImages from "./BackgroundImages";
 import GameHeader from "./GameHeader";
 import StartScreen from "./StartScreen";
 import { useToast } from "@/hooks/use-toast";
-import { validateGameTheme, sanitizeText, logSecurityEvent } from "@/utils/securityUtils";
+import { sanitizeText, logSecurityEvent } from "@/utils/securityUtils";
 import QuestionsFlow from "./game-steps/QuestionsFlow";
+import GameSetup, { GameParameters } from "./GameSetup";
 
 interface GameStep {
   type: "text" | "choice" | "question" | "input";
@@ -44,11 +45,14 @@ const GameEngine = () => {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [gameParams, setGameParams] = useState<GameParameters | null>(null);
 
   const { toast } = useToast();
 
   const games = gameData.games as Game[];
-  const steps = gameData.steps as GameStep[];
+  const allSteps = gameData.steps as GameStep[];
+  // Filter out the old theme choice step, now handled by GameSetup
+  const steps = allSteps.filter((step) => step.type !== 'choice' || !step.content.includes("Escolha seu herói"));
   const currentStep = steps[currentStepIndex];
 
   // Feedback de resposta
@@ -56,7 +60,7 @@ const GameEngine = () => {
   const [lastQuestionCorrect, setLastQuestionCorrect] = useState<boolean | null>(null);
 
   // Identifica se o passo é de perguntas
-  const isQuestionStep = currentStep.type === "question";
+  const isQuestionStep = currentStep?.type === "question";
 
   // Reinicia tudo
   const handleRestart = () => {
@@ -67,6 +71,15 @@ const GameEngine = () => {
     setCurrentQuestionIndex(0);
     setShowQuestionResult(false);
     setLastQuestionCorrect(null);
+    setGameParams(null);
+  };
+
+  const handleSetupComplete = (params: GameParameters) => {
+    setGameParams(params);
+    // This logic can be expanded to fetch dynamic themes. For now, it matches
+    // existing visual themes if the name corresponds to a character.
+    const game = games.find(g => params.theme.includes(g.theme.split(" ")[0])) || games[0];
+    setSelectedGame(game);
   };
 
   // Função para coleta de palavra única e evita duplicatas
@@ -84,27 +97,7 @@ const GameEngine = () => {
     setLastQuestionCorrect(null);
   };
 
-  // Escolha de tema
-  const handleThemeChoice = (theme: string) => {
-    const sanitizedTheme = sanitizeText(theme);
-    if (!validateGameTheme(sanitizedTheme)) {
-      logSecurityEvent('Invalid theme choice', { theme, sanitizedTheme });
-      toast({
-        title: "❌ Tema inválido",
-        description: "Por favor, escolha um tema válido.",
-        variant: "destructive"
-      });
-      return;
-    }
-    const game = games.find(g => sanitizedTheme.includes(g.theme.split(" ")[0])) || null;
-    if (game) {
-      setSelectedGame(game);
-      setCollectedWords([]);
-      setCurrentQuestionIndex(0);
-      // > A partir de agora, só tem 1 etapa de question
-      setTimeout(() => setCurrentStepIndex(2), 150); // vai para a etapa questions
-    }
-  };
+  // handleThemeChoice is no longer needed here.
 
   const handlePasswordSubmit = (password: string) => {
     if (!selectedGame) return;
@@ -136,11 +129,15 @@ const GameEngine = () => {
     }
   };
 
+  if (!gameParams) {
+    return <GameSetup onSetupComplete={handleSetupComplete} />;
+  }
+
   if (!gameStarted) {
     return (
       <StartScreen 
-        title={gameData.title}
-        description={gameData.description}
+        title={`Aventura de ${gameParams.subject}: ${gameParams.theme}`}
+        description={`Prepare-se para desafios de ${gameParams.subject.toLowerCase()}!`}
         onStart={() => { setGameStarted(true); setCurrentStepIndex(0); }}
       />
     );
@@ -148,6 +145,7 @@ const GameEngine = () => {
 
   // Renderização do passo (agora delegando perguntas p/ QuestionsFlow)
   const renderStep = () => {
+    if (!currentStep) return null;
     // Apenas UMA etapa questions agora, então ela cobre as 4 perguntas
     if (isQuestionStep && selectedGame) {
       return (
@@ -157,6 +155,7 @@ const GameEngine = () => {
           onFinish={handleFinishQuestions}
           selectedGame={selectedGame}
           onRestart={handleRestart}
+          gameParams={gameParams}
         />
       );
     }
@@ -179,13 +178,11 @@ const GameEngine = () => {
           />
         );
       case "choice":
-        // > Ajustar para novos índices: etapa de final (nova) é no steps.length-1
         return (
           <ChoiceStep 
             content={currentStep.content}
             choices={currentStep.choices || []}
-            onChoice={currentStepIndex === 1 ? handleThemeChoice :
-              currentStepIndex === steps.length - 1 ? handleFinalChoice :
+            onChoice={currentStepIndex === steps.length - 1 ? handleFinalChoice :
               () => setCurrentStepIndex(idx => idx + 1)}
             selectedGame={selectedGame}
           />

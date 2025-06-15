@@ -50,8 +50,11 @@ const SettingsSecure = () => {
 
       if (data) {
         const typedSettings: GameSettings = {
-          ...data,
-          difficulty_level: data.difficulty_level as 'easy' | 'medium' | 'hard'
+          id: data.id,
+          difficulty_level: data.difficulty_level as 'easy' | 'medium' | 'hard',
+          // FIX: Ensure preferred_characters is always an array to prevent build errors.
+          preferred_characters: Array.isArray(data.preferred_characters) ? data.preferred_characters : [],
+          cache_duration_hours: data.cache_duration_hours
         };
         setSettings(typedSettings);
       }
@@ -115,7 +118,7 @@ const SettingsSecure = () => {
             Nível de Dificuldade
           </label>
           <div className="p-3 bg-gray-50 border rounded-md">
-            <span className="text-sm text-gray-800">{difficultyLevels[settings.difficulty_level]}</span>
+            <span className="text-sm text-gray-800">{settings.difficulty_level && difficultyLevels[settings.difficulty_level]}</span>
           </div>
           <p className="text-xs text-gray-500 mt-1">
             Configuração protegida contra alterações

@@ -3,6 +3,7 @@ import { useState } from "react";
 import QuestionStep from "./QuestionStep";
 import ResultDisplay from "./question/ResultDisplay";
 import { getThemeColors } from "./question/ThemeUtils";
+import { GameParameters } from "../GameSetup";
 
 interface Question {
   content: string;
@@ -17,6 +18,7 @@ interface QuestionsFlowProps {
   onFinish: () => void;
   selectedGame: any;
   onRestart: () => void;
+  gameParams: GameParameters;
 }
 
 const QuestionsFlow = ({
@@ -25,6 +27,7 @@ const QuestionsFlow = ({
   onFinish,
   selectedGame,
   onRestart,
+  gameParams,
 }: QuestionsFlowProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showResult, setShowResult] = useState(false);
@@ -57,7 +60,7 @@ const QuestionsFlow = ({
   };
 
   if (!questions || questions.length === 0) {
-    return <div className="text-center py-12">Nenhuma pergunta disponível.</div>;
+    return <div className="text-center py-12">Nenhuma pergunta disponível para {gameParams.theme}.</div>;
   }
 
   const colors = getThemeColors(selectedGame);
