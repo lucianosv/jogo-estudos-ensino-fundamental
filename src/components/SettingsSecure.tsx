@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,60 +14,12 @@ interface GameSettings {
   cache_duration_hours: number;
 }
 
-// Subcomponentes pequenos
-const DifficultyField = ({ level }: { level: GameSettings['difficulty_level'] }) => (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">
-      Nível de Dificuldade
-    </label>
-    <div className="p-3 bg-gray-50 border rounded-md">
-      <span className="text-sm text-gray-800">{difficultyLevels[level]}</span>
-    </div>
-    <p className="text-xs text-gray-500 mt-1">
-      Configuração protegida contra alterações
-    </p>
-  </div>
-);
-
 const availableCharacters = ['Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke'];
 const difficultyLevels = {
   easy: 'Fácil (1-20)',
   medium: 'Médio (1-100)', 
   hard: 'Difícil (números maiores)'
 };
-
-const CacheField = ({ hours }: { hours: number }) => (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">
-      Cache de Conteúdo
-    </label>
-    <div className="p-3 bg-gray-50 border rounded-md">
-      <span className="text-sm text-gray-800">
-        {hours} horas
-      </span>
-    </div>
-    <p className="text-xs text-gray-500 mt-1">
-      Duração do cache otimizada para segurança
-    </p>
-  </div>
-);
-
-const CacheClearButton = ({ clearCache, isLoading }: { clearCache: () => void, isLoading: boolean }) => (
-  <div>
-    <Button
-      onClick={clearCache}
-      disabled={isLoading}
-      variant="outline"
-      className="w-full border-blue-300 text-blue-600 hover:bg-blue-50"
-    >
-      <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-      {isLoading ? 'Limpando...' : 'Limpar Cache Expirado'}
-    </Button>
-    <p className="text-xs text-gray-500 mt-1">
-      Remove apenas conteúdo expirado com segurança
-    </p>
-  </div>
-);
 
 const SettingsSecure = () => {
   const [settings, setSettings] = useState<GameSettings | null>(null);
@@ -157,7 +110,17 @@ const SettingsSecure = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6 space-y-6">
-        <DifficultyField level={settings.difficulty_level} />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Nível de Dificuldade
+          </label>
+          <div className="p-3 bg-gray-50 border rounded-md">
+            <span className="text-sm text-gray-800">{difficultyLevels[settings.difficulty_level]}</span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Configuração protegida contra alterações
+          </p>
+        </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Personagens Disponíveis
@@ -165,15 +128,8 @@ const SettingsSecure = () => {
           <div className="flex flex-wrap gap-2">
             {availableCharacters.map((character) => {
                 const isActive = settings.preferred_characters.includes(character);
-                if (isActive) {
-                  return (
-                    <Badge key={character} variant="default" className="cursor-default">
-                      {character}
-                    </Badge>
-                  );
-                }
                 return (
-                  <Badge key={character} variant="outline" className="cursor-default">
+                  <Badge key={character} variant={isActive ? "default" : "outline"} className="cursor-default">
                     {character}
                   </Badge>
                 );
@@ -183,8 +139,33 @@ const SettingsSecure = () => {
             Personagens configurados pelo sistema
           </p>
         </div>
-        <CacheField hours={settings.cache_duration_hours} />
-        <CacheClearButton clearCache={clearCache} isLoading={isLoading} />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Cache de Conteúdo
+          </label>
+          <div className="p-3 bg-gray-50 border rounded-md">
+            <span className="text-sm text-gray-800">
+              {settings.cache_duration_hours} horas
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Duração do cache otimizada para segurança
+          </p>
+        </div>
+        <div>
+          <Button
+            onClick={clearCache}
+            disabled={isLoading}
+            variant="outline"
+            className="w-full border-blue-300 text-blue-600 hover:bg-blue-50"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Limpando...' : 'Limpar Cache Expirado'}
+          </Button>
+          <p className="text-xs text-gray-500 mt-1">
+            Remove apenas conteúdo expirado com segurança
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

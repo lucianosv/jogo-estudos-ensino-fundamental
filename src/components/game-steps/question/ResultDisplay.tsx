@@ -18,7 +18,6 @@ const ResultDisplay = ({
   isCorrect,
   correctResponse,
   incorrectResponse,
-  showContinueButton,
   onContinue,
   onTryAgain,
   colors
@@ -44,26 +43,24 @@ const ResultDisplay = ({
         </p>
       </div>
 
-      {showContinueButton && (
-        <div className="space-y-4">
+      <div className="space-y-4">
+        {isCorrect ? (
           <Button 
             onClick={onContinue}
             className={`bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white font-semibold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105`}
           >
-            {isCorrect ? "✨ Continuar Aventura" : "➡️ Próxima Pergunta"}
+            ✨ Continuar Aventura
           </Button>
-          
-          {!isCorrect && (
-            <Button 
-              onClick={onTryAgain}
-              variant="outline"
-              className="bg-white/90 hover:bg-white border-2 border-gray-300 text-gray-600 hover:text-gray-700 font-medium py-2 px-6 rounded-full"
-            >
-              🔄 Tentar Novamente
-            </Button>
-          )}
-        </div>
-      )}
+        ) : (
+          <Button 
+            onClick={onTryAgain}
+            variant="outline"
+            className="bg-white/90 hover:bg-white border-2 border-gray-300 text-gray-600 hover:text-gray-700 font-medium py-2 px-6 rounded-full"
+          >
+            🔄 Tentar Novamente
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
