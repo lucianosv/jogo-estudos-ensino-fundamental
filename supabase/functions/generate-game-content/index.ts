@@ -109,10 +109,12 @@ const generateQuestion = async (theme: string, difficulty: string) => {
   
   A questão deve:
   - Ser contextualizada com uma situação envolvendo ${theme}
-  - Ter exatamente 4 alternativas de resposta
+  - Ter EXATAMENTE 4 alternativas de resposta (A, B, C, D)
   - Ter apenas uma resposta correta
   - Incluir uma palavra secreta relacionada ao tema (ex: "coragem", "técnica", "respiração")
   - Ser adequada para crianças brasileiras
+  
+  IMPORTANTE: A resposta deve ter EXATAMENTE 4 alternativas, nem mais nem menos.
   
   Retorne APENAS um JSON válido no seguinte formato:
   {
@@ -121,6 +123,8 @@ const generateQuestion = async (theme: string, difficulty: string) => {
     "answer": "alternativa correta exata",
     "word": "palavra secreta de uma palavra"
   }
+  
+  Certifique-se de que o array "choices" tenha EXATAMENTE 4 elementos.
   `;
   
   try {
@@ -138,14 +142,15 @@ const generateQuestion = async (theme: string, difficulty: string) => {
     }
     
     if (!Array.isArray(parsed.choices) || parsed.choices.length !== 4) {
-      throw new Error('JSON inválido - choices deve ser array com 4 elementos');
+      console.error('Choices inválido:', parsed.choices);
+      throw new Error('JSON inválido - choices deve ser array com EXATAMENTE 4 elementos');
     }
     
     return parsed;
     
   } catch (error) {
     console.error('Erro ao gerar questão:', error);
-    // Fallback para questão padrão
+    // Fallback para questão padrão com EXATAMENTE 4 alternativas
     return {
       content: `${theme} precisa calcular quantos demônios derrotou. Se derrotou 3 demônios pela manhã e 5 à tarde, quantos derrotou no total?`,
       choices: ["6 demônios", "7 demônios", "8 demônios", "9 demônios"],
