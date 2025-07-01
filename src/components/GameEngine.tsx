@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +14,7 @@ import QuestionsFlow from "./game-steps/QuestionsFlow";
 import GameSetup, { GameParameters } from "./GameSetup";
 import { useAIContent } from "@/hooks/useAIContent";
 import { Loader2 } from "lucide-react";
+import { getDynamicTheme } from "@/utils/dynamicThemeUtils";
 
 interface GameStep {
   type: "text" | "choice" | "question" | "input";
@@ -57,23 +57,18 @@ const GameEngine = () => {
 
   const games = gameData.games as Game[];
   const allSteps = gameData.steps as GameStep[];
-  // Filter out the old theme choice step, now handled by GameSetup
   const steps = allSteps.filter((step) => step.type !== 'choice' || !step.content.includes("Escolha seu herói"));
   const currentStep = steps[currentStepIndex];
 
-  // Feedback de resposta
   const [showQuestionResult, setShowQuestionResult] = useState(false);
   const [lastQuestionCorrect, setLastQuestionCorrect] = useState<boolean | null>(null);
 
-  // Identifica se o passo é de perguntas
   const isQuestionStep = currentStep?.type === "question";
 
-  // Gerar história dinâmica baseada nos parâmetros
   useEffect(() => {
     const generateDynamicStory = async () => {
       if (!gameParams || !selectedGame) return;
 
-      // Se já tem história estática do jogo, usar ela
       if (selectedGame.story && selectedGame.story.content && !selectedGame.story.content.includes('será gerado em breve')) {
         return;
       }
@@ -104,7 +99,6 @@ const GameEngine = () => {
     }
   }, [gameParams, selectedGame, generateStory]);
 
-  // Reinicia tudo
   const handleRestart = () => {
     setCurrentStepIndex(0);
     setCollectedWords([]);
@@ -119,18 +113,13 @@ const GameEngine = () => {
 
   const handleSetupComplete = (params: GameParameters) => {
     setGameParams(params);
-    // Try to find a game that matches a character theme from the static data.
     const game = games.find(g => params.theme.includes(g.theme.split(" ")[0]));
     
     if (game) {
-      // If a matching game is found (e.g., Demon Slayer), use it.
       setSelectedGame(game);
     } else {
-      // If no specific game is found, create a generic one to avoid defaulting to incorrect content.
-      // This ensures the theme and subject are respected, and the lack of questions
-      // is handled gracefully by QuestionsFlow.
       const genericGame: Game = {
-        ...games[0], // Use the first game as a structural template.
+        ...games[0],
         id: Date.now(),
         theme: params.theme,
         background: 'default',
@@ -139,20 +128,18 @@ const GameEngine = () => {
           title: `Aventura de ${params.subject}: ${params.theme}`,
           content: `Prepare-se para uma jornada sobre ${params.theme} para a série ${params.schoolGrade}. (O conteúdo para esta aventura será gerado em breve!)`
         },
-        questions: [] // An empty array will show "Nenhuma pergunta disponível...".
+        questions: []
       };
       setSelectedGame(genericGame);
     }
   };
 
-  // Função para coleta de palavra única e evita duplicatas
   const handleCollectWord = (word: string) => {
     setCollectedWords((prev) =>
       prev.includes(word) ? prev : [...prev, word]
     );
   };
 
-  // O que fazer após terminar todas as perguntas? Avança para a próxima etapa (história)
   const handleFinishQuestions = () => {
     setCurrentStepIndex((idx) => idx + 1);
     setCurrentQuestionIndex(0);
@@ -200,14 +187,14 @@ const GameEngine = () => {
         title={`Aventura de ${gameParams.subject}: ${gameParams.theme}`}
         description={`Prepare-se para desafios de ${gameParams.subject.toLowerCase()}!`}
         onStart={() => { setGameStarted(true); setCurrentStepIndex(0); }}
+        gameParams={gameParams}
       />
     );
   }
 
-  // Renderização do passo (agora delegando perguntas p/ QuestionsFlow)
   const renderStep = () => {
     if (!currentStep) return null;
-    // Apenas UMA etapa questions agora, então ela cobre as 4 perguntas
+    
     if (isQuestionStep && selectedGame) {
       return (
         <QuestionsFlow
@@ -220,11 +207,11 @@ const GameEngine = () => {
         />
       );
     }
+    
     switch (currentStep.type) {
       case "text":
         let content = currentStep.content;        
         if (content.includes("[STORY_PLACEHOLDER]") && selectedGame) {
-          // Usar história dinâmica se disponível, senão usar a estática
           const storyToUse = dynamicStory || selectedGame.story;
           
           if (loadingStory) {
@@ -248,6 +235,7 @@ const GameEngine = () => {
             onNext={() => setCurrentStepIndex(idx => idx + 1)}
             collectedWords={collectedWords}
             selectedGame={selectedGame}
+            gameParams={gameParams}
           />
         );
       case "choice":
@@ -258,6 +246,7 @@ const GameEngine = () => {
             onChoice={currentStepIndex === steps.length - 1 ? handleFinalChoice :
               () => setCurrentStepIndex(idx => idx + 1)}
             selectedGame={selectedGame}
+            gameParams={gameParams}
           />
         );
       case "input":
@@ -267,6 +256,7 @@ const GameEngine = () => {
             onSubmit={handlePasswordSubmit}
             collectedWords={collectedWords}
             selectedGame={selectedGame}
+            gameParams={gameParams}
           />
         );
       default:
@@ -274,15 +264,18 @@ const GameEngine = () => {
     }
   };
 
+  const dynamicTheme = getDynamicTheme(gameParams);
+
   return (
     <div className="w-full max-w-3xl mx-auto relative min-h-screen">
-      <BackgroundImages selectedGame={selectedGame} />
+      <BackgroundImages selectedGame={selectedGame} gameParams={gameParams} />
 
       <GameHeader 
         currentStepIndex={currentStepIndex}
         totalSteps={steps.length}
         selectedGame={selectedGame}
         collectedWords={collectedWords}
+        gameParams={gameParams}
       />
 
       <Card className="bg-white/85 backdrop-blur-lg shadow-2xl border-2 border-white/60 relative z-10">
@@ -296,7 +289,11 @@ const GameEngine = () => {
           <Button 
             onClick={handleRestart}
             variant="outline"
-            className="bg-white/90 hover:bg-white border-2 border-red-500 text-red-600 hover:text-red-700 font-bold py-3 px-6 rounded-full shadow-lg"
+            className={`bg-white/90 hover:bg-white border-2 font-bold py-3 px-6 rounded-full shadow-lg ${
+              dynamicTheme 
+                ? `border-${dynamicTheme.colors.primary} text-${dynamicTheme.colors.primary} hover:text-${dynamicTheme.colors.primary}-700`
+                : 'border-red-500 text-red-600 hover:text-red-700'
+            }`}
           >
             🎮 Nova Aventura
           </Button>

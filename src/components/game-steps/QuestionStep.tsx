@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getThemeColors } from "./question/ThemeUtils";
 import QuestionStepContainer from "./QuestionStepContainer";
+import { GameParameters } from "@/components/GameSetup";
 
 interface QuestionStepProps {
   content: string;
@@ -12,6 +13,7 @@ interface QuestionStepProps {
   onIncorrect: () => void;
   selectedGame?: any;
   onRestart?: () => void;
+  gameParams?: GameParameters;
 }
 
 const QuestionStep = ({
@@ -22,6 +24,7 @@ const QuestionStep = ({
   onIncorrect,
   selectedGame,
   onRestart,
+  gameParams,
 }: QuestionStepProps) => {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const { toast } = useToast();
@@ -60,6 +63,7 @@ const QuestionStep = ({
       onAnswerSelect={setSelectedAnswer}
       onSubmit={handleSubmit}
       colors={colors}
+      gameParams={gameParams}
     />
   );
 };

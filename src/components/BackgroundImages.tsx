@@ -1,5 +1,6 @@
 
-import { getBackgroundImages, getThemeColors } from "@/utils/themeUtils";
+import { GameParameters } from "./GameSetup";
+import { getDynamicTheme } from "@/utils/dynamicThemeUtils";
 
 interface Game {
   theme: string;
@@ -19,42 +20,42 @@ interface Game {
 
 interface BackgroundImagesProps {
   selectedGame?: Game | null;
+  gameParams?: GameParameters;
 }
 
-const BackgroundImages = ({ selectedGame }: BackgroundImagesProps) => {
-  if (!selectedGame) return null;
+const BackgroundImages = ({ selectedGame, gameParams }: BackgroundImagesProps) => {
+  if (!gameParams) return null;
 
-  const backgroundImages = getBackgroundImages(selectedGame);
-  const colors = getThemeColors(selectedGame);
+  const dynamicTheme = getDynamicTheme(gameParams);
 
   return (
     <div className="fixed inset-0 pointer-events-none">
       {/* Imagem lateral esquerda */}
       <div 
         className="absolute top-0 left-0 w-72 h-full opacity-70 bg-cover bg-center"
-        style={{ backgroundImage: `url(${backgroundImages.left})` }}
+        style={{ backgroundImage: `url(${dynamicTheme.backgrounds.left})` }}
       />
       
       {/* Imagem lateral direita */}
       <div 
         className="absolute top-0 right-0 w-72 h-full opacity-70 bg-cover bg-center"
-        style={{ backgroundImage: `url(${backgroundImages.right})` }}
+        style={{ backgroundImage: `url(${dynamicTheme.backgrounds.right})` }}
       />
       
       {/* Imagem inferior */}
       <div 
         className="absolute bottom-0 left-72 right-72 h-48 opacity-60 bg-cover bg-center"
-        style={{ backgroundImage: `url(${backgroundImages.bottom})` }}
+        style={{ backgroundImage: `url(${dynamicTheme.backgrounds.bottom})` }}
       />
       
       {/* Imagem superior */}
       <div 
         className="absolute top-0 left-72 right-72 h-32 opacity-50 bg-cover bg-center"
-        style={{ backgroundImage: `url(${backgroundImages.bottom})` }}
+        style={{ backgroundImage: `url(${dynamicTheme.backgrounds.bottom})` }}
       />
       
       {/* Gradient overlay para melhorar legibilidade */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} opacity-20`}></div>
+      <div className={`absolute inset-0 bg-gradient-to-br ${dynamicTheme.colors.gradient} opacity-20`}></div>
     </div>
   );
 };

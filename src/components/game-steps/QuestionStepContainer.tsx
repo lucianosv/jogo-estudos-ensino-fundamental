@@ -3,6 +3,7 @@ import { RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuestionDisplay from "./question/QuestionDisplay";
 import ChoiceButtons from "./question/ChoiceButtons";
+import { GameParameters } from "@/components/GameSetup";
 
 interface QuestionStepContainerProps {
   showRestart: boolean;
@@ -19,6 +20,7 @@ interface QuestionStepContainerProps {
     gradient: string;
     border: string;
   };
+  gameParams?: GameParameters;
 }
 
 const QuestionStepContainer = ({
@@ -31,6 +33,7 @@ const QuestionStepContainer = ({
   onAnswerSelect,
   onSubmit,
   colors,
+  gameParams,
 }: QuestionStepContainerProps) => {
   return (
     <div className="text-center relative">
@@ -46,7 +49,11 @@ const QuestionStepContainer = ({
           </Button>
         </div>
       )}
-      <QuestionDisplay content={questionContent} borderColor={borderColor} />
+      <QuestionDisplay 
+        content={questionContent} 
+        borderColor={borderColor} 
+        gameParams={gameParams}
+      />
       <ChoiceButtons
         choices={choices}
         selectedAnswer={selectedAnswer}

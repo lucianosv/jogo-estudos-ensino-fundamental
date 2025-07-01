@@ -1,42 +1,26 @@
 
 import { Button } from "@/components/ui/button";
 import { BookOpen, Sparkles } from "lucide-react";
+import { GameParameters } from "@/components/GameSetup";
+import { getDynamicTheme } from "@/utils/dynamicThemeUtils";
 
 interface ChoiceStepProps {
   content: string;
   choices: string[];
   onChoice: (choice: string) => void;
   selectedGame?: any;
+  gameParams?: GameParameters;
 }
 
-const ChoiceStep = ({ content, choices, onChoice, selectedGame }: ChoiceStepProps) => {
-  const getThemeColors = () => {
-    if (selectedGame) {
-      if (selectedGame.theme.includes("Tanjiro")) {
-        return {
-          hover: "hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700"
-        };
-      } else if (selectedGame.theme.includes("Nezuko")) {
-        return {
-          hover: "hover:bg-pink-50 hover:border-pink-400 hover:text-pink-700"
-        };
-      } else if (selectedGame.theme.includes("Zenitsu")) {
-        return {
-          hover: "hover:bg-yellow-50 hover:border-yellow-400 hover:text-yellow-700"
-        };
-      } else if (selectedGame.theme.includes("Inosuke")) {
-        return {
-          hover: "hover:bg-green-50 hover:border-green-400 hover:text-green-700"
-        };
-      }
-    }
-
-    return {
-      hover: "hover:bg-green-50 hover:border-green-400 hover:text-green-700"
-    };
+const ChoiceStep = ({ content, choices, onChoice, selectedGame, gameParams }: ChoiceStepProps) => {
+  const dynamicTheme = gameParams ? getDynamicTheme(gameParams) : null;
+  const colors = dynamicTheme ? {
+    hover: `hover:bg-${dynamicTheme.colors.primary}-50 hover:border-${dynamicTheme.colors.primary}-400 hover:text-${dynamicTheme.colors.primary}-700`,
+    gradient: `bg-gradient-to-r ${dynamicTheme.colors.gradient}`
+  } : {
+    hover: "hover:bg-green-50 hover:border-green-400 hover:text-green-700",
+    gradient: "bg-gradient-to-r from-blue-500 to-purple-500"
   };
-
-  const colors = getThemeColors();
 
   return (
     <div className="text-center">
@@ -52,10 +36,13 @@ const ChoiceStep = ({ content, choices, onChoice, selectedGame }: ChoiceStepProp
         {content}
       </p>
 
-      {selectedGame && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg border-2 border-white/50 shadow-lg text-white">
+      {gameParams && (
+        <div className={`mb-6 p-4 rounded-lg border-2 border-white/50 shadow-lg text-white ${colors.gradient}`}>
           <p className="font-bold text-lg">
-            ⚔️ Herói Selecionado: {selectedGame.theme} ⚔️
+            {dynamicTheme?.icons.subject} {gameParams.subject} - {gameParams.theme} {dynamicTheme?.icons.success}
+          </p>
+          <p className="text-sm opacity-90 mt-1">
+            {gameParams.schoolGrade} | {dynamicTheme?.terminology.quest || 'Aventura Personalizada'}
           </p>
         </div>
       )}

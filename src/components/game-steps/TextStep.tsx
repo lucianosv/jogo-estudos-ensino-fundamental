@@ -1,21 +1,26 @@
 
 import { Button } from "@/components/ui/button";
 import { Scroll, Sparkles } from "lucide-react";
+import { GameParameters } from "@/components/GameSetup";
+import { getDynamicTheme } from "@/utils/dynamicThemeUtils";
 
 interface TextStepProps {
   content: string;
   onNext: () => void;
   collectedWords: string[];
   selectedGame?: any;
+  gameParams?: GameParameters;
 }
 
-const TextStep = ({ content, onNext, collectedWords, selectedGame }: TextStepProps) => {
+const TextStep = ({ content, onNext, collectedWords, selectedGame, gameParams }: TextStepProps) => {
   const formatContent = (text: string) => {
     return text.split('\n').map((line, index) => (
       <p key={index} className="mb-3 last:mb-0">
         {line.split('**').map((part, partIndex) => 
           partIndex % 2 === 1 ? (
-            <strong key={partIndex} className="text-red-600 font-bold text-lg">{part}</strong>
+            <strong key={partIndex} className={`font-bold text-lg ${
+              gameParams ? `text-${getDynamicTheme(gameParams).colors.primary}` : 'text-red-600'
+            }`}>{part}</strong>
           ) : (
             part
           )
@@ -24,43 +29,14 @@ const TextStep = ({ content, onNext, collectedWords, selectedGame }: TextStepPro
     ));
   };
 
-  const getThemeColors = () => {
-    if (!selectedGame) {
-      return {
-        border: "border-amber-400",
-        button: "from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-      };
-    }
-
-    if (selectedGame.theme.includes("Tanjiro")) {
-      return {
-        border: "border-blue-400",
-        button: "from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700"
-      };
-    } else if (selectedGame.theme.includes("Nezuko")) {
-      return {
-        border: "border-pink-400",
-        button: "from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700"
-      };
-    } else if (selectedGame.theme.includes("Zenitsu")) {
-      return {
-        border: "border-yellow-400",
-        button: "from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700"
-      };
-    } else if (selectedGame.theme.includes("Inosuke")) {
-      return {
-        border: "border-green-400",
-        button: "from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-      };
-    }
-
-    return {
-      border: "border-amber-400",
-      button: "from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-    };
+  const dynamicTheme = gameParams ? getDynamicTheme(gameParams) : null;
+  const colors = dynamicTheme ? {
+    border: `border-${dynamicTheme.colors.primary}-400`,
+    button: `bg-gradient-to-r ${dynamicTheme.colors.gradient} hover:opacity-90`
+  } : {
+    border: "border-amber-400",
+    button: "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
   };
-
-  const colors = getThemeColors();
 
   return (
     <div className="text-center">
@@ -80,7 +56,7 @@ const TextStep = ({ content, onNext, collectedWords, selectedGame }: TextStepPro
 
       <Button 
         onClick={onNext}
-        className={`bg-gradient-to-r ${colors.button} text-white font-semibold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105`}
+        className={`${colors.button} text-white font-semibold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105`}
       >
         <Sparkles className="w-5 h-5 mr-2" />
         Continuar Aventura
