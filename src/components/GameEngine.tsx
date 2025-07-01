@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import gameData from "@/data/demon-slayer-math-game.json";
@@ -12,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { sanitizeText, logSecurityEvent } from "@/utils/securityUtils";
 import QuestionsFlow from "./game-steps/QuestionsFlow";
 import GameSetup, { GameParameters } from "./GameSetup";
+import { useAIContent } from "@/hooks/useAIContent";
+import { Loader2 } from "lucide-react";
 
 interface GameStep {
   type: "text" | "choice" | "question" | "input";
@@ -46,8 +49,11 @@ const GameEngine = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [gameParams, setGameParams] = useState<GameParameters | null>(null);
+  const [dynamicStory, setDynamicStory] = useState<{title: string, content: string} | null>(null);
+  const [loadingStory, setLoadingStory] = useState(false);
 
   const { toast } = useToast();
+  const { generateStory, isLoading } = useAIContent();
 
   const games = gameData.games as Game[];
   const allSteps = gameData.steps as GameStep[];
@@ -62,6 +68,42 @@ const GameEngine = () => {
   // Identifica se o passo é de perguntas
   const isQuestionStep = currentStep?.type === "question";
 
+  // Gerar história dinâmica baseada nos parâmetros
+  useEffect(() => {
+    const generateDynamicStory = async () => {
+      if (!gameParams || !selectedGame) return;
+
+      // Se já tem história estática do jogo, usar ela
+      if (selectedGame.story && selectedGame.story.content && !selectedGame.story.content.includes('será gerado em breve')) {
+        return;
+      }
+
+      setLoadingStory(true);
+      try {
+        const contextualizedTheme = gameParams.themeDetails 
+          ? `${gameParams.theme} - ${gameParams.themeDetails}`
+          : `${gameParams.subject} com tema ${gameParams.theme} para ${gameParams.schoolGrade}`;
+
+        const storyData = await generateStory(contextualizedTheme);
+        if (storyData && storyData.title && storyData.content) {
+          setDynamicStory(storyData);
+        }
+      } catch (error) {
+        console.error('Erro ao gerar história:', error);
+        setDynamicStory({
+          title: `Aventura de ${gameParams.subject}: ${gameParams.theme}`,
+          content: `Bem-vindo à sua aventura de ${gameParams.subject} sobre ${gameParams.theme}! Você está pronto para enfrentar desafios incríveis e testar seus conhecimentos. Vamos começar!`
+        });
+      } finally {
+        setLoadingStory(false);
+      }
+    };
+
+    if (gameParams && selectedGame) {
+      generateDynamicStory();
+    }
+  }, [gameParams, selectedGame, generateStory]);
+
   // Reinicia tudo
   const handleRestart = () => {
     setCurrentStepIndex(0);
@@ -72,6 +114,7 @@ const GameEngine = () => {
     setShowQuestionResult(false);
     setLastQuestionCorrect(null);
     setGameParams(null);
+    setDynamicStory(null);
   };
 
   const handleSetupComplete = (params: GameParameters) => {
@@ -116,8 +159,6 @@ const GameEngine = () => {
     setShowQuestionResult(false);
     setLastQuestionCorrect(null);
   };
-
-  // handleThemeChoice is no longer needed here.
 
   const handlePasswordSubmit = (password: string) => {
     if (!selectedGame) return;
@@ -183,7 +224,19 @@ const GameEngine = () => {
       case "text":
         let content = currentStep.content;        
         if (content.includes("[STORY_PLACEHOLDER]") && selectedGame) {
-          const storyToUse = selectedGame.story;
+          // Usar história dinâmica se disponível, senão usar a estática
+          const storyToUse = dynamicStory || selectedGame.story;
+          
+          if (loadingStory) {
+            return (
+              <div className="text-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                <p className="text-lg">Gerando sua história personalizada...</p>
+                <p className="text-sm text-gray-600 mt-2">{gameParams.subject} - {gameParams.theme}</p>
+              </div>
+            );
+          }
+          
           content = content.replace(
             "[STORY_PLACEHOLDER]", 
             `**${storyToUse.title}**\n\n${storyToUse.content}`
@@ -223,8 +276,6 @@ const GameEngine = () => {
 
   return (
     <div className="w-full max-w-3xl mx-auto relative min-h-screen">
-      {/* Security indicator removido conforme solicitado */}
-
       <BackgroundImages selectedGame={selectedGame} />
 
       <GameHeader 
