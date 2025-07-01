@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import QuestionStep from "./QuestionStep";
 import ResultDisplay from "./question/ResultDisplay";
@@ -51,21 +50,11 @@ const QuestionsFlow = ({
       setLoadingQuestions(true);
       try {
         const dynamicQuestions: Question[] = [];
-        
-        // Determinar dificuldade baseada na série escolar
-        let difficulty = 'medium';
-        if (gameParams.schoolGrade === 'Fundamental I') difficulty = 'easy';
-        else if (gameParams.schoolGrade === 'Ensino Médio' || gameParams.schoolGrade === 'Superior') difficulty = 'hard';
 
-        // Construir prompt contextualizado
-        const contextualizedTheme = gameParams.themeDetails 
-          ? `${gameParams.theme} - ${gameParams.themeDetails}`
-          : `${gameParams.subject} com tema ${gameParams.theme}`;
-
-        // Gerar 4 questões
+        // Gerar 4 questões usando os parâmetros completos do jogo
         for (let i = 0; i < 4; i++) {
           try {
-            const questionData = await generateQuestion(contextualizedTheme, difficulty);
+            const questionData = await generateQuestion(gameParams);
             if (questionData && questionData.content) {
               dynamicQuestions.push(questionData);
             }
@@ -76,11 +65,17 @@ const QuestionsFlow = ({
 
         // Se não conseguiu gerar nenhuma questão, usar fallback
         if (dynamicQuestions.length === 0) {
+          const fallbackWord = gameParams.subject === 'Matemática' ? 'cálculo' : 
+                              gameParams.subject === 'História' ? 'descoberta' :
+                              gameParams.subject === 'Ciências' ? 'experiência' :
+                              gameParams.subject === 'Português' ? 'palavra' :
+                              gameParams.subject === 'Geografia' ? 'exploração' : 'conhecimento';
+          
           dynamicQuestions.push({
-            content: `Questão sobre ${gameParams.subject} - ${gameParams.theme}: Se você tem 2 + 2, qual é o resultado?`,
+            content: `Questão de ${gameParams.subject} (${gameParams.schoolGrade}) sobre ${gameParams.theme}: Se você tem 2 + 2, qual é o resultado?`,
             choices: ["3", "4", "5", "6"],
             answer: "4",
-            word: "matemática"
+            word: fallbackWord
           });
         }
 
@@ -88,11 +83,12 @@ const QuestionsFlow = ({
       } catch (error) {
         console.error('Erro ao gerar questões:', error);
         // Fallback para questão padrão
+        const fallbackWord = gameParams.subject === 'Matemática' ? 'cálculo' : 'conhecimento';
         setGeneratedQuestions([{
-          content: `Questão sobre ${gameParams.subject} - ${gameParams.theme}: Se você tem 2 + 2, qual é o resultado?`,
+          content: `Questão sobre ${gameParams.subject} - ${gameParams.theme} (${gameParams.schoolGrade}): Se você tem 2 + 2, qual é o resultado?`,
           choices: ["3", "4", "5", "6"],
           answer: "4",
-          word: "matemática"
+          word: fallbackWord
         }]);
       } finally {
         setLoadingQuestions(false);

@@ -19,7 +19,8 @@ interface GameSetupProps {
 }
 
 const subjects = ['Matemática', 'História', 'Ciências', 'Português', 'Geografia'];
-const schoolGrades = ['Fundamental I', 'Fundamental II', 'Ensino Médio', 'Superior'];
+// Séries específicas do ensino fundamental
+const schoolGrades = ['1º ano', '2º ano', '3º ano', '4º ano', '5º ano', '6º ano', '7º ano', '8º ano', '9º ano'];
 const themes: Record<string, string[]> = {
   'Matemática': ['Demon Slayer', 'Naruto', 'One Piece', 'Geometria Espacial'],
   'História': ['Antigo Egito', 'Roma Antiga', 'Grandes Navegações', 'Revolução Francesa'],

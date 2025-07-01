@@ -2,11 +2,12 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { GameParameters } from '@/components/GameSetup';
 
 interface AIContentHook {
-  generateStory: (theme: string) => Promise<any>;
-  generateQuestion: (theme: string, difficulty?: string) => Promise<any>;
-  generateCharacterInfo: (theme: string) => Promise<any>;
+  generateStory: (gameParams: GameParameters) => Promise<any>;
+  generateQuestion: (gameParams: GameParameters, difficulty?: string) => Promise<any>;
+  generateCharacterInfo: (gameParams: GameParameters) => Promise<any>;
   isLoading: boolean;
 }
 
@@ -30,44 +31,51 @@ const validateAndSanitizeInput = (input: string): string => {
   return sanitized;
 };
 
-const validateDifficulty = (difficulty: string): string => {
-  const validDifficulties = ['easy', 'medium', 'hard'];
-  if (!validDifficulties.includes(difficulty)) {
-    return 'medium'; // Default fallback
-  }
-  return difficulty;
+// Mapear dificuldade baseada na série escolar
+const getDifficultyForGrade = (schoolGrade: string): string => {
+  const grade = parseInt(schoolGrade.charAt(0));
+  if (grade >= 1 && grade <= 3) return 'easy';
+  if (grade >= 4 && grade <= 6) return 'medium';
+  if (grade >= 7 && grade <= 9) return 'hard';
+  return 'medium';
 };
 
 export const useAIContent = (): AIContentHook => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const callAIFunction = async (contentType: string, theme: string, difficulty?: string) => {
+  const callAIFunction = async (contentType: string, gameParams: GameParameters, customDifficulty?: string) => {
     setIsLoading(true);
     
     try {
       // Validate and sanitize inputs
-      const sanitizedTheme = validateAndSanitizeInput(theme);
-      const validatedDifficulty = difficulty ? validateDifficulty(difficulty) : 'medium';
+      const sanitizedSubject = validateAndSanitizeInput(gameParams.subject);
+      const sanitizedTheme = validateAndSanitizeInput(gameParams.theme);
+      const sanitizedGrade = validateAndSanitizeInput(gameParams.schoolGrade);
+      const difficulty = customDifficulty || getDifficultyForGrade(gameParams.schoolGrade);
+      
       const validContentTypes = ['story', 'question', 'character_info'];
       
       if (!validContentTypes.includes(contentType)) {
         throw new Error('Invalid content type');
       }
 
+      // Create more specific cache key including all parameters
+      const cacheKey = `${contentType}_${sanitizedSubject}_${sanitizedTheme}_${sanitizedGrade}`;
+
       // Check cache first
       const { data: cachedContent, error: cacheError } = await supabase
         .from('generated_content')
         .select('content')
         .eq('content_type', contentType)
-        .eq('theme', sanitizedTheme)
+        .eq('theme', cacheKey)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (!cacheError && cachedContent) {
-        console.log('Returning cached content for:', contentType, sanitizedTheme);
+        console.log('Returning cached content for:', contentType, cacheKey);
         return cachedContent.content;
       }
 
@@ -75,8 +83,11 @@ export const useAIContent = (): AIContentHook => {
       const { data, error } = await supabase.functions.invoke('generate-game-content', {
         body: {
           contentType,
+          subject: sanitizedSubject,
           theme: sanitizedTheme,
-          difficulty: validatedDifficulty
+          schoolGrade: sanitizedGrade,
+          themeDetails: gameParams.themeDetails,
+          difficulty
         }
       });
 
@@ -85,13 +96,13 @@ export const useAIContent = (): AIContentHook => {
         throw new Error('Failed to generate content');
       }
 
-      // Cache the generated content
+      // Cache the generated content with the specific key
       if (data) {
         const { error: insertError } = await supabase
           .from('generated_content')
           .insert({
             content_type: contentType,
-            theme: sanitizedTheme,
+            theme: cacheKey,
             content: data,
             expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
           });
@@ -108,7 +119,7 @@ export const useAIContent = (): AIContentHook => {
       
       // Provide user-friendly error messages without exposing internals
       const userMessage = error instanceof Error && error.message.includes('Invalid input') 
-        ? 'Por favor, verifique se o tema está correto'
+        ? 'Por favor, verifique se os parâmetros estão corretos'
         : 'Erro temporário na geração de conteúdo. Usando conteúdo padrão.';
       
       toast({
@@ -123,16 +134,16 @@ export const useAIContent = (): AIContentHook => {
     }
   };
 
-  const generateStory = async (theme: string) => {
-    return await callAIFunction('story', theme);
+  const generateStory = async (gameParams: GameParameters) => {
+    return await callAIFunction('story', gameParams);
   };
 
-  const generateQuestion = async (theme: string, difficulty: string = 'medium') => {
-    return await callAIFunction('question', theme, difficulty);
+  const generateQuestion = async (gameParams: GameParameters, customDifficulty?: string) => {
+    return await callAIFunction('question', gameParams, customDifficulty);
   };
 
-  const generateCharacterInfo = async (theme: string) => {
-    return await callAIFunction('character_info', theme);
+  const generateCharacterInfo = async (gameParams: GameParameters) => {
+    return await callAIFunction('character_info', gameParams);
   };
 
   return {

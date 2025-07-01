@@ -75,11 +75,7 @@ const GameEngine = () => {
 
       setLoadingStory(true);
       try {
-        const contextualizedTheme = gameParams.themeDetails 
-          ? `${gameParams.theme} - ${gameParams.themeDetails}`
-          : `${gameParams.subject} com tema ${gameParams.theme} para ${gameParams.schoolGrade}`;
-
-        const storyData = await generateStory(contextualizedTheme);
+        const storyData = await generateStory(gameParams);
         if (storyData && storyData.title && storyData.content) {
           setDynamicStory(storyData);
         }
@@ -87,7 +83,7 @@ const GameEngine = () => {
         console.error('Erro ao gerar história:', error);
         setDynamicStory({
           title: `Aventura de ${gameParams.subject}: ${gameParams.theme}`,
-          content: `Bem-vindo à sua aventura de ${gameParams.subject} sobre ${gameParams.theme}! Você está pronto para enfrentar desafios incríveis e testar seus conhecimentos. Vamos começar!`
+          content: `Bem-vindo à sua aventura de ${gameParams.subject} sobre ${gameParams.theme}! Você está no ${gameParams.schoolGrade} e está pronto para enfrentar desafios incríveis. Vamos começar!`
         });
       } finally {
         setLoadingStory(false);

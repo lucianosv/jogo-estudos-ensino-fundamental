@@ -14,7 +14,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface GenerateContentRequest {
   contentType: 'story' | 'question' | 'character_info';
+  subject: string;
   theme: string;
+  schoolGrade: string;
+  themeDetails?: string;
   difficulty?: 'easy' | 'medium' | 'hard';
   forceRegenerate?: boolean;
 }
@@ -65,16 +68,41 @@ const generateWithGemini = async (prompt: string) => {
   return data.candidates[0].content.parts[0].text;
 };
 
-const generateStory = async (theme: string) => {
+const generateStory = async (subject: string, theme: string, schoolGrade: string, themeDetails?: string) => {
+  // Adaptar complexidade da linguagem baseada na série
+  const gradeNumber = parseInt(schoolGrade.charAt(0));
+  let languageLevel = "";
+  let contentComplexity = "";
+  
+  if (gradeNumber >= 1 && gradeNumber <= 3) {
+    languageLevel = "linguagem simples e frases curtas";
+    contentComplexity = "conceitos básicos e situações do dia a dia";
+  } else if (gradeNumber >= 4 && gradeNumber <= 6) {
+    languageLevel = "linguagem clara com vocabulário intermediário";
+    contentComplexity = "conceitos intermediários com exemplos práticos";
+  } else {
+    languageLevel = "linguagem mais elaborada";
+    contentComplexity = "conceitos mais complexos e abstratos";
+  }
+
   const prompt = `
-  Crie uma história curta e envolvente de Demon Slayer com o personagem ${theme}.
+  Crie uma história curta e envolvente de ${subject} com o tema ${theme} para o ${schoolGrade} do ensino fundamental.
+  
+  Parâmetros específicos:
+  - Matéria: ${subject}
+  - Tema: ${theme}
+  - Série: ${schoolGrade}
+  ${themeDetails ? `- Detalhes específicos: ${themeDetails}` : ''}
+  
   A história deve:
   - Ter entre 150-200 palavras
-  - Incluir uma situação onde matemática é importante
-  - Ser adequada para crianças
-  - Terminar com um desafio matemático sendo apresentado
+  - Usar ${languageLevel} apropriada para ${schoolGrade}
+  - Focar em ${contentComplexity} de ${subject}
+  - Incluir uma situação onde o conhecimento de ${subject} é importante
+  - Ser adequada para crianças do ${schoolGrade}
+  - Terminar com um desafio relacionado a ${subject} sendo apresentado
   - Usar linguagem brasileira
-  - Incluir elementos únicos do personagem ${theme}
+  - Incorporar elementos do tema ${theme}
   
   Formato: Retorne apenas o texto da história, sem formatação extra.
   `;
@@ -82,37 +110,50 @@ const generateStory = async (theme: string) => {
   try {
     const content = await generateWithGemini(prompt);
     return {
-      title: `A Aventura de ${theme}`,
+      title: `Aventura de ${subject}: ${theme}`,
       content: content.trim()
     };
   } catch (error) {
     console.error('Erro ao gerar história:', error);
-    // Fallback para história padrão
+    // Fallback para história padrão adaptada à matéria
     return {
-      title: `A Aventura de ${theme}`,
-      content: `${theme} estava caminhando pela floresta quando encontrou um grupo de demônios. Para derrotá-los, precisava calcular quantos golpes seriam necessários. Se cada demônio precisa de 3 golpes e há 4 demônios, quantos golpes no total ${theme} precisa dar?`
+      title: `Aventura de ${subject}: ${theme}`,
+      content: `Bem-vindo à sua aventura de ${subject} sobre ${theme}! Você está no ${schoolGrade} e vai enfrentar desafios incríveis relacionados a ${subject}. Prepare-se para testar seus conhecimentos e descobrir coisas fantásticas sobre ${theme}. Vamos começar esta jornada de aprendizado!`
     };
   }
 };
 
-const generateQuestion = async (theme: string, difficulty: string) => {
-  const difficultyLevels = {
-    easy: "números de 1 a 20, operações básicas",
-    medium: "números de 1 a 100, multiplicação e divisão simples", 
-    hard: "números maiores, frações simples, problemas de múltiplas etapas"
-  };
+const generateQuestion = async (subject: string, theme: string, schoolGrade: string, difficulty: string, themeDetails?: string) => {
+  // Adaptar dificuldade baseada na série
+  const gradeNumber = parseInt(schoolGrade.charAt(0));
+  let difficultyDescription = "";
+  
+  if (gradeNumber >= 1 && gradeNumber <= 3) {
+    difficultyDescription = "números simples de 1 a 20, operações básicas de soma e subtração";
+  } else if (gradeNumber >= 4 && gradeNumber <= 6) {
+    difficultyDescription = "números de 1 a 100, multiplicação e divisão simples, problemas práticos";
+  } else {
+    difficultyDescription = "números maiores, frações simples, problemas de múltiplas etapas, conceitos mais abstratos";
+  }
   
   const prompt = `
-  Crie uma questão de matemática temática de Demon Slayer com ${theme}.
+  Crie uma questão de ${subject} com tema ${theme} para o ${schoolGrade} do ensino fundamental.
   
-  Dificuldade: ${difficulty} (${difficultyLevels[difficulty as keyof typeof difficultyLevels]})
+  Parâmetros específicos:
+  - Matéria: ${subject}
+  - Tema: ${theme}
+  - Série: ${schoolGrade}
+  - Dificuldade apropriada: ${difficultyDescription}
+  ${themeDetails ? `- Detalhes específicos: ${themeDetails}` : ''}
   
   A questão deve:
-  - Ser contextualizada com uma situação envolvendo ${theme}
+  - Ser contextualizada com uma situação envolvendo ${theme} e ${subject}
   - Ter EXATAMENTE 4 alternativas de resposta (A, B, C, D)
   - Ter apenas uma resposta correta
-  - Incluir uma palavra secreta relacionada ao tema (ex: "coragem", "técnica", "respiração")
+  - Ser apropriada para ${schoolGrade} do ensino fundamental
+  - Incluir uma palavra secreta relacionada ao tema (ex: para História: "descoberta", para Ciências: "experiência")
   - Ser adequada para crianças brasileiras
+  - Usar ${difficultyDescription}
   
   IMPORTANTE: A resposta deve ter EXATAMENTE 4 alternativas, nem mais nem menos.
   
@@ -150,23 +191,35 @@ const generateQuestion = async (theme: string, difficulty: string) => {
     
   } catch (error) {
     console.error('Erro ao gerar questão:', error);
-    // Fallback para questão padrão com EXATAMENTE 4 alternativas
+    // Fallback para questão padrão adaptada à matéria e série
+    const fallbackWord = subject === 'Matemática' ? 'cálculo' : 
+                        subject === 'História' ? 'descoberta' :
+                        subject === 'Ciências' ? 'experiência' :
+                        subject === 'Português' ? 'palavra' :
+                        subject === 'Geografia' ? 'exploração' : 'conhecimento';
+    
     return {
-      content: `${theme} precisa calcular quantos demônios derrotou. Se derrotou 3 demônios pela manhã e 5 à tarde, quantos derrotou no total?`,
-      choices: ["6 demônios", "7 demônios", "8 demônios", "9 demônios"],
-      answer: "8 demônios",
-      word: "vitória"
+      content: `Questão de ${subject} (${schoolGrade}) sobre ${theme}: Se você tem 2 + 2, qual é o resultado?`,
+      choices: ["3", "4", "5", "6"],
+      answer: "4",
+      word: fallbackWord
     };
   }
 };
 
-const generateCharacterInfo = async (theme: string) => {
+const generateCharacterInfo = async (subject: string, theme: string, schoolGrade: string, themeDetails?: string) => {
   const prompt = `
-  Crie informações sobre o personagem ${theme} de Demon Slayer.
+  Crie informações sobre o tema ${theme} relacionado à matéria ${subject} para o ${schoolGrade} do ensino fundamental.
+  
+  Parâmetros específicos:
+  - Matéria: ${subject}
+  - Tema: ${theme}
+  - Série: ${schoolGrade}
+  ${themeDetails ? `- Detalhes específicos: ${themeDetails}` : ''}
   
   Retorne APENAS um JSON válido no seguinte formato:
   {
-    "background_description": "descrição para buscar imagens de fundo temáticas",
+    "background_description": "descrição para buscar imagens de fundo relacionadas a ${subject} e ${theme}",
     "personality_traits": ["característica1", "característica2", "característica3"],
     "special_abilities": ["habilidade1", "habilidade2"],
     "motivations": ["motivação1", "motivação2"]
@@ -186,12 +239,12 @@ const generateCharacterInfo = async (theme: string) => {
     return parsed;
     
   } catch (error) {
-    console.error('Erro ao gerar info do personagem:', error);
+    console.error('Erro ao gerar info do tema:', error);
     return {
-      background_description: `${theme} em paisagem japonesa tradicional com elementos místicos`,
-      personality_traits: ["Determinado", "Corajoso", "Leal"],
-      special_abilities: ["Técnicas de respiração"],
-      motivations: ["Proteger os inocentes", "Derrotar demônios"]
+      background_description: `${theme} relacionado a ${subject} em ambiente educativo para ${schoolGrade}`,
+      personality_traits: ["Curioso", "Inteligente", "Dedicado"],
+      special_abilities: [`Conhecimento de ${subject}`],
+      motivations: ["Aprender mais", "Resolver desafios"]
     };
   }
 };
@@ -202,18 +255,28 @@ serve(async (req) => {
   }
 
   try {
-    const { contentType, theme, difficulty = 'medium', forceRegenerate = false }: GenerateContentRequest = await req.json();
+    const { 
+      contentType, 
+      subject, 
+      theme, 
+      schoolGrade, 
+      themeDetails,
+      difficulty = 'medium', 
+      forceRegenerate = false 
+    }: GenerateContentRequest = await req.json();
 
-    console.log(`Gerando conteúdo: ${contentType} para ${theme}`);
+    console.log(`Gerando conteúdo: ${contentType} para ${subject} - ${theme} (${schoolGrade})`);
 
     // Verificar se já existe conteúdo em cache (se não forçar regeneração)
+    const cacheKey = `${contentType}_${subject}_${theme}_${schoolGrade}`;
+    
     if (!forceRegenerate) {
       try {
         const { data: cachedContent } = await supabase
           .from('generated_content')
           .select('content')
           .eq('content_type', contentType)
-          .eq('theme', theme)
+          .eq('theme', cacheKey)
           .gt('expires_at', new Date().toISOString())
           .single();
 
@@ -233,13 +296,13 @@ serve(async (req) => {
     
     switch (contentType) {
       case 'story':
-        generatedContent = await generateStory(theme);
+        generatedContent = await generateStory(subject, theme, schoolGrade, themeDetails);
         break;
       case 'question':
-        generatedContent = await generateQuestion(theme, difficulty);
+        generatedContent = await generateQuestion(subject, theme, schoolGrade, difficulty, themeDetails);
         break;
       case 'character_info':
-        generatedContent = await generateCharacterInfo(theme);
+        generatedContent = await generateCharacterInfo(subject, theme, schoolGrade, themeDetails);
         break;
       default:
         throw new Error(`Tipo de conteúdo não suportado: ${contentType}`);
@@ -251,7 +314,7 @@ serve(async (req) => {
         .from('generated_content')
         .insert({
           content_type: contentType,
-          theme: theme,
+          theme: cacheKey,
           content: generatedContent,
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 dias
         });

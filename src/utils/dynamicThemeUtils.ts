@@ -1,4 +1,3 @@
-
 import { GameParameters } from "@/components/GameSetup";
 
 export interface DynamicTheme {
@@ -188,17 +187,11 @@ export const getDynamicTheme = (gameParams: GameParameters): DynamicTheme => {
 };
 
 export const getDifficultyLevel = (schoolGrade: string): 'easy' | 'medium' | 'hard' => {
-  switch (schoolGrade) {
-    case 'Fundamental I':
-      return 'easy';
-    case 'Fundamental II':
-      return 'medium';
-    case 'Ensino Médio':
-    case 'Superior':
-      return 'hard';
-    default:
-      return 'medium';
-  }
+  const grade = parseInt(schoolGrade.charAt(0));
+  if (grade >= 1 && grade <= 3) return 'easy';
+  if (grade >= 4 && grade <= 6) return 'medium';
+  if (grade >= 7 && grade <= 9) return 'hard';
+  return 'medium';
 };
 
 export const getSubjectIcon = (subject: string): string => {
