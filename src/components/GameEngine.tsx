@@ -1,7 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import gameData from "@/data/demon-slayer-math-game.json";
 import TextStep from "./game-steps/TextStep";
 import ChoiceStep from "./game-steps/ChoiceStep";
 import InputStep from "./game-steps/InputStep";
@@ -15,6 +15,7 @@ import GameSetup, { GameParameters } from "./GameSetup";
 import { useAIContent } from "@/hooks/useAIContent";
 import { Loader2 } from "lucide-react";
 import { getDynamicTheme } from "@/utils/dynamicThemeUtils";
+import { generateIntelligentFallback } from "@/utils/intelligentFallbacks";
 
 interface GameStep {
   type: "text" | "choice" | "question" | "input";
@@ -42,27 +43,60 @@ interface Game {
   }>;
 }
 
+// Gerar steps dinamicamente baseados nos parâmetros do jogo
+const generateDynamicSteps = (gameParams: GameParameters): GameStep[] => {
+  const { subject, theme, schoolGrade } = gameParams;
+  
+  return [
+    {
+      type: "text",
+      content: `**Bem-vindo à Aventura de ${subject}!**\n\n[STORY_PLACEHOLDER]\n\nVocê está pronto para esta jornada de aprendizado?`
+    },
+    {
+      type: "question",
+      content: "Hora de testar seus conhecimentos!"
+    },
+    {
+      type: "input",
+      content: `**🎉 Parabéns!**\n\nVocê coletou todas as palavras secretas! Agora digite-as na ordem correta para desbloquear o final da aventura.\n\n*Dica: Use as palavras que você coletou durante as questões, separadas por espaços.*`
+    },
+    {
+      type: "text",
+      content: `**🌟 Fantástico!**\n\nVocê completou com sucesso a aventura de ${subject} sobre ${theme}! \n\nDurante esta jornada, você demonstrou conhecimento, determinação e inteligência. Continue sempre curioso e disposto a aprender!\n\n**Sua aventura de aprendizado nunca termina!** 📚✨`
+    },
+    {
+      type: "choice",
+      content: "**🎮 O que você gostaria de fazer agora?**",
+      choices: [
+        "🔄 Sim, quero uma nova aventura!",
+        "📚 Não, quero encerrar por aqui"
+      ]
+    }
+  ];
+};
+
 const GameEngine = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [collectedWords, setCollectedWords] = useState<string[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [gameParams, setGameParams] = useState<GameParameters | null>(null);
   const [dynamicStory, setDynamicStory] = useState<{title: string, content: string} | null>(null);
   const [loadingStory, setLoadingStory] = useState(false);
+  const [dynamicSteps, setDynamicSteps] = useState<GameStep[]>([]);
 
   const { toast } = useToast();
   const { generateStory, isLoading } = useAIContent();
 
-  const games = gameData.games as Game[];
-  const allSteps = gameData.steps as GameStep[];
-  const steps = allSteps.filter((step) => step.type !== 'choice' || !step.content.includes("Escolha seu herói"));
-  const currentStep = steps[currentStepIndex];
+  // Gerar steps dinamicamente quando os parâmetros são definidos
+  useEffect(() => {
+    if (gameParams) {
+      const steps = generateDynamicSteps(gameParams);
+      setDynamicSteps(steps);
+    }
+  }, [gameParams]);
 
-  const [showQuestionResult, setShowQuestionResult] = useState(false);
-  const [lastQuestionCorrect, setLastQuestionCorrect] = useState<boolean | null>(null);
-
+  const currentStep = dynamicSteps[currentStepIndex];
   const isQuestionStep = currentStep?.type === "question";
 
   useEffect(() => {
@@ -78,13 +112,16 @@ const GameEngine = () => {
         const storyData = await generateStory(gameParams);
         if (storyData && storyData.title && storyData.content) {
           setDynamicStory(storyData);
+        } else {
+          // Usar fallback inteligente se a IA falhar
+          const fallbackStory = generateIntelligentFallback(gameParams, 'story');
+          setDynamicStory(fallbackStory);
         }
       } catch (error) {
         console.error('Erro ao gerar história:', error);
-        setDynamicStory({
-          title: `Aventura de ${gameParams.subject}: ${gameParams.theme}`,
-          content: `Bem-vindo à sua aventura de ${gameParams.subject} sobre ${gameParams.theme}! Você está no ${gameParams.schoolGrade} e está pronto para enfrentar desafios incríveis. Vamos começar!`
-        });
+        // Usar fallback inteligente
+        const fallbackStory = generateIntelligentFallback(gameParams, 'story');
+        setDynamicStory(fallbackStory);
       } finally {
         setLoadingStory(false);
       }
@@ -100,34 +137,27 @@ const GameEngine = () => {
     setCollectedWords([]);
     setSelectedGame(null);
     setGameStarted(false);
-    setCurrentQuestionIndex(0);
-    setShowQuestionResult(false);
-    setLastQuestionCorrect(null);
     setGameParams(null);
     setDynamicStory(null);
+    setDynamicSteps([]);
   };
 
   const handleSetupComplete = (params: GameParameters) => {
     setGameParams(params);
-    const game = games.find(g => params.theme.includes(g.theme.split(" ")[0]));
     
-    if (game) {
-      setSelectedGame(game);
-    } else {
-      const genericGame: Game = {
-        ...games[0],
-        id: Date.now(),
-        theme: params.theme,
-        background: 'default',
-        password: ['aventura'],
-        story: {
-          title: `Aventura de ${params.subject}: ${params.theme}`,
-          content: `Prepare-se para uma jornada sobre ${params.theme} para a série ${params.schoolGrade}. (O conteúdo para esta aventura será gerado em breve!)`
-        },
-        questions: []
-      };
-      setSelectedGame(genericGame);
-    }
+    // Criar um jogo genérico personalizado para qualquer tema
+    const genericGame: Game = {
+      id: Date.now(),
+      theme: params.theme,
+      background: 'default',
+      password: ['aventura'], // Senha padrão simples
+      story: {
+        title: `Aventura de ${params.subject}: ${params.theme}`,
+        content: `Prepare-se para uma jornada sobre ${params.theme} para a série ${params.schoolGrade}. (O conteúdo para esta aventura será gerado em breve!)`
+      },
+      questions: [] // Será gerado dinamicamente
+    };
+    setSelectedGame(genericGame);
   };
 
   const handleCollectWord = (word: string) => {
@@ -138,25 +168,30 @@ const GameEngine = () => {
 
   const handleFinishQuestions = () => {
     setCurrentStepIndex((idx) => idx + 1);
-    setCurrentQuestionIndex(0);
-    setShowQuestionResult(false);
-    setLastQuestionCorrect(null);
   };
 
   const handlePasswordSubmit = (password: string) => {
     if (!selectedGame) return;
     const sanitizedPassword = sanitizeText(password);
-    const correctPassword = selectedGame.password.join(" ");
-    if (sanitizedPassword.trim().toLowerCase() === correctPassword.toLowerCase()) {
+    
+    // Aceitar as palavras coletadas em qualquer ordem
+    const wordsInPassword = sanitizedPassword.toLowerCase().split(/\s+/);
+    const collectedWordsLower = collectedWords.map(w => w.toLowerCase());
+    
+    const hasAllWords = collectedWordsLower.every(word => 
+      wordsInPassword.some(inputWord => inputWord.includes(word))
+    );
+    
+    if (hasAllWords && collectedWords.length > 0) {
       setCurrentStepIndex(currentStepIndex + 1);
     } else {
       logSecurityEvent('Incorrect password attempt', {
-        expected: correctPassword,
+        expected: collectedWords.join(" "),
         received: sanitizedPassword
       });
       toast({
         title: "❌ Senha incorreta!",
-        description: "Use as palavras que você coletou na ordem correta.",
+        description: "Use as palavras que você coletou durante as questões.",
         variant: "destructive"
       });
     }
@@ -188,9 +223,16 @@ const GameEngine = () => {
     );
   }
 
+  if (!currentStep) {
+    return (
+      <div className="text-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+        <p>Preparando sua aventura...</p>
+      </div>
+    );
+  }
+
   const renderStep = () => {
-    if (!currentStep) return null;
-    
     if (isQuestionStep && selectedGame) {
       return (
         <QuestionsFlow
@@ -239,7 +281,7 @@ const GameEngine = () => {
           <ChoiceStep 
             content={currentStep.content}
             choices={currentStep.choices || []}
-            onChoice={currentStepIndex === steps.length - 1 ? handleFinalChoice :
+            onChoice={currentStepIndex === dynamicSteps.length - 1 ? handleFinalChoice :
               () => setCurrentStepIndex(idx => idx + 1)}
             selectedGame={selectedGame}
             gameParams={gameParams}
@@ -268,7 +310,7 @@ const GameEngine = () => {
 
       <GameHeader 
         currentStepIndex={currentStepIndex}
-        totalSteps={steps.length}
+        totalSteps={dynamicSteps.length}
         selectedGame={selectedGame}
         collectedWords={collectedWords}
         gameParams={gameParams}
@@ -280,7 +322,7 @@ const GameEngine = () => {
         </CardContent>
       </Card>
 
-      {currentStepIndex === steps.length - 1 && (
+      {currentStepIndex === dynamicSteps.length - 1 && (
         <div className="mt-6 text-center relative z-10">
           <Button 
             onClick={handleRestart}

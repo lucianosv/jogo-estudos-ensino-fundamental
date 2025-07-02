@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { GameParameters } from '@/components/GameSetup';
+import { generateIntelligentFallback, validateGeneratedContent } from '@/utils/intelligentFallbacks';
 
 interface AIContentHook {
   generateStory: (gameParams: GameParameters) => Promise<any>;
@@ -76,7 +77,12 @@ export const useAIContent = (): AIContentHook => {
 
       if (!cacheError && cachedContent) {
         console.log('Returning cached content for:', contentType, cacheKey);
-        return cachedContent.content;
+        // Validar conteúdo do cache
+        if (validateGeneratedContent(cachedContent.content, gameParams)) {
+          return cachedContent.content;
+        } else {
+          console.log('Cached content failed validation, generating new content');
+        }
       }
 
       console.log('Generating new content via AI function');
@@ -96,8 +102,9 @@ export const useAIContent = (): AIContentHook => {
         throw new Error('Failed to generate content');
       }
 
-      // Cache the generated content with the specific key
-      if (data) {
+      // Validar conteúdo gerado
+      if (data && validateGeneratedContent(data, gameParams)) {
+        // Cache the generated content with the specific key
         const { error: insertError } = await supabase
           .from('generated_content')
           .insert({
@@ -111,20 +118,32 @@ export const useAIContent = (): AIContentHook => {
           console.warn('Failed to cache content:', insertError);
           // Don't throw error, just log it
         }
+
+        return data;
+      } else {
+        console.warn('Generated content failed validation, using intelligent fallback');
+        throw new Error('Generated content validation failed');
       }
 
-      return data;
     } catch (error) {
       console.error('Error in AI content generation:', error);
       
-      // Provide user-friendly error messages without exposing internals
-      const userMessage = error instanceof Error && error.message.includes('Invalid input') 
-        ? 'Por favor, verifique se os parâmetros estão corretos'
-        : 'Erro temporário na geração de conteúdo. Usando conteúdo padrão.';
+      // Usar fallback inteligente baseado nos parâmetros
+      console.log('Using intelligent fallback for:', contentType, gameParams);
+      const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
       
+      if (fallbackContent) {
+        toast({
+          title: "Conteúdo Personalizado",
+          description: `Geramos conteúdo específico para ${gameParams.subject} - ${gameParams.schoolGrade}`,
+        });
+        return fallbackContent;
+      }
+      
+      // Se até o fallback falhar, mostrar erro mais específico
       toast({
-        title: "Aviso",
-        description: userMessage,
+        title: "Erro na Geração",
+        description: `Não foi possível gerar conteúdo para ${gameParams.subject}`,
         variant: "destructive"
       });
       

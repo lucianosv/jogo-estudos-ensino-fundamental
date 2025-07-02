@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import QuestionStep from "./QuestionStep";
 import ResultDisplay from "./question/ResultDisplay";
@@ -6,6 +7,7 @@ import { GameParameters } from "../GameSetup";
 import { useAIContent } from "@/hooks/useAIContent";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
+import { generateIntelligentFallback } from "@/utils/intelligentFallbacks";
 
 interface Question {
   content: string;
@@ -60,36 +62,32 @@ const QuestionsFlow = ({
             }
           } catch (error) {
             console.error(`Erro ao gerar questão ${i + 1}:`, error);
+            // Usar fallback inteligente para esta questão específica
+            const fallbackQuestion = generateIntelligentFallback(gameParams, 'question');
+            if (fallbackQuestion) {
+              dynamicQuestions.push(fallbackQuestion);
+            }
           }
         }
 
-        // Se não conseguiu gerar nenhuma questão, usar fallback
+        // Se não conseguiu gerar nenhuma questão, usar fallbacks inteligentes
         if (dynamicQuestions.length === 0) {
-          const fallbackWord = gameParams.subject === 'Matemática' ? 'cálculo' : 
-                              gameParams.subject === 'História' ? 'descoberta' :
-                              gameParams.subject === 'Ciências' ? 'experiência' :
-                              gameParams.subject === 'Português' ? 'palavra' :
-                              gameParams.subject === 'Geografia' ? 'exploração' : 'conhecimento';
-          
-          dynamicQuestions.push({
-            content: `Questão de ${gameParams.subject} (${gameParams.schoolGrade}) sobre ${gameParams.theme}: Se você tem 2 + 2, qual é o resultado?`,
-            choices: ["3", "4", "5", "6"],
-            answer: "4",
-            word: fallbackWord
-          });
+          for (let i = 0; i < 4; i++) {
+            const fallbackQuestion = generateIntelligentFallback(gameParams, 'question');
+            if (fallbackQuestion) {
+              dynamicQuestions.push(fallbackQuestion);
+            }
+          }
         }
 
         setGeneratedQuestions(dynamicQuestions);
       } catch (error) {
         console.error('Erro ao gerar questões:', error);
-        // Fallback para questão padrão
-        const fallbackWord = gameParams.subject === 'Matemática' ? 'cálculo' : 'conhecimento';
-        setGeneratedQuestions([{
-          content: `Questão sobre ${gameParams.subject} - ${gameParams.theme} (${gameParams.schoolGrade}): Se você tem 2 + 2, qual é o resultado?`,
-          choices: ["3", "4", "5", "6"],
-          answer: "4",
-          word: fallbackWord
-        }]);
+        // Fallback final - gerar pelo menos uma questão usando fallback inteligente
+        const fallbackQuestion = generateIntelligentFallback(gameParams, 'question');
+        if (fallbackQuestion) {
+          setGeneratedQuestions([fallbackQuestion]);
+        }
       } finally {
         setLoadingQuestions(false);
       }
