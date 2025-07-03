@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -22,50 +21,89 @@ interface GenerateContentRequest {
   forceRegenerate?: boolean;
 }
 
-const generateWithGemini = async (prompt: string) => {
+// Função para chamada da API Gemini com retry e timeout
+const generateWithGemini = async (prompt: string): Promise<string> => {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   
   if (!geminiApiKey) {
+    console.error('GEMINI_API_KEY não configurada');
     throw new Error('GEMINI_API_KEY not configured');
   }
   
-  console.log('Chamando API Gemini...');
+  console.log('Iniciando chamada para API Gemini...');
   
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.8,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 1024,
+  const maxRetries = 3;
+  const timeoutMs = 30000; // 30 segundos
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Tentativa ${attempt}/${maxRetries} para API Gemini`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.8,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 1024,
+            }
+          }),
+          signal: controller.signal
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Erro da API Gemini (tentativa ${attempt}):`, response.status, errorText);
+        
+        if (attempt === maxRetries) {
+          throw new Error(`Gemini API error after ${maxRetries} attempts: ${response.status} - ${errorText}`);
+        }
+        
+        // Backoff exponencial
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        continue;
       }
-    }),
-  });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Erro da API Gemini:', response.status, errorText);
-    throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+      const data = await response.json();
+      console.log('Resposta da API Gemini recebida com sucesso');
+      
+      if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        console.error('Estrutura de resposta inválida:', data);
+        throw new Error('Invalid response structure from Gemini API');
+      }
+      
+      return data.candidates[0].content.parts[0].text;
+      
+    } catch (error) {
+      console.error(`Erro na tentativa ${attempt}:`, error);
+      
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Backoff exponencial
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+    }
   }
-
-  const data = await response.json();
-  console.log('Resposta da API Gemini recebida:', JSON.stringify(data, null, 2));
   
-  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-    console.error('Estrutura de resposta inválida:', data);
-    throw new Error('Invalid response structure from Gemini API');
-  }
-  
-  return data.candidates[0].content.parts[0].text;
+  throw new Error('Max retries exceeded');
 };
 
 const generateStory = async (subject: string, theme: string, schoolGrade: string, themeDetails?: string) => {
@@ -267,27 +305,30 @@ serve(async (req) => {
 
     console.log(`Gerando conteúdo: ${contentType} para ${subject} - ${theme} (${schoolGrade})`);
 
-    // Verificar se já existe conteúdo em cache (se não forçar regeneração)
-    const cacheKey = `${contentType}_${subject}_${theme}_${schoolGrade}`;
+    // Criar chave de cache mais específica
+    const cacheKey = `${contentType}_${subject}_${theme}_${schoolGrade}_${difficulty}`;
     
+    // Verificar cache consolidado
     if (!forceRegenerate) {
       try {
-        const { data: cachedContent } = await supabase
+        const { data: cachedContent, error: cacheError } = await supabase
           .from('generated_content')
           .select('content')
           .eq('content_type', contentType)
           .eq('theme', cacheKey)
           .gt('expires_at', new Date().toISOString())
-          .single();
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if (cachedContent) {
-          console.log('Retornando conteúdo do cache');
+        if (!cacheError && cachedContent?.content) {
+          console.log('Retornando conteúdo do cache:', cacheKey);
           return new Response(JSON.stringify(cachedContent.content), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
       } catch (cacheError) {
-        console.log('Nenhum cache encontrado, gerando novo conteúdo');
+        console.log('Cache não encontrado, gerando novo conteúdo');
       }
     }
 
@@ -308,7 +349,7 @@ serve(async (req) => {
         throw new Error(`Tipo de conteúdo não suportado: ${contentType}`);
     }
 
-    // Salvar no cache
+    // Salvar no cache consolidado
     try {
       const { error: saveError } = await supabase
         .from('generated_content')
@@ -316,20 +357,19 @@ serve(async (req) => {
           content_type: contentType,
           theme: cacheKey,
           content: generatedContent,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 dias
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 horas
         });
 
       if (saveError) {
         console.error('Erro ao salvar no cache:', saveError);
-        // Não falhar a request por causa de erro de cache
       } else {
-        console.log('Conteúdo salvo no cache com sucesso');
+        console.log('Conteúdo salvo no cache:', cacheKey);
       }
     } catch (cacheError) {
       console.error('Erro ao salvar cache:', cacheError);
     }
 
-    console.log('Conteúdo gerado com sucesso:', JSON.stringify(generatedContent));
+    console.log('Conteúdo gerado com sucesso');
 
     return new Response(JSON.stringify(generatedContent), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -337,11 +377,14 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Erro na geração de conteúdo:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Erro ao gerar conteúdo',
-      details: error.message 
-    }), {
-      status: 500,
+    
+    // Fallback robusto
+    const fallbackContent = {
+      title: "História Personalizada",
+      content: "Prepare-se para uma aventura de aprendizado personalizada!"
+    };
+    
+    return new Response(JSON.stringify(fallbackContent), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

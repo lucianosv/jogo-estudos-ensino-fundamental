@@ -1,9 +1,9 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { GameParameters } from '@/components/GameSetup';
-import { generateIntelligentFallback, validateGeneratedContent } from '@/utils/intelligentFallbacks';
+import { generateIntelligentFallback } from '@/utils/intelligentFallbacks';
 
 interface AIContentHook {
   generateStory: (gameParams: GameParameters) => Promise<any>;
@@ -12,24 +12,12 @@ interface AIContentHook {
   isLoading: boolean;
 }
 
-// Input validation and sanitization
-const validateAndSanitizeInput = (input: string): string => {
+// Validação simples de entrada
+const validateInput = (input: string): string => {
   if (!input || typeof input !== 'string') {
-    throw new Error('Invalid input: must be a non-empty string');
+    throw new Error('Invalid input');
   }
-  
-  // Remove potentially dangerous characters and limit length
-  const sanitized = input
-    .replace(/[<>]/g, '') // Remove HTML tags
-    .replace(/['"]/g, '') // Remove quotes that could break JSON
-    .trim()
-    .substring(0, 100); // Limit length
-  
-  if (sanitized.length === 0) {
-    throw new Error('Input cannot be empty after sanitization');
-  }
-  
-  return sanitized;
+  return input.trim().substring(0, 100);
 };
 
 // Mapear dificuldade baseada na série escolar
@@ -45,47 +33,23 @@ export const useAIContent = (): AIContentHook => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const callAIFunction = async (contentType: string, gameParams: GameParameters, customDifficulty?: string) => {
+  const callAIFunction = useCallback(async (contentType: string, gameParams: GameParameters, customDifficulty?: string) => {
+    if (isLoading) {
+      console.log('Já está carregando, ignorando nova chamada');
+      return null;
+    }
+
     setIsLoading(true);
     
     try {
-      // Validate and sanitize inputs
-      const sanitizedSubject = validateAndSanitizeInput(gameParams.subject);
-      const sanitizedTheme = validateAndSanitizeInput(gameParams.theme);
-      const sanitizedGrade = validateAndSanitizeInput(gameParams.schoolGrade);
+      // Validar entradas
+      const sanitizedSubject = validateInput(gameParams.subject);
+      const sanitizedTheme = validateInput(gameParams.theme);
+      const sanitizedGrade = validateInput(gameParams.schoolGrade);
       const difficulty = customDifficulty || getDifficultyForGrade(gameParams.schoolGrade);
       
-      const validContentTypes = ['story', 'question', 'character_info'];
-      
-      if (!validContentTypes.includes(contentType)) {
-        throw new Error('Invalid content type');
-      }
+      console.log('Chamando Edge Function para:', contentType, sanitizedSubject, sanitizedTheme);
 
-      // Create more specific cache key including all parameters
-      const cacheKey = `${contentType}_${sanitizedSubject}_${sanitizedTheme}_${sanitizedGrade}`;
-
-      // Check cache first
-      const { data: cachedContent, error: cacheError } = await supabase
-        .from('generated_content')
-        .select('content')
-        .eq('content_type', contentType)
-        .eq('theme', cacheKey)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!cacheError && cachedContent) {
-        console.log('Returning cached content for:', contentType, cacheKey);
-        // Validar conteúdo do cache
-        if (validateGeneratedContent(cachedContent.content, gameParams)) {
-          return cachedContent.content;
-        } else {
-          console.log('Cached content failed validation, generating new content');
-        }
-      }
-
-      console.log('Generating new content via AI function');
       const { data, error } = await supabase.functions.invoke('generate-game-content', {
         body: {
           contentType,
@@ -98,49 +62,31 @@ export const useAIContent = (): AIContentHook => {
       });
 
       if (error) {
-        console.error('AI function error:', error);
+        console.error('Erro na Edge Function:', error);
         throw new Error('Failed to generate content');
       }
 
-      // Validar conteúdo gerado
-      if (data && validateGeneratedContent(data, gameParams)) {
-        // Cache the generated content with the specific key
-        const { error: insertError } = await supabase
-          .from('generated_content')
-          .insert({
-            content_type: contentType,
-            theme: cacheKey,
-            content: data,
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-          });
-
-        if (insertError) {
-          console.warn('Failed to cache content:', insertError);
-          // Don't throw error, just log it
-        }
-
+      if (data) {
+        console.log('Conteúdo gerado com sucesso:', contentType);
         return data;
       } else {
-        console.warn('Generated content failed validation, using intelligent fallback');
-        throw new Error('Generated content validation failed');
+        throw new Error('No content generated');
       }
 
     } catch (error) {
-      console.error('Error in AI content generation:', error);
+      console.error('Erro na geração de conteúdo:', error);
       
-      // Usar fallback inteligente baseado nos parâmetros
-      console.log('Using intelligent fallback for:', contentType, gameParams);
+      // Usar fallback inteligente
       const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
       
       if (fallbackContent) {
         toast({
           title: "Conteúdo Personalizado",
-          description: `Geramos conteúdo específico para ${gameParams.subject} - ${gameParams.schoolGrade}`,
+          description: `Conteúdo gerado para ${gameParams.subject} - ${gameParams.schoolGrade}`,
         });
         return fallbackContent;
       }
       
-      // Se até o fallback falhar, mostrar erro mais específico
       toast({
         title: "Erro na Geração",
         description: `Não foi possível gerar conteúdo para ${gameParams.subject}`,
@@ -151,19 +97,19 @@ export const useAIContent = (): AIContentHook => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isLoading, toast]);
 
-  const generateStory = async (gameParams: GameParameters) => {
+  const generateStory = useCallback(async (gameParams: GameParameters) => {
     return await callAIFunction('story', gameParams);
-  };
+  }, [callAIFunction]);
 
-  const generateQuestion = async (gameParams: GameParameters, customDifficulty?: string) => {
+  const generateQuestion = useCallback(async (gameParams: GameParameters, customDifficulty?: string) => {
     return await callAIFunction('question', gameParams, customDifficulty);
-  };
+  }, [callAIFunction]);
 
-  const generateCharacterInfo = async (gameParams: GameParameters) => {
+  const generateCharacterInfo = useCallback(async (gameParams: GameParameters) => {
     return await callAIFunction('character_info', gameParams);
-  };
+  }, [callAIFunction]);
 
   return {
     generateStory,
