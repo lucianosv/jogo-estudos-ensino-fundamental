@@ -32,8 +32,10 @@ const GameEngine = () => {
     handleRestart,
     handleSetupComplete,
     handleCollectWord,
+    handlePasswordSuccess,
     currentStep,
-    isQuestionStep
+    isQuestionStep,
+    isStoryRevealStep
   } = useGameLogic();
 
   const handleFinishQuestions = () => {
@@ -53,7 +55,7 @@ const GameEngine = () => {
     );
     
     if (hasAllWords && collectedWords.length > 0) {
-      setCurrentStepIndex(currentStepIndex + 1);
+      handlePasswordSuccess();
     } else {
       logSecurityEvent('Incorrect password attempt', {
         expected: collectedWords.join(" "),
@@ -115,31 +117,40 @@ const GameEngine = () => {
         />
       );
     }
+
+    if (isStoryRevealStep) {
+      if (isGeneratingStory || isLoading) {
+        return (
+          <div className="text-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+            <p className="text-lg">Gerando sua história personalizada...</p>
+            <p className="text-sm text-gray-600 mt-2">{gameParams.subject} - {gameParams.theme}</p>
+          </div>
+        );
+      }
+
+      const storyToUse = dynamicStory || selectedGame.story;
+      const content = currentStep.content.replace(
+        "[FULL_STORY_PLACEHOLDER]", 
+        `**${storyToUse.title}**\n\n${storyToUse.content}`
+      );
+
+      return (
+        <TextStep 
+          content={content}
+          onNext={() => setCurrentStepIndex(idx => idx + 1)}
+          collectedWords={collectedWords}
+          selectedGame={selectedGame}
+          gameParams={gameParams}
+        />
+      );
+    }
     
     switch (currentStep.type) {
       case "text":
-        let content = currentStep.content;        
-        if (content.includes("[STORY_PLACEHOLDER]") && selectedGame) {
-          const storyToUse = dynamicStory || selectedGame.story;
-          
-          if (isGeneratingStory || isLoading) {
-            return (
-              <div className="text-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                <p className="text-lg">Gerando sua história personalizada...</p>
-                <p className="text-sm text-gray-600 mt-2">{gameParams.subject} - {gameParams.theme}</p>
-              </div>
-            );
-          }
-          
-          content = content.replace(
-            "[STORY_PLACEHOLDER]", 
-            `**${storyToUse.title}**\n\n${storyToUse.content}`
-          );
-        }
         return (
           <TextStep 
-            content={content}
+            content={currentStep.content}
             onNext={() => setCurrentStepIndex(idx => idx + 1)}
             collectedWords={collectedWords}
             selectedGame={selectedGame}

@@ -48,7 +48,7 @@ export const useAIContent = (): AIContentHook => {
       const sanitizedGrade = validateInput(gameParams.schoolGrade);
       const difficulty = customDifficulty || getDifficultyForGrade(gameParams.schoolGrade);
       
-      console.log('Chamando Edge Function para:', contentType, sanitizedSubject, sanitizedTheme);
+      console.log(`[${contentType}] Chamando Edge Function para:`, sanitizedSubject, sanitizedTheme, sanitizedGrade);
 
       const { data, error } = await supabase.functions.invoke('generate-game-content', {
         body: {
@@ -62,26 +62,42 @@ export const useAIContent = (): AIContentHook => {
       });
 
       if (error) {
-        console.error('Erro na Edge Function:', error);
-        throw new Error('Failed to generate content');
+        console.error(`[${contentType}] Erro na Edge Function:`, error);
+        
+        // Usar fallback inteligente imediatamente
+        const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
+        
+        if (fallbackContent) {
+          console.log(`[${contentType}] Usando fallback inteligente`);
+          toast({
+            title: "Conteúdo Personalizado",
+            description: `Usando conteúdo educativo para ${gameParams.subject} - ${gameParams.schoolGrade}`,
+          });
+          return fallbackContent;
+        }
+        
+        throw error;
       }
 
-      if (data) {
-        console.log('Conteúdo gerado com sucesso:', contentType);
+      if (data && (data.title || data.content || data.choices)) {
+        console.log(`[${contentType}] Conteúdo gerado com sucesso via IA`);
         return data;
       } else {
-        throw new Error('No content generated');
+        console.log(`[${contentType}] Dados inválidos da IA, usando fallback`);
+        const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
+        return fallbackContent;
       }
 
     } catch (error) {
-      console.error('Erro na geração de conteúdo:', error);
+      console.error(`[${contentType}] Erro na geração de conteúdo:`, error);
       
-      // Usar fallback inteligente
+      // Usar fallback inteligente como última tentativa
       const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
       
       if (fallbackContent) {
+        console.log(`[${contentType}] Usando fallback após erro`);
         toast({
-          title: "Conteúdo Personalizado",
+          title: "Conteúdo Educativo",
           description: `Conteúdo gerado para ${gameParams.subject} - ${gameParams.schoolGrade}`,
         });
         return fallbackContent;
@@ -89,7 +105,7 @@ export const useAIContent = (): AIContentHook => {
       
       toast({
         title: "Erro na Geração",
-        description: `Não foi possível gerar conteúdo para ${gameParams.subject}`,
+        description: `Problema ao gerar conteúdo para ${gameParams.subject}. Verifique a configuração da API.`,
         variant: "destructive"
       });
       

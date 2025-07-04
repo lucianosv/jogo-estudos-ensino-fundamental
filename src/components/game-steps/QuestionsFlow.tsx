@@ -38,63 +38,85 @@ const QuestionsFlow = ({
   const [wasCorrect, setWasCorrect] = useState<boolean | null>(null);
   const [generatedQuestions, setGeneratedQuestions] = useState<Question[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [generationAttempts, setGenerationAttempts] = useState(0);
   const { generateQuestion, isLoading } = useAIContent();
 
-  // Gerar questões dinamicamente baseadas nos parâmetros do jogo
+  // Gerar questões com retry e fallback robusto
   useEffect(() => {
     const generateDynamicQuestions = async () => {
       if (questions && questions.length > 0) {
-        // Se já há questions estáticas, usar elas
         setGeneratedQuestions(questions);
         return;
       }
 
-      setLoadingQuestions(true);
-      try {
-        const dynamicQuestions: Question[] = [];
-
-        // Gerar 4 questões usando os parâmetros completos do jogo
+      if (generationAttempts >= 3) {
+        console.log('Máximo de tentativas atingido, usando apenas fallbacks');
+        const fallbackQuestions: Question[] = [];
         for (let i = 0; i < 4; i++) {
+          const fallback = generateIntelligentFallback(gameParams, 'question');
+          if (fallback) fallbackQuestions.push(fallback);
+        }
+        setGeneratedQuestions(fallbackQuestions);
+        return;
+      }
+
+      setLoadingQuestions(true);
+      setGenerationAttempts(prev => prev + 1);
+      
+      try {
+        console.log(`Tentativa ${generationAttempts + 1} de gerar questões para:`, gameParams.subject, gameParams.theme);
+        
+        const dynamicQuestions: Question[] = [];
+        const fallbackQuestions: Question[] = [];
+
+        // Gerar fallbacks primeiro como backup
+        for (let i = 0; i < 4; i++) {
+          const fallback = generateIntelligentFallback(gameParams, 'question');
+          if (fallback) fallbackQuestions.push(fallback);
+        }
+
+        // Tentar gerar via IA (máximo 2 questões por tentativa para não sobrecarregar)
+        const maxAIQuestions = Math.min(2, 4 - dynamicQuestions.length);
+        for (let i = 0; i < maxAIQuestions; i++) {
           try {
+            console.log(`Gerando questão ${i + 1} via IA...`);
             const questionData = await generateQuestion(gameParams);
-            if (questionData && questionData.content) {
+            if (questionData && questionData.content && questionData.choices && questionData.answer) {
               dynamicQuestions.push(questionData);
+              console.log(`Questão ${i + 1} gerada com sucesso via IA`);
+            } else {
+              console.log(`Questão ${i + 1} falhou, usando fallback`);
+              if (fallbackQuestions[i]) {
+                dynamicQuestions.push(fallbackQuestions[i]);
+              }
             }
           } catch (error) {
             console.error(`Erro ao gerar questão ${i + 1}:`, error);
-            // Usar fallback inteligente para esta questão específica
-            const fallbackQuestion = generateIntelligentFallback(gameParams, 'question');
-            if (fallbackQuestion) {
-              dynamicQuestions.push(fallbackQuestion);
+            if (fallbackQuestions[i]) {
+              dynamicQuestions.push(fallbackQuestions[i]);
             }
           }
         }
 
-        // Se não conseguiu gerar nenhuma questão, usar fallbacks inteligentes
-        if (dynamicQuestions.length === 0) {
-          for (let i = 0; i < 4; i++) {
-            const fallbackQuestion = generateIntelligentFallback(gameParams, 'question');
-            if (fallbackQuestion) {
-              dynamicQuestions.push(fallbackQuestion);
-            }
-          }
+        // Completar com fallbacks se necessário
+        while (dynamicQuestions.length < 4 && fallbackQuestions.length > dynamicQuestions.length) {
+          dynamicQuestions.push(fallbackQuestions[dynamicQuestions.length]);
         }
 
+        console.log(`Geradas ${dynamicQuestions.length} questões no total`);
         setGeneratedQuestions(dynamicQuestions);
+
       } catch (error) {
-        console.error('Erro ao gerar questões:', error);
-        // Fallback final - gerar pelo menos uma questão usando fallback inteligente
-        const fallbackQuestion = generateIntelligentFallback(gameParams, 'question');
-        if (fallbackQuestion) {
-          setGeneratedQuestions([fallbackQuestion]);
-        }
+        console.error('Erro geral na geração de questões:', error);
+        // Usar todos os fallbacks como último recurso
+        setGeneratedQuestions(fallbackQuestions);
       } finally {
         setLoadingQuestions(false);
       }
     };
 
     generateDynamicQuestions();
-  }, [gameParams, questions, generateQuestion]);
+  }, [gameParams, questions, generateQuestion, generationAttempts]);
 
   const handleCorrect = () => {
     setWasCorrect(true);
@@ -129,6 +151,7 @@ const QuestionsFlow = ({
     setCurrentIndex(0);
     setShowResult(false);
     setWasCorrect(null);
+    setGenerationAttempts(0);
   };
 
   // Loading state
@@ -138,6 +161,9 @@ const QuestionsFlow = ({
         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
         <p className="text-lg">Gerando questões sobre {gameParams.subject} - {gameParams.theme}...</p>
         <p className="text-sm text-gray-600 mt-2">Série: {gameParams.schoolGrade}</p>
+        {generationAttempts > 0 && (
+          <p className="text-xs text-gray-500 mt-1">Tentativa {generationAttempts}/3</p>
+        )}
       </div>
     );
   }

@@ -5,7 +5,7 @@ import { useAIContent } from '@/hooks/useAIContent';
 import { generateIntelligentFallback } from '@/utils/intelligentFallbacks';
 
 interface GameStep {
-  type: "text" | "choice" | "question" | "input";
+  type: "text" | "choice" | "question" | "input" | "story_reveal";
   content: string;
   choices?: string[];
   answer?: string;
@@ -36,7 +36,7 @@ const generateDynamicSteps = (gameParams: GameParameters): GameStep[] => {
   return [
     {
       type: "text",
-      content: `**Bem-vindo à Aventura de ${subject}!**\n\n[STORY_PLACEHOLDER]\n\nVocê está pronto para esta jornada de aprendizado?`
+      content: `**🎓 Bem-vindo à Aventura de ${subject}!**\n\n📚 Você está prestes a embarcar em uma jornada educativa sobre **${theme}**!\n\n🎯 **Como funciona:**\n• Responda às questões corretamente\n• Colete palavras secretas em cada acerto\n• Use as palavras para desbloquear a história final\n\nVocê está pronto para esta jornada de aprendizado?`
     },
     {
       type: "question",
@@ -44,11 +44,11 @@ const generateDynamicSteps = (gameParams: GameParameters): GameStep[] => {
     },
     {
       type: "input",
-      content: `**🎉 Parabéns!**\n\nVocê coletou todas as palavras secretas! Agora digite-as na ordem correta para desbloquear o final da aventura.\n\n*Dica: Use as palavras que você coletou durante as questões, separadas por espaços.*`
+      content: `**🔐 Hora da Senha Secreta!**\n\nVocê coletou todas as palavras secretas! Agora digite-as na ordem correta para desbloquear a história final da aventura.\n\n*Dica: Use as palavras que você coletou durante as questões, separadas por espaços.*`
     },
     {
-      type: "text",
-      content: `**🌟 Fantástico!**\n\nVocê completou com sucesso a aventura de ${subject} sobre ${theme}! \n\nDurante esta jornada, você demonstrou conhecimento, determinação e inteligência. Continue sempre curioso e disposto a aprender!\n\n**Sua aventura de aprendizado nunca termina!** 📚✨`
+      type: "story_reveal",
+      content: `**🌟 História Revelada!**\n\n[FULL_STORY_PLACEHOLDER]\n\n**Parabéns por completar esta aventura educativa!** 🎉`
     },
     {
       type: "choice",
@@ -81,13 +81,9 @@ export const useGameLogic = () => {
     }
   }, [gameParams]);
 
-  // Gerar história dinamicamente - COM CONTROLE DE LOOP
+  // Gerar história apenas quando necessário (após senha correta)
   const generateDynamicStory = useCallback(async () => {
-    if (!gameParams || !selectedGame || isGeneratingStory) return;
-
-    if (selectedGame.story && selectedGame.story.content && !selectedGame.story.content.includes('será gerado em breve')) {
-      return;
-    }
+    if (!gameParams || !selectedGame || isGeneratingStory || dynamicStory) return;
 
     setIsGeneratingStory(true);
     try {
@@ -108,14 +104,7 @@ export const useGameLogic = () => {
     } finally {
       setIsGeneratingStory(false);
     }
-  }, [gameParams, selectedGame, generateStory, isGeneratingStory]);
-
-  // Chamada única para gerar história
-  useEffect(() => {
-    if (gameParams && selectedGame && !dynamicStory && !isGeneratingStory) {
-      generateDynamicStory();
-    }
-  }, [gameParams, selectedGame, dynamicStory, isGeneratingStory, generateDynamicStory]);
+  }, [gameParams, selectedGame, generateStory, isGeneratingStory, dynamicStory]);
 
   const handleRestart = useCallback(() => {
     setCurrentStepIndex(0);
@@ -139,7 +128,7 @@ export const useGameLogic = () => {
       password: ['aventura'],
       story: {
         title: `Aventura de ${params.subject}: ${params.theme}`,
-        content: `Prepare-se para uma jornada sobre ${params.theme} para a série ${params.schoolGrade}. (O conteúdo para esta aventura será gerado em breve!)`
+        content: `História será revelada quando você completar os desafios!`
       },
       questions: []
     };
@@ -151,6 +140,15 @@ export const useGameLogic = () => {
       prev.includes(word) ? prev : [...prev, word]
     );
   }, []);
+
+  // Gerar história apenas quando chegamos na tela de revelação
+  const handlePasswordSuccess = useCallback(() => {
+    setCurrentStepIndex(prev => prev + 1);
+    // Disparar geração da história apenas agora
+    if (!dynamicStory && !isGeneratingStory) {
+      generateDynamicStory();
+    }
+  }, [dynamicStory, isGeneratingStory, generateDynamicStory]);
 
   return {
     // State
@@ -170,9 +168,11 @@ export const useGameLogic = () => {
     handleRestart,
     handleSetupComplete,
     handleCollectWord,
+    handlePasswordSuccess,
     
     // Computed
     currentStep: dynamicSteps[currentStepIndex],
-    isQuestionStep: dynamicSteps[currentStepIndex]?.type === "question"
+    isQuestionStep: dynamicSteps[currentStepIndex]?.type === "question",
+    isStoryRevealStep: dynamicSteps[currentStepIndex]?.type === "story_reveal"
   };
 };
