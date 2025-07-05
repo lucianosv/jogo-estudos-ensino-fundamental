@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import QuestionStep from "./QuestionStep";
 import ResultDisplay from "./question/ResultDisplay";
@@ -67,9 +66,9 @@ const QuestionsFlow = ({
         console.log(`Tentativa ${generationAttempts + 1} de gerar questões para:`, gameParams.subject, gameParams.theme);
         
         const dynamicQuestions: Question[] = [];
-        const fallbackQuestions: Question[] = [];
-
+        
         // Gerar fallbacks primeiro como backup
+        const fallbackQuestions: Question[] = [];
         for (let i = 0; i < 4; i++) {
           const fallback = generateIntelligentFallback(gameParams, 'question');
           if (fallback) fallbackQuestions.push(fallback);
@@ -108,7 +107,12 @@ const QuestionsFlow = ({
 
       } catch (error) {
         console.error('Erro geral na geração de questões:', error);
-        // Usar todos os fallbacks como último recurso
+        // Usar fallbacks como último recurso
+        const fallbackQuestions: Question[] = [];
+        for (let i = 0; i < 4; i++) {
+          const fallback = generateIntelligentFallback(gameParams, 'question');
+          if (fallback) fallbackQuestions.push(fallback);
+        }
         setGeneratedQuestions(fallbackQuestions);
       } finally {
         setLoadingQuestions(false);
