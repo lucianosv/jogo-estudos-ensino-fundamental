@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useRef } from "react";
 import QuestionStep from "./QuestionStep";
 import ResultDisplay from "./question/ResultDisplay";
 import { getThemeColors } from "./question/ThemeUtils";
@@ -6,7 +7,7 @@ import { GameParameters } from "../GameSetup";
 import { useAIContent } from "@/hooks/useAIContent";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
-import { generateIntelligentFallback } from "@/utils/intelligentFallbacks";
+import { generateThematicFallback } from "@/utils/thematicFallbacks";
 
 interface Question {
   content: string;
@@ -37,10 +38,11 @@ const QuestionsFlow = ({
   const [wasCorrect, setWasCorrect] = useState<boolean | null>(null);
   const [generatedQuestions, setGeneratedQuestions] = useState<Question[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
-  const [generationAttempts, setGenerationAttempts] = useState(0);
+  const generationAttempts = useRef(0);
+  const hasGenerated = useRef(false);
   const { generateQuestion, isLoading } = useAIContent();
 
-  // Gerar questões com retry e fallback robusto
+  // Gerar questões sem loop infinito
   useEffect(() => {
     const generateDynamicQuestions = async () => {
       if (questions && questions.length > 0) {
@@ -48,58 +50,40 @@ const QuestionsFlow = ({
         return;
       }
 
-      if (generationAttempts >= 3) {
-        console.log('Máximo de tentativas atingido, usando apenas fallbacks');
-        const fallbackQuestions: Question[] = [];
-        for (let i = 0; i < 4; i++) {
-          const fallback = generateIntelligentFallback(gameParams, 'question');
-          if (fallback) fallbackQuestions.push(fallback);
-        }
-        setGeneratedQuestions(fallbackQuestions);
+      if (hasGenerated.current) {
         return;
       }
 
+      hasGenerated.current = true;
       setLoadingQuestions(true);
-      setGenerationAttempts(prev => prev + 1);
       
       try {
-        console.log(`Tentativa ${generationAttempts + 1} de gerar questões para:`, gameParams.subject, gameParams.theme);
+        console.log(`Gerando questões para: ${gameParams.subject} - ${gameParams.theme}`);
         
         const dynamicQuestions: Question[] = [];
         
-        // Gerar fallbacks primeiro como backup
-        const fallbackQuestions: Question[] = [];
-        for (let i = 0; i < 4; i++) {
-          const fallback = generateIntelligentFallback(gameParams, 'question');
-          if (fallback) fallbackQuestions.push(fallback);
-        }
-
-        // Tentar gerar via IA (máximo 2 questões por tentativa para não sobrecarregar)
-        const maxAIQuestions = Math.min(2, 4 - dynamicQuestions.length);
-        for (let i = 0; i < maxAIQuestions; i++) {
+        // Tentar gerar via IA (máximo 2 questões para não sobrecarregar)
+        for (let i = 0; i < 2 && generationAttempts.current < 3; i++) {
           try {
-            console.log(`Gerando questão ${i + 1} via IA...`);
+            console.log(`Tentativa ${i + 1} de gerar questão via IA...`);
             const questionData = await generateQuestion(gameParams);
+            
             if (questionData && questionData.content && questionData.choices && questionData.answer) {
               dynamicQuestions.push(questionData);
               console.log(`Questão ${i + 1} gerada com sucesso via IA`);
-            } else {
-              console.log(`Questão ${i + 1} falhou, usando fallback`);
-              if (fallbackQuestions[i]) {
-                dynamicQuestions.push(fallbackQuestions[i]);
-              }
             }
           } catch (error) {
             console.error(`Erro ao gerar questão ${i + 1}:`, error);
-            if (fallbackQuestions[i]) {
-              dynamicQuestions.push(fallbackQuestions[i]);
-            }
+            generationAttempts.current++;
           }
         }
 
-        // Completar com fallbacks se necessário
-        while (dynamicQuestions.length < 4 && fallbackQuestions.length > dynamicQuestions.length) {
-          dynamicQuestions.push(fallbackQuestions[dynamicQuestions.length]);
+        // Completar com fallbacks temáticos
+        while (dynamicQuestions.length < 4) {
+          const fallback = generateThematicFallback(gameParams);
+          if (fallback) {
+            dynamicQuestions.push(fallback);
+          }
         }
 
         console.log(`Geradas ${dynamicQuestions.length} questões no total`);
@@ -107,10 +91,11 @@ const QuestionsFlow = ({
 
       } catch (error) {
         console.error('Erro geral na geração de questões:', error);
-        // Usar fallbacks como último recurso
+        
+        // Usar apenas fallbacks temáticos como último recurso
         const fallbackQuestions: Question[] = [];
         for (let i = 0; i < 4; i++) {
-          const fallback = generateIntelligentFallback(gameParams, 'question');
+          const fallback = generateThematicFallback(gameParams);
           if (fallback) fallbackQuestions.push(fallback);
         }
         setGeneratedQuestions(fallbackQuestions);
@@ -120,7 +105,7 @@ const QuestionsFlow = ({
     };
 
     generateDynamicQuestions();
-  }, [gameParams, questions, generateQuestion, generationAttempts]);
+  }, [gameParams, questions, generateQuestion]);
 
   const handleCorrect = () => {
     setWasCorrect(true);
@@ -155,7 +140,8 @@ const QuestionsFlow = ({
     setCurrentIndex(0);
     setShowResult(false);
     setWasCorrect(null);
-    setGenerationAttempts(0);
+    generationAttempts.current = 0;
+    hasGenerated.current = false;
   };
 
   // Loading state
@@ -165,9 +151,6 @@ const QuestionsFlow = ({
         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
         <p className="text-lg">Gerando questões sobre {gameParams.subject} - {gameParams.theme}...</p>
         <p className="text-sm text-gray-600 mt-2">Série: {gameParams.schoolGrade}</p>
-        {generationAttempts > 0 && (
-          <p className="text-xs text-gray-500 mt-1">Tentativa {generationAttempts}/3</p>
-        )}
       </div>
     );
   }
