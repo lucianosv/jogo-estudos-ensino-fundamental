@@ -8,7 +8,7 @@ interface Question {
   word: string;
 }
 
-// Fallbacks específicos por tema dentro de cada matéria
+// Fallbacks específicos e organizados por tema
 const thematicFallbacks: Record<string, Record<string, Question[]>> = {
   'História': {
     'Revolução Francesa': [
@@ -25,16 +25,10 @@ const thematicFallbacks: Record<string, Record<string, Question[]>> = {
         word: "liberdade"
       },
       {
-        content: "Qual foi o lema da Revolução Francesa?",
-        choices: ["Liberdade, Igualdade, Fraternidade", "Deus, Pátria, Família", "Ordem e Progresso", "União e Força"],
-        answer: "Liberdade, Igualdade, Fraternidade",
-        word: "igualdade"
-      },
-      {
         content: "Em que ano começou a Revolução Francesa?",
         choices: ["1789", "1792", "1804", "1815"],
         answer: "1789",
-        word: "fraternidade"
+        word: "igualdade"
       }
     ],
     'Grandes Navegações': [
@@ -49,18 +43,78 @@ const thematicFallbacks: Record<string, Record<string, Question[]>> = {
         choices: ["Vasco da Gama", "Pedro Álvares Cabral", "Bartolomeu Dias", "Cristóvão Colombo"],
         answer: "Vasco da Gama",
         word: "descoberta"
+      }
+    ],
+    'Brasil Colonial': [
+      {
+        content: "Qual foi o primeiro produto explorado pelos portugueses no Brasil?",
+        choices: ["Ouro", "Açúcar", "Pau-brasil", "Café"],
+        answer: "Pau-brasil",
+        word: "colônia"
+      }
+    ]
+  },
+  'Ciências': {
+    'Sistema Solar': [
+      {
+        content: "Qual é o planeta mais próximo do Sol?",
+        choices: ["Vênus", "Terra", "Mercúrio", "Marte"],
+        answer: "Mercúrio",
+        word: "planeta"
       },
       {
-        content: "Qual instrumento de navegação foi essencial nas Grandes Navegações?",
-        choices: ["Bússola", "Telescópio", "Sextante", "Astrolábio"],
-        answer: "Bússola",
-        word: "oceano"
+        content: "Quantos planetas existem em nosso Sistema Solar?",
+        choices: ["7", "8", "9", "10"],
+        answer: "8",
+        word: "universo"
       },
       {
-        content: "Em que século ocorreram as Grandes Navegações?",
-        choices: ["Século XIV", "Século XV", "Século XVI", "Século XVII"],
-        answer: "Século XV",
-        word: "expedição"
+        content: "Qual é o maior planeta do Sistema Solar?",
+        choices: ["Terra", "Saturno", "Júpiter", "Netuno"],
+        answer: "Júpiter",
+        word: "espaço"
+      },
+      {
+        content: "O que está no centro do Sistema Solar?",
+        choices: ["A Terra", "A Lua", "O Sol", "Júpiter"],
+        answer: "O Sol",
+        word: "estrela"
+      },
+      {
+        content: "Qual planeta é conhecido como 'Planeta Vermelho'?",
+        choices: ["Vênus", "Marte", "Júpiter", "Saturno"],
+        answer: "Marte",
+        word: "astronomia"
+      }
+    ],
+    'Corpo Humano': [
+      {
+        content: "Qual órgão é responsável por bombear o sangue?",
+        choices: ["Pulmão", "Fígado", "Coração", "Cérebro"],
+        answer: "Coração",
+        word: "saúde"
+      },
+      {
+        content: "Quantos ossos tem o corpo humano de um adulto?",
+        choices: ["186", "206", "226", "246"],
+        answer: "206",
+        word: "esqueleto"
+      }
+    ],
+    'Plantas': [
+      {
+        content: "O que as plantas fazem durante a fotossíntese?",
+        choices: ["Respiram", "Produzem alimento", "Crescem", "Florescem"],
+        answer: "Produzem alimento",
+        word: "fotossíntese"
+      }
+    ],
+    'Água': [
+      {
+        content: "Em que temperatura a água ferve?",
+        choices: ["50°C", "75°C", "100°C", "125°C"],
+        answer: "100°C",
+        word: "ebulição"
       }
     ]
   },
@@ -92,78 +146,143 @@ const thematicFallbacks: Record<string, Record<string, Question[]>> = {
         answer: "180°",
         word: "ângulo"
       }
-    ]
-  },
-  'Ciências': {
-    'Sistema Solar': [
+    ],
+    'Frações': [
       {
-        content: "Qual é o planeta mais próximo do Sol?",
-        choices: ["Vênus", "Terra", "Mercúrio", "Marte"],
-        answer: "Mercúrio",
-        word: "planeta"
-      },
-      {
-        content: "Quantos planetas existem em nosso Sistema Solar?",
-        choices: ["7", "8", "9", "10"],
-        answer: "8",
-        word: "universo"
+        content: "Quanto é 1/2 + 1/4?",
+        choices: ["2/6", "2/4", "3/4", "1/3"],
+        answer: "3/4",
+        word: "fração"
       }
     ],
-    'Corpo Humano': [
+    'Multiplicação': [
       {
-        content: "Qual órgão é responsável por bombear o sangue?",
-        choices: ["Pulmão", "Fígado", "Coração", "Cérebro"],
-        answer: "Coração",
-        word: "saúde"
+        content: "Quanto é 7 x 8?",
+        choices: ["54", "56", "58", "60"],
+        answer: "56",
+        word: "produto"
+      }
+    ]
+  },
+  'Português': {
+    'Verbos': [
+      {
+        content: "Qual é o tempo verbal da frase 'Eu estudei ontem'?",
+        choices: ["Presente", "Pretérito", "Futuro", "Gerúndio"],
+        answer: "Pretérito",
+        word: "verbo"
+      }
+    ],
+    'Substantivos': [
+      {
+        content: "Qual palavra é um substantivo próprio?",
+        choices: ["casa", "Maria", "bonito", "correr"],
+        answer: "Maria",
+        word: "substantivo"
+      }
+    ]
+  },
+  'Geografia': {
+    'Brasil': [
+      {
+        content: "Qual é a capital do Brasil?",
+        choices: ["São Paulo", "Rio de Janeiro", "Brasília", "Belo Horizonte"],
+        answer: "Brasília",
+        word: "capital"
+      }
+    ],
+    'Continentes': [
+      {
+        content: "Quantos continentes existem no mundo?",
+        choices: ["5", "6", "7", "8"],
+        answer: "7",
+        word: "continente"
       }
     ]
   }
 };
 
-// Palavras secretas contextualizadas por tema
+// Melhorar a geração de palavras contextualizadas
 const getThematicWords = (subject: string, theme: string): string[] => {
   const fallbacks = thematicFallbacks[subject]?.[theme];
   if (fallbacks && fallbacks.length > 0) {
     return fallbacks.map(q => q.word);
   }
   
+  // Palavras específicas por tema quando não há fallback direto
+  const themeSpecificWords: Record<string, string[]> = {
+    'sistema solar': ['planeta', 'estrela', 'universo', 'espaço', 'órbita'],
+    'corpo humano': ['saúde', 'órgão', 'sangue', 'coração', 'cérebro'],
+    'plantas': ['fotossíntese', 'folha', 'raiz', 'flor', 'semente'],
+    'água': ['líquido', 'vapor', 'gelo', 'chuva', 'rio'],
+    'revolução francesa': ['revolução', 'liberdade', 'igualdade', 'frança'],
+    'brasil colonial': ['colônia', 'descoberta', 'portugal', 'açúcar'],
+    'multiplicação': ['produto', 'resultado', 'tabuada', 'número'],
+    'frações': ['fração', 'parte', 'metade', 'quarto']
+  };
+  
+  const themeLower = theme.toLowerCase();
+  const specificWords = themeSpecificWords[themeLower];
+  if (specificWords) {
+    return specificWords;
+  }
+  
   // Fallback genérico por matéria
-  const genericWords = {
+  const genericWords: Record<string, string[]> = {
     'História': ['tempo', 'passado', 'descoberta', 'civilização'],
-    'Matemática': ['número', 'cálculo', 'resultado', 'fórmula'],
+    'Matemática': ['número', 'cálculo', 'resultado', 'operação'],
     'Ciências': ['experimento', 'natureza', 'vida', 'energia'],
-    'Português': ['palavra', 'texto', 'verso', 'escrita'],
+    'Português': ['palavra', 'texto', 'frase', 'escrita'],
     'Geografia': ['mundo', 'terra', 'lugar', 'região']
   };
   
-  return genericWords[subject] || genericWords['Matemática'];
+  return genericWords[subject] || ['conhecimento', 'aprendizado', 'estudo', 'educação'];
 };
 
 export const generateThematicFallback = (gameParams: GameParameters): Question => {
   const { subject, theme, schoolGrade } = gameParams;
   
-  console.log(`Gerando fallback temático para: ${subject} - ${theme}`);
+  console.log(`[FALLBACK] Gerando para: ${subject} - ${theme} (${schoolGrade})`);
   
   // Tentar usar fallback específico do tema
   const thematicQuestions = thematicFallbacks[subject]?.[theme];
   if (thematicQuestions && thematicQuestions.length > 0) {
     const randomQuestion = thematicQuestions[Math.floor(Math.random() * thematicQuestions.length)];
-    console.log(`Usando fallback temático específico: ${theme}`);
+    console.log(`[FALLBACK-SPECIFIC] Usando questão temática para: ${theme}`);
     return randomQuestion;
   }
   
-  // Fallback genérico adaptado ao tema
+  // Gerar fallback dinâmico mais inteligente
   const words = getThematicWords(subject, theme);
   const word = words[Math.floor(Math.random() * words.length)];
   const grade = parseInt(schoolGrade.charAt(0));
   
-  console.log(`Usando fallback genérico adaptado para: ${subject} - ${theme}`);
+  console.log(`[FALLBACK-DYNAMIC] Gerando questão dinâmica para: ${subject} - ${theme}`);
+  
+  // Fallbacks específicos por tema mesmo sem questões pré-definidas
+  if (theme.toLowerCase().includes('solar') || theme.toLowerCase().includes('planeta')) {
+    return {
+      content: `Sistema Solar (${schoolGrade}): Qual é o planeta mais próximo do Sol?`,
+      choices: ["Vênus", "Terra", "Mercúrio", "Marte"],
+      answer: "Mercúrio",
+      word: "planeta"
+    };
+  }
+  
+  if (theme.toLowerCase().includes('corpo') || theme.toLowerCase().includes('humano')) {
+    return {
+      content: `Corpo Humano (${schoolGrade}): Qual órgão bombeia o sangue pelo corpo?`,
+      choices: ["Pulmão", "Fígado", "Coração", "Estômago"],
+      answer: "Coração",
+      word: "coração"
+    };
+  }
   
   if (subject === 'História') {
     return {
-      content: `${theme}: Em que período histórico você está estudando quando falamos sobre ${theme.toLowerCase()}?`,
+      content: `História - ${theme} (${schoolGrade}): Em que período histórico você está estudando quando falamos sobre ${theme.toLowerCase()}?`,
       choices: ["Idade Antiga", "Idade Média", "Idade Moderna", "Idade Contemporânea"],
-      answer: theme.includes('Revolução Francesa') ? "Idade Moderna" : "Idade Moderna",
+      answer: theme.includes('Revolução') ? "Idade Moderna" : "Idade Antiga",
       word
     };
   }
@@ -171,26 +290,26 @@ export const generateThematicFallback = (gameParams: GameParameters): Question =
   if (subject === 'Matemática') {
     if (grade <= 3) {
       return {
-        content: `${theme}: Quanto é 2 + 3?`,
-        choices: ["4", "5", "6", "7"],
-        answer: "5",
+        content: `Matemática - ${theme} (${schoolGrade}): Quanto é 3 + 4?`,
+        choices: ["6", "7", "8", "9"],
+        answer: "7",
         word
       };
     } else {
       return {
-        content: `${theme}: Se você tem 12 objetos e os divide em 3 grupos iguais, quantos objetos terá cada grupo?`,
-        choices: ["3", "4", "5", "6"],
-        answer: "4",
+        content: `Matemática - ${theme} (${schoolGrade}): Se você tem 15 objetos e os divide em 3 grupos iguais, quantos objetos terá cada grupo?`,
+        choices: ["4", "5", "6", "7"],
+        answer: "5",
         word
       };
     }
   }
   
-  // Fallback mais genérico
+  // Fallback mais genérico mas ainda temático
   return {
-    content: `${theme}: Questão sobre ${subject} relacionada ao tema ${theme}. Quanto é 1 + 1?`,
-    choices: ["1", "2", "3", "4"],
-    answer: "2",
+    content: `${subject} - ${theme} (${schoolGrade}): Questão sobre ${theme}. Qual é a importância de estudar este tema?`,
+    choices: ["Muito importante", "Importante", "Pouco importante", "Não é importante"],
+    answer: "Muito importante",
     word
   };
 };

@@ -21,7 +21,37 @@ interface GenerateContentRequest {
   forceRegenerate?: boolean;
 }
 
-// Função para chamada da API Gemini com retry e timeout
+// Validação de conteúdo para garantir relevância temática
+const validateContent = (content: any, subject: string, theme: string): boolean => {
+  if (!content) return false;
+  
+  const contentStr = JSON.stringify(content).toLowerCase();
+  const subjectLower = subject.toLowerCase();
+  const themeLower = theme.toLowerCase();
+  
+  // Palavras proibidas que indicam conteúdo inadequado
+  const forbiddenWords = ['demon', 'demônio', 'devil', 'diabo', 'anime', 'manga', 'slayer', 'matador'];
+  const hasForbiddenContent = forbiddenWords.some(word => contentStr.includes(word));
+  
+  if (hasForbiddenContent) {
+    console.log(`Conteúdo rejeitado por conter palavras inadequadas: ${contentStr.substring(0, 100)}...`);
+    return false;
+  }
+  
+  // Verificar se o conteúdo está relacionado ao tema
+  if (themeLower.includes('solar') || themeLower.includes('planeta')) {
+    const spaceWords = ['planeta', 'sol', 'sistema', 'espaço', 'universo', 'estrela', 'órbita'];
+    const hasSpaceContent = spaceWords.some(word => contentStr.includes(word));
+    if (!hasSpaceContent) {
+      console.log(`Conteúdo rejeitado por não ser sobre Sistema Solar: ${contentStr.substring(0, 100)}...`);
+      return false;
+    }
+  }
+  
+  return true;
+};
+
+// Função melhorada para chamada da API Gemini
 const generateWithGemini = async (prompt: string): Promise<string> => {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   
@@ -30,10 +60,10 @@ const generateWithGemini = async (prompt: string): Promise<string> => {
     throw new Error('GEMINI_API_KEY not configured');
   }
   
-  console.log('Iniciando chamada para API Gemini...');
+  console.log('Iniciando chamada para API Gemini 1.5 Flash...');
   
-  const maxRetries = 3;
-  const timeoutMs = 30000; // 30 segundos
+  const maxRetries = 2; // Reduzido para ser mais rápido
+  const timeoutMs = 15000; // Reduzido para 15 segundos
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -43,7 +73,7 @@ const generateWithGemini = async (prompt: string): Promise<string> => {
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
         {
           method: 'POST',
           headers: {
@@ -56,11 +86,21 @@ const generateWithGemini = async (prompt: string): Promise<string> => {
               }]
             }],
             generationConfig: {
-              temperature: 0.8,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 1024,
-            }
+              temperature: 0.3, // Reduzido para mais consistência
+              topK: 20,
+              topP: 0.8,
+              maxOutputTokens: 800, // Reduzido para respostas mais focadas
+            },
+            safetySettings: [
+              {
+                category: "HARM_CATEGORY_HARASSMENT",
+                threshold: "BLOCK_MEDIUM_AND_ABOVE"
+              },
+              {
+                category: "HARM_CATEGORY_HATE_SPEECH", 
+                threshold: "BLOCK_MEDIUM_AND_ABOVE"
+              }
+            ]
           }),
           signal: controller.signal
         }
@@ -76,8 +116,7 @@ const generateWithGemini = async (prompt: string): Promise<string> => {
           throw new Error(`Gemini API error after ${maxRetries} attempts: ${response.status} - ${errorText}`);
         }
         
-        // Backoff exponencial
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
         continue;
       }
 
@@ -98,8 +137,7 @@ const generateWithGemini = async (prompt: string): Promise<string> => {
         throw error;
       }
       
-      // Backoff exponencial
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
     }
   }
   
@@ -107,139 +145,155 @@ const generateWithGemini = async (prompt: string): Promise<string> => {
 };
 
 const generateStory = async (subject: string, theme: string, schoolGrade: string, themeDetails?: string) => {
-  // Adaptar complexidade da linguagem baseada na série
   const gradeNumber = parseInt(schoolGrade.charAt(0));
   let languageLevel = "";
   let contentComplexity = "";
   
   if (gradeNumber >= 1 && gradeNumber <= 3) {
-    languageLevel = "linguagem simples e frases curtas";
-    contentComplexity = "conceitos básicos e situações do dia a dia";
+    languageLevel = "linguagem muito simples, frases curtas";
+    contentComplexity = "conceitos básicos e situações do cotidiano";
   } else if (gradeNumber >= 4 && gradeNumber <= 6) {
-    languageLevel = "linguagem clara com vocabulário intermediário";
+    languageLevel = "linguagem clara e direta";
     contentComplexity = "conceitos intermediários com exemplos práticos";
   } else {
-    languageLevel = "linguagem mais elaborada";
-    contentComplexity = "conceitos mais complexos e abstratos";
+    languageLevel = "linguagem adequada para adolescentes";
+    contentComplexity = "conceitos mais elaborados";
   }
 
   const prompt = `
-  Crie uma história curta e envolvente de ${subject} com o tema ${theme} para o ${schoolGrade} do ensino fundamental.
-  
-  Parâmetros específicos:
-  - Matéria: ${subject}
-  - Tema: ${theme}
-  - Série: ${schoolGrade}
-  ${themeDetails ? `- Detalhes específicos: ${themeDetails}` : ''}
-  
-  A história deve:
-  - Ter entre 150-200 palavras
-  - Usar ${languageLevel} apropriada para ${schoolGrade}
-  - Focar em ${contentComplexity} de ${subject}
-  - Incluir uma situação onde o conhecimento de ${subject} é importante
-  - Ser adequada para crianças do ${schoolGrade}
-  - Terminar com um desafio relacionado a ${subject} sendo apresentado
-  - Usar linguagem brasileira
-  - Incorporar elementos do tema ${theme}
-  
-  Formato: Retorne apenas o texto da história, sem formatação extra.
+IMPORTANTE: Você DEVE criar uma história APENAS sobre ${subject} e especificamente sobre ${theme}.
+
+Crie uma história educativa curta sobre:
+- Matéria: ${subject}
+- Tema ESPECÍFICO: ${theme}
+- Série: ${schoolGrade}
+
+REGRAS OBRIGATÓRIAS:
+1. A história DEVE ser sobre ${theme} dentro da matéria ${subject}
+2. Use ${languageLevel}
+3. Foque EXCLUSIVAMENTE em ${contentComplexity} de ${subject}
+4. Tenha entre 100-150 palavras
+5. Termine com um desafio relacionado ao tema ${theme}
+6. NÃO mencione animes, demônios, personagens fictícios ou temas inadequados
+7. Seja educativo e apropriado para crianças brasileiras
+
+${theme.toLowerCase().includes('solar') ? 'ESPECIAL: Como o tema é Sistema Solar, fale APENAS sobre planetas, estrelas, sol, espaço, astronomia.' : ''}
+
+Retorne APENAS o texto da história, sem formatação extra.
   `;
   
   try {
     const content = await generateWithGemini(prompt);
-    return {
-      title: `Aventura de ${subject}: ${theme}`,
+    const storyData = {
+      title: `${subject}: ${theme}`,
       content: content.trim()
     };
+    
+    // Validar conteúdo gerado
+    if (!validateContent(storyData, subject, theme)) {
+      throw new Error('Conteúdo gerado não passou na validação temática');
+    }
+    
+    return storyData;
   } catch (error) {
-    console.error('Erro ao gerar história:', error);
-    // Fallback para história padrão adaptada à matéria
+    console.error('Erro ao gerar história, usando fallback:', error);
     return {
-      title: `Aventura de ${subject}: ${theme}`,
-      content: `Bem-vindo à sua aventura de ${subject} sobre ${theme}! Você está no ${schoolGrade} e vai enfrentar desafios incríveis relacionados a ${subject}. Prepare-se para testar seus conhecimentos e descobrir coisas fantásticas sobre ${theme}. Vamos começar esta jornada de aprendizado!`
+      title: `${subject}: ${theme}`,
+      content: `Bem-vindo à sua aventura de ${subject} sobre ${theme}! Esta é uma jornada educativa especialmente criada para o ${schoolGrade}. Você descobrirá conceitos importantes sobre ${theme} e enfrentará desafios que testarão seus conhecimentos. Prepare-se para uma experiência de aprendizado única!`
     };
   }
 };
 
 const generateQuestion = async (subject: string, theme: string, schoolGrade: string, difficulty: string, themeDetails?: string) => {
-  // Adaptar dificuldade baseada na série
   const gradeNumber = parseInt(schoolGrade.charAt(0));
   let difficultyDescription = "";
   
   if (gradeNumber >= 1 && gradeNumber <= 3) {
-    difficultyDescription = "números simples de 1 a 20, operações básicas de soma e subtração";
+    difficultyDescription = "conceitos muito básicos, linguagem simples";
   } else if (gradeNumber >= 4 && gradeNumber <= 6) {
-    difficultyDescription = "números de 1 a 100, multiplicação e divisão simples, problemas práticos";
+    difficultyDescription = "conceitos intermediários, problemas práticos";
   } else {
-    difficultyDescription = "números maiores, frações simples, problemas de múltiplas etapas, conceitos mais abstratos";
+    difficultyDescription = "conceitos mais avançados, pensamento crítico";
   }
   
   const prompt = `
-  Crie uma questão de ${subject} com tema ${theme} para o ${schoolGrade} do ensino fundamental.
-  
-  Parâmetros específicos:
-  - Matéria: ${subject}
-  - Tema: ${theme}
-  - Série: ${schoolGrade}
-  - Dificuldade apropriada: ${difficultyDescription}
-  ${themeDetails ? `- Detalhes específicos: ${themeDetails}` : ''}
-  
-  A questão deve:
-  - Ser contextualizada com uma situação envolvendo ${theme} e ${subject}
-  - Ter EXATAMENTE 4 alternativas de resposta (A, B, C, D)
-  - Ter apenas uma resposta correta
-  - Ser apropriada para ${schoolGrade} do ensino fundamental
-  - Incluir uma palavra secreta relacionada ao tema (ex: para História: "descoberta", para Ciências: "experiência")
-  - Ser adequada para crianças brasileiras
-  - Usar ${difficultyDescription}
-  
-  IMPORTANTE: A resposta deve ter EXATAMENTE 4 alternativas, nem mais nem menos.
-  
-  Retorne APENAS um JSON válido no seguinte formato:
-  {
-    "content": "texto da questão aqui",
-    "choices": ["alternativa A", "alternativa B", "alternativa C", "alternativa D"],
-    "answer": "alternativa correta exata",
-    "word": "palavra secreta de uma palavra"
-  }
-  
-  Certifique-se de que o array "choices" tenha EXATAMENTE 4 elementos.
+IMPORTANTE: Você DEVE criar uma questão APENAS sobre ${subject} e especificamente sobre ${theme}.
+
+Crie uma questão de múltipla escolha sobre:
+- Matéria: ${subject}
+- Tema ESPECÍFICO: ${theme}
+- Série: ${schoolGrade}
+
+REGRAS OBRIGATÓRIAS:
+1. A questão DEVE ser sobre ${theme} dentro da matéria ${subject}
+2. Use ${difficultyDescription} apropriados para ${schoolGrade}
+3. Tenha EXATAMENTE 4 alternativas
+4. Seja educativa e adequada para crianças brasileiras
+5. NÃO mencione animes, demônios, personagens fictícios ou temas inadequados
+6. A palavra secreta deve estar relacionada ao tema ${theme}
+
+${theme.toLowerCase().includes('solar') ? 'ESPECIAL: Como o tema é Sistema Solar, a questão DEVE ser sobre planetas, estrelas, sol, espaço, astronomia.' : ''}
+
+Retorne APENAS um JSON válido no formato:
+{
+  "content": "pergunta aqui",
+  "choices": ["opção A", "opção B", "opção C", "opção D"],
+  "answer": "resposta correta exata",
+  "word": "palavra-secreta-relacionada-ao-tema"
+}
   `;
   
   try {
     const content = await generateWithGemini(prompt);
     
-    // Limpar possível formatação markdown
-    const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    // Parsing mais tolerante
+    let cleanContent = content.trim();
+    cleanContent = cleanContent.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    cleanContent = cleanContent.replace(/^[^{]*({.*})[^}]*$/s, '$1');
+    
     console.log('Conteúdo limpo para parsing:', cleanContent);
     
     const parsed = JSON.parse(cleanContent);
     
-    // Validar estrutura
+    // Validação rigorosa
     if (!parsed.content || !parsed.choices || !parsed.answer || !parsed.word) {
       throw new Error('JSON inválido - campos obrigatórios ausentes');
     }
     
     if (!Array.isArray(parsed.choices) || parsed.choices.length !== 4) {
-      console.error('Choices inválido:', parsed.choices);
-      throw new Error('JSON inválido - choices deve ser array com EXATAMENTE 4 elementos');
+      throw new Error('JSON inválido - choices deve ter exatamente 4 elementos');
+    }
+    
+    // Validar conteúdo temático
+    if (!validateContent(parsed, subject, theme)) {
+      throw new Error('Conteúdo gerado não passou na validação temática');
     }
     
     return parsed;
     
   } catch (error) {
-    console.error('Erro ao gerar questão:', error);
-    // Fallback para questão padrão adaptada à matéria e série
-    const fallbackWord = subject === 'Matemática' ? 'cálculo' : 
+    console.error('Erro ao gerar questão, usando fallback temático:', error);
+    
+    // Fallback específico por tema
+    const fallbackWord = theme.toLowerCase().includes('solar') ? 'planeta' : 
                         subject === 'História' ? 'descoberta' :
                         subject === 'Ciências' ? 'experiência' :
                         subject === 'Português' ? 'palavra' :
                         subject === 'Geografia' ? 'exploração' : 'conhecimento';
     
+    if (theme.toLowerCase().includes('solar')) {
+      return {
+        content: `Sistema Solar (${schoolGrade}): Qual é o planeta mais próximo do Sol?`,
+        choices: ["Vênus", "Terra", "Mercúrio", "Marte"],
+        answer: "Mercúrio",
+        word: "planeta"
+      };
+    }
+    
     return {
-      content: `Questão de ${subject} (${schoolGrade}) sobre ${theme}: Se você tem 2 + 2, qual é o resultado?`,
-      choices: ["3", "4", "5", "6"],
-      answer: "4",
+      content: `${subject} - ${theme} (${schoolGrade}): Questão básica sobre o tema. Quanto é 1 + 1?`,
+      choices: ["1", "2", "3", "4"],
+      answer: "2",
       word: fallbackWord
     };
   }
@@ -303,12 +357,11 @@ serve(async (req) => {
       forceRegenerate = false 
     }: GenerateContentRequest = await req.json();
 
-    console.log(`Gerando conteúdo: ${contentType} para ${subject} - ${theme} (${schoolGrade})`);
+    console.log(`[API-GEMINI] Gerando ${contentType} para ${subject} - ${theme} (${schoolGrade})`);
 
-    // Criar chave de cache mais específica
-    const cacheKey = `${contentType}_${subject}_${theme}_${schoolGrade}_${difficulty}`;
+    // Cache mais específico com tempo reduzido
+    const cacheKey = `${contentType}_${subject}_${theme}_${schoolGrade}_v2`;
     
-    // Verificar cache consolidado
     if (!forceRegenerate) {
       try {
         const { data: cachedContent, error: cacheError } = await supabase
@@ -322,13 +375,15 @@ serve(async (req) => {
           .maybeSingle();
 
         if (!cacheError && cachedContent?.content) {
-          console.log('Retornando conteúdo do cache:', cacheKey);
+          console.log(`[CACHE-HIT] Retornando do cache: ${cacheKey}`);
           return new Response(JSON.stringify(cachedContent.content), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
+        } else {
+          console.log(`[CACHE-MISS] Cache não encontrado para: ${cacheKey}`);
         }
       } catch (cacheError) {
-        console.log('Cache não encontrado, gerando novo conteúdo');
+        console.log('[CACHE-ERROR] Erro ao acessar cache, gerando novo conteúdo');
       }
     }
 
@@ -349,7 +404,7 @@ serve(async (req) => {
         throw new Error(`Tipo de conteúdo não suportado: ${contentType}`);
     }
 
-    // Salvar no cache consolidado
+    // Salvar no cache com tempo reduzido (6 horas)
     try {
       const { error: saveError } = await supabase
         .from('generated_content')
@@ -357,31 +412,30 @@ serve(async (req) => {
           content_type: contentType,
           theme: cacheKey,
           content: generatedContent,
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 horas
+          expires_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()
         });
 
       if (saveError) {
-        console.error('Erro ao salvar no cache:', saveError);
+        console.error('[CACHE-SAVE-ERROR]:', saveError);
       } else {
-        console.log('Conteúdo salvo no cache:', cacheKey);
+        console.log(`[CACHE-SAVED] Conteúdo salvo: ${cacheKey}`);
       }
     } catch (cacheError) {
-      console.error('Erro ao salvar cache:', cacheError);
+      console.error('[CACHE-ERROR] Erro ao salvar:', cacheError);
     }
 
-    console.log('Conteúdo gerado com sucesso');
+    console.log(`[SUCCESS] Conteúdo gerado para ${subject} - ${theme}`);
 
     return new Response(JSON.stringify(generatedContent), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Erro na geração de conteúdo:', error);
+    console.error('[CRITICAL-ERROR] Erro na geração de conteúdo:', error);
     
-    // Fallback robusto
     const fallbackContent = {
-      title: "História Personalizada",
-      content: "Prepare-se para uma aventura de aprendizado personalizada!"
+      title: "Conteúdo Educativo",
+      content: "Prepare-se para uma aventura de aprendizado!"
     };
     
     return new Response(JSON.stringify(fallbackContent), {
