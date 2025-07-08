@@ -62,27 +62,56 @@ const QuestionsFlow = ({
         
         const dynamicQuestions: Question[] = [];
         
-        // Tentar gerar via IA (máximo 2 questões para não sobrecarregar)
-        for (let i = 0; i < 2 && generationAttempts.current < 3; i++) {
-          try {
-            console.log(`Tentativa ${i + 1} de gerar questão via IA...`);
-            const questionData = await generateQuestion(gameParams);
-            
-            if (questionData && questionData.content && questionData.choices && questionData.answer) {
-              dynamicQuestions.push(questionData);
-              console.log(`Questão ${i + 1} gerada com sucesso via IA`);
+        // Primeiro tentar obter fallbacks granulares específicos (4 questões únicas)
+        const { getGranularFallback } = await import('@/utils/granularFallbacks');
+        const granularQuestions = getGranularFallback(gameParams, 'question');
+        
+        if (granularQuestions && Array.isArray(granularQuestions) && granularQuestions.length === 4) {
+          console.log('Usando 4 questões específicas do fallback granular');
+          dynamicQuestions.push(...granularQuestions);
+        } else {
+          // Tentar gerar via IA (máximo 4 questões únicas)
+          const usedWords = new Set<string>();
+          const maxAttempts = 8; // Mais tentativas para garantir variedade
+          
+          for (let i = 0; i < 4 && generationAttempts.current < maxAttempts; i++) {
+            try {
+              console.log(`Tentativa ${i + 1} de gerar questão via IA...`);
+              const questionData = await generateQuestion(gameParams);
+              
+              if (questionData && questionData.content && questionData.choices && 
+                  questionData.answer && questionData.word && 
+                  !usedWords.has(questionData.word)) {
+                
+                dynamicQuestions.push(questionData);
+                usedWords.add(questionData.word);
+                console.log(`Questão ${i + 1} gerada com sucesso via IA - palavra: ${questionData.word}`);
+              } else {
+                console.log(`Questão rejeitada por palavra duplicada ou dados inválidos`);
+                generationAttempts.current++;
+              }
+            } catch (error) {
+              console.error(`Erro ao gerar questão ${i + 1}:`, error);
+              generationAttempts.current++;
             }
-          } catch (error) {
-            console.error(`Erro ao gerar questão ${i + 1}:`, error);
-            generationAttempts.current++;
           }
-        }
 
-        // Completar com fallbacks temáticos
-        while (dynamicQuestions.length < 4) {
-          const fallback = generateThematicFallback(gameParams);
-          if (fallback) {
-            dynamicQuestions.push(fallback);
+          // Completar com fallbacks temáticos únicos
+          while (dynamicQuestions.length < 4) {
+            const fallback = generateThematicFallback(gameParams);
+            if (fallback && !usedWords.has(fallback.word)) {
+              dynamicQuestions.push(fallback);
+              usedWords.add(fallback.word);
+            } else {
+              // Fallback final com palavra única
+              const uniqueWord = `palavra${dynamicQuestions.length + 1}`;
+              const fallback = generateThematicFallback(gameParams);
+              if (fallback) {
+                fallback.word = uniqueWord;
+                dynamicQuestions.push(fallback);
+                usedWords.add(uniqueWord);
+              }
+            }
           }
         }
 

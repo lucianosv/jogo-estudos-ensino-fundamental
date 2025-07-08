@@ -118,6 +118,11 @@ export const useAIContent = (): AIContentHook => {
       const granularFallback = getGranularFallback(gameParams, contentType as 'question' | 'story');
       if (granularFallback) {
         console.log(`[${contentType}] Usando fallback granular específico`);
+        // Para questões, retornar uma questão aleatória do conjunto disponível
+        if (contentType === 'question' && Array.isArray(granularFallback)) {
+          const randomQuestion = granularFallback[Math.floor(Math.random() * granularFallback.length)];
+          return randomQuestion;
+        }
         return granularFallback;
       }
 
@@ -140,6 +145,11 @@ export const useAIContent = (): AIContentHook => {
       const granularFallback = getGranularFallback(gameParams, contentType as 'question' | 'story');
       if (granularFallback) {
         console.log(`[${contentType}] Usando fallback granular após erro`);
+        // Para questões, retornar uma questão aleatória do conjunto disponível
+        if (contentType === 'question' && Array.isArray(granularFallback)) {
+          const randomQuestion = granularFallback[Math.floor(Math.random() * granularFallback.length)];
+          return randomQuestion;
+        }
         return granularFallback;
       }
       
