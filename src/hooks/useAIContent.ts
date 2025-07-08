@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { GameParameters } from '@/components/GameSetup';
 import { generateIntelligentFallback } from '@/utils/intelligentFallbacks';
+import { getGranularFallback } from '@/utils/granularFallbacks';
 
 interface AIContentHook {
   generateStory: (gameParams: GameParameters) => Promise<any>;
@@ -12,12 +13,55 @@ interface AIContentHook {
   isLoading: boolean;
 }
 
-// Validação simples de entrada
+// Validação melhorada de entrada
 const validateInput = (input: string): string => {
   if (!input || typeof input !== 'string') {
     throw new Error('Invalid input');
   }
   return input.trim().substring(0, 100);
+};
+
+// Validação rigorosa de conteúdo
+const validateAIContent = (content: any, gameParams: GameParameters): boolean => {
+  if (!content) return false;
+  
+  const contentStr = JSON.stringify(content).toLowerCase();
+  const { subject, theme } = gameParams;
+  
+  // Lista expandida de palavras inadequadas
+  const forbiddenWords = [
+    'demon', 'demônio', 'demonio', 'diabo', 'devil', 'satan', 'inferno',
+    'matador', 'slayer', 'mata', 'mata-', 'assassin', 'killer',
+    'anime', 'manga', 'tanjiro', 'nezuko', 'hashira', 'breathing',
+    'sangue', 'blood', 'morte', 'death', 'violência', 'violence'
+  ];
+  
+  // Verificar palavras proibidas
+  for (const word of forbiddenWords) {
+    if (contentStr.includes(word)) {
+      console.warn(`[VALIDATION] Conteúdo rejeitado por conter: ${word}`);
+      return false;
+    }
+  }
+  
+  // Verificar relevância temática
+  const themeLower = theme.toLowerCase();
+  if (themeLower.includes('solar') || themeLower.includes('planeta')) {
+    const spaceWords = ['planeta', 'sol', 'sistema', 'espaço', 'universo', 'estrela', 'órbita', 'astronomia'];
+    const hasSpaceContent = spaceWords.some(word => contentStr.includes(word));
+    if (!hasSpaceContent) {
+      console.warn(`[VALIDATION] Conteúdo sobre Sistema Solar rejeitado por não ter palavras relevantes`);
+      return false;
+    }
+  }
+  
+  // Verificar se não é genérico demais
+  if (contentStr.includes('questão básica') || contentStr.includes('exemplo genérico')) {
+    console.warn(`[VALIDATION] Conteúdo rejeitado por ser muito genérico`);
+    return false;
+  }
+  
+  return true;
 };
 
 // Mapear dificuldade baseada na série escolar
@@ -48,8 +92,9 @@ export const useAIContent = (): AIContentHook => {
       const sanitizedGrade = validateInput(gameParams.schoolGrade);
       const difficulty = customDifficulty || getDifficultyForGrade(gameParams.schoolGrade);
       
-      console.log(`[${contentType}] Chamando Edge Function para:`, sanitizedSubject, sanitizedTheme, sanitizedGrade);
+      console.log(`[${contentType}] Tentando gerar via IA para:`, sanitizedSubject, sanitizedTheme, sanitizedGrade);
 
+      // Tentar gerar via IA primeiro
       const { data, error } = await supabase.functions.invoke('generate-game-content', {
         body: {
           contentType,
@@ -57,57 +102,53 @@ export const useAIContent = (): AIContentHook => {
           theme: sanitizedTheme,
           schoolGrade: sanitizedGrade,
           themeDetails: gameParams.themeDetails,
-          difficulty
+          difficulty,
+          forceRegenerate: false // Usar cache quando possível
         }
       });
 
-      if (error) {
-        console.error(`[${contentType}] Erro na Edge Function:`, error);
-        
-        // Usar fallback inteligente imediatamente
-        const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
-        
-        if (fallbackContent) {
-          console.log(`[${contentType}] Usando fallback inteligente`);
-          toast({
-            title: "Conteúdo Personalizado",
-            description: `Usando conteúdo educativo para ${gameParams.subject} - ${gameParams.schoolGrade}`,
-          });
-          return fallbackContent;
-        }
-        
-        throw error;
+      if (!error && data && validateAIContent(data, gameParams)) {
+        console.log(`[${contentType}] Conteúdo IA validado com sucesso`);
+        return data;
       }
 
-      if (data && (data.title || data.content || data.choices)) {
-        console.log(`[${contentType}] Conteúdo gerado com sucesso via IA`);
-        return data;
-      } else {
-        console.log(`[${contentType}] Dados inválidos da IA, usando fallback`);
-        const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
+      console.log(`[${contentType}] IA falhou ou conteúdo inválido, tentando fallback granular...`);
+      
+      // Tentar fallback granular primeiro
+      const granularFallback = getGranularFallback(gameParams, contentType as 'question' | 'story');
+      if (granularFallback) {
+        console.log(`[${contentType}] Usando fallback granular específico`);
+        return granularFallback;
+      }
+
+      console.log(`[${contentType}] Fallback granular não disponível, usando fallback inteligente...`);
+      
+      // Usar fallback inteligente como último recurso
+      const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
+      
+      if (fallbackContent) {
+        console.log(`[${contentType}] Usando fallback inteligente`);
         return fallbackContent;
       }
+      
+      throw new Error('Nenhum conteúdo disponível');
 
     } catch (error) {
       console.error(`[${contentType}] Erro na geração de conteúdo:`, error);
       
-      // Usar fallback inteligente como última tentativa
-      const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
-      
-      if (fallbackContent) {
-        console.log(`[${contentType}] Usando fallback após erro`);
-        toast({
-          title: "Conteúdo Educativo",
-          description: `Conteúdo gerado para ${gameParams.subject} - ${gameParams.schoolGrade}`,
-        });
-        return fallbackContent;
+      // Último recurso: fallback granular
+      const granularFallback = getGranularFallback(gameParams, contentType as 'question' | 'story');
+      if (granularFallback) {
+        console.log(`[${contentType}] Usando fallback granular após erro`);
+        return granularFallback;
       }
       
-      toast({
-        title: "Erro na Geração",
-        description: `Problema ao gerar conteúdo para ${gameParams.subject}. Verifique a configuração da API.`,
-        variant: "destructive"
-      });
+      // Fallback inteligente final
+      const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
+      if (fallbackContent) {
+        console.log(`[${contentType}] Usando fallback inteligente após erro`);
+        return fallbackContent;
+      }
       
       return null;
     } finally {

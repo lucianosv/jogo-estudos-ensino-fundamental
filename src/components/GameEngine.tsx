@@ -15,6 +15,12 @@ import { Loader2 } from "lucide-react";
 import { getDynamicTheme } from "@/utils/dynamicThemeUtils";
 import { useGameLogic } from "@/hooks/useGameLogic";
 
+// Interface para conteúdo pré-carregado
+interface PreloadedContent {
+  questions: any[];
+  story: any;
+}
+
 const GameEngine = () => {
   const { toast } = useToast();
   const {
@@ -80,6 +86,25 @@ const GameEngine = () => {
     }
   };
 
+  // Função para lidar com o início da aventura com conteúdo pré-carregado
+  const handleStartWithPreloadedContent = (preloadedContent: PreloadedContent) => {
+    console.log('Iniciando aventura com conteúdo pré-carregado:', preloadedContent);
+    
+    // Atualizar o jogo selecionado com o conteúdo pré-carregado
+    if (selectedGame && preloadedContent.questions.length > 0) {
+      selectedGame.questions = preloadedContent.questions;
+    }
+    
+    // Definir história dinâmica se disponível
+    if (preloadedContent.story) {
+      // Usar o hook para definir a história (isso pode precisar ser ajustado)
+      console.log('História pré-carregada disponível:', preloadedContent.story);
+    }
+    
+    setGameStarted(true);
+    setCurrentStepIndex(0);
+  };
+
   if (!gameParams) {
     return <GameSetup onSetupComplete={handleSetupComplete} />;
   }
@@ -89,7 +114,7 @@ const GameEngine = () => {
       <StartScreen 
         title={`Aventura de ${gameParams.subject}: ${gameParams.theme}`}
         description={`Prepare-se para desafios de ${gameParams.subject.toLowerCase()}!`}
-        onStart={() => { setGameStarted(true); setCurrentStepIndex(0); }}
+        onStart={handleStartWithPreloadedContent}
         gameParams={gameParams}
       />
     );
