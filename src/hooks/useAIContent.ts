@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { GameParameters } from '@/components/GameSetup';
 import { generateIntelligentFallback } from '@/utils/intelligentFallbacks';
-import { getGranularFallback } from '@/utils/granularFallbacks';
+import { getExpandedGranularFallback, ensureUniqueKeywords } from '@/utils/expandedGranularFallbacks';
 
 interface AIContentHook {
   generateStory: (gameParams: GameParameters) => Promise<any>;
@@ -94,7 +94,25 @@ export const useAIContent = (): AIContentHook => {
       
       console.log(`[${contentType}] Tentando gerar via IA para:`, sanitizedSubject, sanitizedTheme, sanitizedGrade);
 
-      // Tentar gerar via IA primeiro
+      // Tentar fallback expandido primeiro (mais confiável)
+      const expandedFallback = getExpandedGranularFallback(gameParams, contentType as 'question' | 'story');
+      if (expandedFallback) {
+        console.log(`[${contentType}] Usando fallback expandido específico`);
+        
+        if (contentType === 'question' && Array.isArray(expandedFallback)) {
+          // Verificar se as 4 questões têm palavras-chave únicas
+          if (ensureUniqueKeywords(expandedFallback)) {
+            console.log(`[${contentType}] Fallback expandido com 4 questões e palavras-chave únicas`);
+            return expandedFallback;
+          }
+        }
+        
+        if (contentType === 'story' && !Array.isArray(expandedFallback)) {
+          return expandedFallback;
+        }
+      }
+
+      // Tentar gerar via IA
       const { data, error } = await supabase.functions.invoke('generate-game-content', {
         body: {
           contentType,
@@ -103,7 +121,7 @@ export const useAIContent = (): AIContentHook => {
           schoolGrade: sanitizedGrade,
           themeDetails: gameParams.themeDetails,
           difficulty,
-          forceRegenerate: false // Usar cache quando possível
+          forceRegenerate: false
         }
       });
 
@@ -112,27 +130,19 @@ export const useAIContent = (): AIContentHook => {
         return data;
       }
 
-      console.log(`[${contentType}] IA falhou ou conteúdo inválido, tentando fallback granular...`);
+      console.log(`[${contentType}] IA falhou, usando fallback expandido ou inteligente`);
       
-      // Tentar fallback granular primeiro
-      const granularFallback = getGranularFallback(gameParams, contentType as 'question' | 'story');
-      if (granularFallback) {
-        console.log(`[${contentType}] Usando fallback granular específico`);
-        // Para questões, retornar uma questão aleatória do conjunto disponível
-        if (contentType === 'question' && Array.isArray(granularFallback)) {
-          const randomQuestion = granularFallback[Math.floor(Math.random() * granularFallback.length)];
-          return randomQuestion;
-        }
-        return granularFallback;
+      // Se chegou aqui e ainda há fallback expandido, usar mesmo sem validação completa
+      if (expandedFallback) {
+        console.log(`[${contentType}] Usando fallback expandido após falha da IA`);
+        return Array.isArray(expandedFallback) ? expandedFallback : expandedFallback;
       }
 
-      console.log(`[${contentType}] Fallback granular não disponível, usando fallback inteligente...`);
-      
-      // Usar fallback inteligente como último recurso
+      // Último recurso: fallback inteligente
+      console.log(`[${contentType}] Usando fallback inteligente como último recurso`);
       const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
       
       if (fallbackContent) {
-        console.log(`[${contentType}] Usando fallback inteligente`);
         return fallbackContent;
       }
       
@@ -141,26 +151,16 @@ export const useAIContent = (): AIContentHook => {
     } catch (error) {
       console.error(`[${contentType}] Erro na geração de conteúdo:`, error);
       
-      // Último recurso: fallback granular
-      const granularFallback = getGranularFallback(gameParams, contentType as 'question' | 'story');
-      if (granularFallback) {
-        console.log(`[${contentType}] Usando fallback granular após erro`);
-        // Para questões, retornar uma questão aleatória do conjunto disponível
-        if (contentType === 'question' && Array.isArray(granularFallback)) {
-          const randomQuestion = granularFallback[Math.floor(Math.random() * granularFallback.length)];
-          return randomQuestion;
-        }
-        return granularFallback;
+      // Em caso de erro, sempre tentar fallback expandido primeiro
+      const expandedFallback = getExpandedGranularFallback(gameParams, contentType as 'question' | 'story');
+      if (expandedFallback) {
+        console.log(`[${contentType}] Usando fallback expandido após erro total`);
+        return Array.isArray(expandedFallback) ? expandedFallback : expandedFallback;
       }
       
       // Fallback inteligente final
       const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
-      if (fallbackContent) {
-        console.log(`[${contentType}] Usando fallback inteligente após erro`);
-        return fallbackContent;
-      }
-      
-      return null;
+      return fallbackContent || null;
     } finally {
       setIsLoading(false);
     }
