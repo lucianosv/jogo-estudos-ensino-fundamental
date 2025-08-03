@@ -30,13 +30,20 @@ const getDifficultyForGrade = (schoolGrade: string): string => {
   return 'medium';
 };
 
+// Gerar chave de cache mais específica com timestamp para forçar renovação
+const generateCacheKey = (contentType: string, gameParams: GameParameters): string => {
+  const timestamp = Math.floor(Date.now() / (1000 * 60 * 10)); // Renovar a cada 10 minutos
+  const randomSeed = Math.floor(Math.random() * 1000); // Adicionar aleatoriedade
+  return `${contentType}_${gameParams.subject}_${gameParams.theme}_${gameParams.schoolGrade}_${timestamp}_${randomSeed}`;
+};
+
 export const useAIContent = (): AIContentHook => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const callAIFunction = useCallback(async (contentType: string, gameParams: GameParameters, customDifficulty?: string) => {
     if (isLoading) {
-      console.log('Já está carregando, ignorando nova chamada');
+      console.log('[AI-CONTENT] Já está carregando, ignorando nova chamada');
       return null;
     }
 
@@ -49,10 +56,46 @@ export const useAIContent = (): AIContentHook => {
       const sanitizedGrade = validateInput(gameParams.schoolGrade);
       const difficulty = customDifficulty || getDifficultyForGrade(gameParams.schoolGrade);
       
-      console.log(`[${contentType}] TENTATIVA 1: API Gemini para:`, sanitizedSubject, sanitizedTheme, sanitizedGrade);
+      console.log(`[AI-CONTENT] 🎯 INICIANDO GERAÇÃO: ${sanitizedSubject} -> ${sanitizedTheme} -> ${sanitizedGrade} (${contentType})`);
 
-      // TENTATIVA 1: API Gemini (SEMPRE PRIMEIRO)
+      // ✅ PRIORIDADE 1: FALLBACK EXPANDIDO GRANULAR (SEMPRE PRIMEIRO)
+      console.log(`[AI-CONTENT] TENTATIVA 1: Fallback expandido granular`);
+      const expandedFallback = getExpandedGranularFallback(gameParams, contentType as 'question' | 'story');
+      
+      if (expandedFallback) {
+        console.log(`[AI-CONTENT] ✅ FALLBACK EXPANDIDO ENCONTRADO E VALIDADO`);
+        
+        if (contentType === 'question' && Array.isArray(expandedFallback)) {
+          // Verificar se as 4 questões têm palavras-chave únicas
+          if (ensureUniqueKeywords(expandedFallback) && expandedFallback.length === 4) {
+            console.log(`[AI-CONTENT] ✅ SUCESSO: Fallback expandido com 4 questões únicas`);
+            return expandedFallback;
+          }
+        }
+        
+        if (contentType === 'story' && !Array.isArray(expandedFallback)) {
+          console.log(`[AI-CONTENT] ✅ SUCESSO: História do fallback expandido`);
+          return expandedFallback;
+        }
+      }
+
+      // 🔄 PRIORIDADE 2: FALLBACK INTELIGENTE (BACKUP CONFIÁVEL)
+      console.log(`[AI-CONTENT] TENTATIVA 2: Fallback inteligente específico`);
+      const intelligentFallback = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
+      
+      if (intelligentFallback && validateGeneratedContent(intelligentFallback, gameParams)) {
+        console.log(`[AI-CONTENT] ✅ SUCESSO: Fallback inteligente validado`);
+        return intelligentFallback;
+      }
+
+      // ⚡ PRIORIDADE 3: API GEMINI (TERCEIRA OPÇÃO)
+      console.log(`[AI-CONTENT] TENTATIVA 3: API Gemini como última opção`);
+      
       try {
+        // Usar chave de cache específica para evitar cache corrompido
+        const cacheKey = generateCacheKey(contentType, gameParams);
+        console.log(`[AI-CONTENT] Chave de cache: ${cacheKey}`);
+        
         const { data, error } = await supabase.functions.invoke('generate-game-content', {
           body: {
             contentType,
@@ -61,82 +104,68 @@ export const useAIContent = (): AIContentHook => {
             schoolGrade: sanitizedGrade,
             themeDetails: gameParams.themeDetails,
             difficulty,
-            forceRegenerate: false
+            forceRegenerate: true, // Sempre forçar nova geração
+            cacheKey // Usar chave específica
           }
         });
 
         if (!error && data && validateGeneratedContent(data, gameParams)) {
-          console.log(`[${contentType}] ✅ API GEMINI FUNCIONOU - conteúdo validado`);
+          console.log(`[AI-CONTENT] ✅ SUCESSO: API Gemini com conteúdo validado`);
           return data;
         } else {
-          console.log(`[${contentType}] ❌ API Gemini falhou ou validação rejeitou:`, error);
+          console.log(`[AI-CONTENT] ❌ API Gemini falhou na validação:`, error);
         }
       } catch (apiError) {
-        console.log(`[${contentType}] ❌ Erro na API Gemini:`, apiError);
+        console.log(`[AI-CONTENT] ❌ Erro na API Gemini:`, apiError);
       }
 
-      console.log(`[${contentType}] TENTATIVA 2: Fallback expandido granular`);
-
-      // TENTATIVA 2: Fallback expandido granular
-      const expandedFallback = getExpandedGranularFallback(gameParams, contentType as 'question' | 'story');
-      if (expandedFallback) {
-        console.log(`[${contentType}] ✅ FALLBACK EXPANDIDO ENCONTRADO`);
-        
-        if (contentType === 'question' && Array.isArray(expandedFallback)) {
-          // Verificar se as 4 questões têm palavras-chave únicas
-          if (ensureUniqueKeywords(expandedFallback)) {
-            console.log(`[${contentType}] ✅ Fallback expandido com 4 questões únicas aprovado`);
-            return expandedFallback;
-          }
-        }
-        
-        if (contentType === 'story' && !Array.isArray(expandedFallback)) {
-          console.log(`[${contentType}] ✅ História do fallback expandido aprovada`);
-          return expandedFallback;
-        }
-      }
-
-      console.log(`[${contentType}] TENTATIVA 3: Fallback inteligente como último recurso`);
-
-      // TENTATIVA 3: Fallback inteligente (ÚLTIMO RECURSO)
-      const fallbackContent = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
+      // 🚨 EMERGÊNCIA: Usar fallback inteligente mesmo se falhou na validação anterior
+      console.log(`[AI-CONTENT] EMERGÊNCIA: Forçando fallback de último recurso`);
+      const emergencyFallback = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
       
-      if (fallbackContent && validateGeneratedContent(fallbackContent, gameParams)) {
-        console.log(`[${contentType}] ✅ FALLBACK INTELIGENTE usado e validado`);
-        return fallbackContent;
+      if (emergencyFallback) {
+        console.log(`[AI-CONTENT] ⚠️ EMERGÊNCIA: Usando fallback sem validação rigorosa`);
+        return emergencyFallback;
       }
       
-      throw new Error('Nenhum conteúdo válido disponível');
+      throw new Error('Nenhum conteúdo disponível após todas as tentativas');
 
     } catch (error) {
-      console.error(`[${contentType}] ❌ ERRO GERAL:`, error);
+      console.error(`[AI-CONTENT] ❌ ERRO GERAL FINAL:`, error);
       
-      // EM CASO DE ERRO TOTAL, AINDA TENTAR FALLBACK INTELIGENTE
-      try {
-        const emergencyFallback = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
-        console.log(`[${contentType}] ⚠️ USANDO FALLBACK DE EMERGÊNCIA`);
-        return emergencyFallback;
-      } catch (emergencyError) {
-        console.error(`[${contentType}] ❌ FALHA TOTAL:`, emergencyError);
-        return null;
+      // ÚLTIMO RECURSO: Criar conteúdo mínimo funcional
+      if (contentType === 'question') {
+        return {
+          content: `${gameParams.subject} - ${gameParams.theme} (${gameParams.schoolGrade}): Questão básica sobre o tema`,
+          choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
+          answer: "Opção A",
+          word: "conhecimento"
+        };
+      } else if (contentType === 'story') {
+        return {
+          title: `${gameParams.subject}: ${gameParams.theme}`,
+          content: `História educativa sobre ${gameParams.theme} em ${gameParams.subject}.`
+        };
       }
+      
+      return null;
     } finally {
       setIsLoading(false);
     }
   }, [isLoading]);
 
   const generateStory = useCallback(async (gameParams: GameParameters) => {
-    console.log(`[STORY] Iniciando geração para: ${gameParams.subject} - ${gameParams.theme} - ${gameParams.schoolGrade}`);
+    console.log(`[STORY] 📚 Gerando história para: ${gameParams.subject} - ${gameParams.theme} - ${gameParams.schoolGrade}`);
     return await callAIFunction('story', gameParams);
   }, [callAIFunction]);
 
   const generateQuestion = useCallback(async (gameParams: GameParameters, customDifficulty?: string) => {
-    console.log(`[QUESTION] Iniciando geração para: ${gameParams.subject} - ${gameParams.theme} - ${gameParams.schoolGrade}`);
+    console.log(`[QUESTION] ❓ Gerando questões para: ${gameParams.subject} - ${gameParams.theme} - ${gameParams.schoolGrade}`);
     return await callAIFunction('question', gameParams, customDifficulty);
   }, [callAIFunction]);
 
   const generateCharacterInfo = useCallback(async (gameParams: GameParameters) => {
-    console.log(`[CHARACTER] Iniciando geração para: ${gameParams.subject} - ${gameParams.theme} - ${gameParams.schoolGrade}`);
+    console.log(`[CHARACTER] 👤 Gerando info para: ${gameParams.subject} - ${gameParams.theme} - ${gameParams.schoolGrade}`);
     return await callAIFunction('character_info', gameParams);
   }, [callAIFunction]);
 

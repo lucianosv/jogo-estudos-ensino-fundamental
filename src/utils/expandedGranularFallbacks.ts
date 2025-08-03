@@ -1,4 +1,3 @@
-
 import { GameParameters } from "@/components/GameSetup";
 
 interface GranularQuestion {
@@ -13,8 +12,208 @@ interface GranularStory {
   content: string;
 }
 
-// Fallbacks expandidos para cobrir todas as combinações série/matéria/tema
+// FALLBACKS EXPANDIDOS MASSIVAMENTE - COBRINDO TODAS AS COMBINAÇÕES CRÍTICAS
 const expandedGranularFallbacks = {
+  'Ciências': {
+    '1º ano': {
+      'Corpo Humano': {
+        questions: [
+          {
+            content: "Quantos olhos nós temos?",
+            choices: ["1 olho", "2 olhos", "3 olhos", "4 olhos"],
+            answer: "2 olhos",
+            word: "visão"
+          },
+          {
+            content: "Qual parte do corpo usamos para ouvir?",
+            choices: ["Nariz", "Orelha", "Boca", "Mão"],
+            answer: "Orelha",
+            word: "audição"
+          },
+          {
+            content: "Quantas mãos temos?",
+            choices: ["1 mão", "2 mãos", "3 mãos", "4 mãos"],
+            answer: "2 mãos",
+            word: "tato"
+          },
+          {
+            content: "Com que parte do corpo sentimos cheiros?",
+            choices: ["Olho", "Orelha", "Nariz", "Pé"],
+            answer: "Nariz",
+            word: "olfato"
+          }
+        ],
+        story: {
+          title: "Ciências: Os Cinco Sentidos",
+          content: "Era uma vez uma menina chamada Ana que descobriu como seu corpo era incrível! Ela usava os olhos para ver as cores bonitas das flores, as orelhas para ouvir o canto dos pássaros, o nariz para sentir o cheiro gostoso do pão quentinho, as mãos para tocar a pele macia do gatinho, e a língua para sentir o sabor doce do mel. Ana ficou maravilhada ao descobrir que tinha cinco sentidos especiais que a ajudavam a conhecer o mundo ao seu redor!"
+        }
+      },
+      'Sistema Solar': {
+        questions: [
+          {
+            content: "Qual é a estrela que nos dá luz e calor?",
+            choices: ["A Lua", "O Sol", "As nuvens", "Os planetas"],
+            answer: "O Sol",
+            word: "estrela"
+          },
+          {
+            content: "O que vemos no céu à noite que é redondo e brilha?",
+            choices: ["O Sol", "A Lua", "As estrelas", "Os planetas"],
+            answer: "A Lua",
+            word: "noite"
+          },
+          {
+            content: "Em que planeta nós vivemos?",
+            choices: ["Sol", "Lua", "Terra", "Marte"],
+            answer: "Terra",
+            word: "planeta"
+          },
+          {
+            content: "Quantos planetas existem no Sistema Solar?",
+            choices: ["6 planetas", "7 planetas", "8 planetas", "9 planetas"],
+            answer: "8 planetas",
+            word: "universo"
+          }
+        ],
+        story: {
+          title: "Ciências: Nossa Casa no Espaço",
+          content: "O pequeno Pedro olhava para o céu e se perguntava onde vivia. Sua professora explicou que ele morava no planeta Terra, que fazia parte de uma grande família de 8 planetas que giravam ao redor de uma estrela muito especial chamada Sol. Durante o dia, o Sol iluminava e aquecia a Terra, e à noite, a Lua brilhava no céu escuro cheio de estrelinhas. Pedro ficou encantado ao descobrir que sua casa era na verdade um planeta azul e verde flutuando no espaço!"
+        }
+      }
+    },
+    '3º ano': {
+      'Corpo Humano': {
+        questions: [
+          {
+            content: "Qual órgão bate dentro do peito e bombeia o sangue?",
+            choices: ["Pulmão", "Fígado", "Coração", "Estômago"],
+            answer: "Coração",
+            word: "circulação"
+          },
+          {
+            content: "O que usamos para respirar?",
+            choices: ["Coração", "Pulmões", "Estômago", "Fígado"],
+            answer: "Pulmões",
+            word: "respiração"
+          },
+          {
+            content: "Onde acontece a digestão dos alimentos?",
+            choices: ["Coração", "Pulmões", "Estômago", "Cérebro"],
+            answer: "Estômago",
+            word: "digestão"
+          },
+          {
+            content: "Qual órgão controla todo o corpo e nos faz pensar?",
+            choices: ["Coração", "Pulmões", "Cérebro", "Estômago"],
+            answer: "Cérebro",
+            word: "pensamento"
+          }
+        ],
+        story: {
+          title: "Ciências: A Máquina Perfeita do Corpo",
+          content: "Sofia descobriu que seu corpo era como uma máquina perfeita! Seu coração batia sem parar bombeando sangue para todo o corpo, seus pulmões enchiam e esvaziavam trazendo ar puro, seu estômago digeria a comida transformando-a em energia, e seu cérebro comandava tudo como um computador super inteligente. Cada órgão tinha um trabalho especial, e todos trabalhavam juntos para manter Sofia saudável e cheia de energia para brincar e aprender!"
+        }
+      },
+      'Sistema Solar': {
+        questions: [
+          {
+            content: "Qual é o planeta mais próximo do Sol?",
+            choices: ["Vênus", "Terra", "Mercúrio", "Marte"],
+            answer: "Mercúrio",
+            word: "planeta"
+          },
+          {
+            content: "Quantos planetas existem no nosso Sistema Solar?",
+            choices: ["6 planetas", "7 planetas", "8 planetas", "9 planetas"],
+            answer: "8 planetas",
+            word: "universo"
+          },
+          {
+            content: "Qual planeta é conhecido como o 'Planeta Vermelho'?",
+            choices: ["Vênus", "Marte", "Júpiter", "Saturno"],
+            answer: "Marte",
+            word: "vermelho"
+          },
+          {
+            content: "O que os planetas fazem ao redor do Sol?",
+            choices: ["Ficam parados", "Giram em órbita", "Voam para longe", "Caem no Sol"],
+            answer: "Giram em órbita",
+            word: "órbita"
+          }
+        ],
+        story: {
+          title: "Ciências: A Dança dos Planetas",
+          content: "A turma da professora Estrela fez uma viagem imaginária pelo Sistema Solar. Começaram visitando Mercúrio, pequenininho e quente perto do Sol, depois Vênus coberto de nuvens, nossa Terra azul e verde, e Marte vermelho como ferrugem. Continuaram para os planetas gigantes: Júpiter com suas tempestades, Saturno com seus anéis brilhantes, Urano azul-esverdeado e Netuno azul distante. Todos dançavam em órbita ao redor do Sol numa valsa cósmica perfeita!"
+        }
+      }
+    },
+    '6º ano': {
+      'Corpo Humano': {
+        questions: [
+          {
+            content: "Qual órgão é responsável por bombear sangue para todo o corpo humano?",
+            choices: ["Pulmão", "Fígado", "Coração", "Estômago"],
+            answer: "Coração",
+            word: "circulação"
+          },
+          {
+            content: "Quantos pulmões temos no nosso corpo?",
+            choices: ["1 pulmão", "2 pulmões", "3 pulmões", "4 pulmões"],
+            answer: "2 pulmões",
+            word: "respiração"
+          },
+          {
+            content: "Qual órgão é responsável por pensar e comandar o corpo?",
+            choices: ["Coração", "Fígado", "Cérebro", "Estômago"],
+            answer: "Cérebro",
+            word: "neurônio"
+          },
+          {
+            content: "Quantos ossos aproximadamente tem o corpo humano adulto?",
+            choices: ["156 ossos", "186 ossos", "206 ossos", "256 ossos"],
+            answer: "206 ossos",
+            word: "esqueleto"
+          }
+        ],
+        story: {
+          title: "Ciências: A Incrível Anatomia Humana",
+          content: "O Dr. Anatomia reuniu seus alunos do 6º ano para uma aula especial sobre o corpo humano. 'Vocês são máquinas biológicas perfeitas!', explicou ele. 'O coração bate cerca de 100.000 vezes por dia bombeando 7.000 litros de sangue! Os 2 pulmões processam 20.000 litros de ar! O cérebro, com seus bilhões de neurônios, processa informações mais rápido que qualquer computador! E os 206 ossos do esqueleto sustentam e protegem todos os órgãos!' Os estudantes ficaram impressionados com a complexidade e perfeição do corpo humano."
+        }
+      },
+      'Sistema Solar': {
+        questions: [
+          {
+            content: "Qual é o maior planeta do Sistema Solar?",
+            choices: ["Terra", "Saturno", "Júpiter", "Netuno"],
+            answer: "Júpiter",
+            word: "gigante"
+          },
+          {
+            content: "Qual planeta tem anéis visíveis ao redor?",
+            choices: ["Júpiter", "Saturno", "Urano", "Netuno"],
+            answer: "Saturno",
+            word: "anéis"
+          },
+          {
+            content: "Quantos dias a Terra leva para dar uma volta completa ao redor do Sol?",
+            choices: ["300 dias", "350 dias", "365 dias", "400 dias"],
+            answer: "365 dias",
+            word: "translação"
+          },
+          {
+            content: "Qual é a distância aproximada da Terra ao Sol?",
+            choices: ["100 milhões de km", "150 milhões de km", "200 milhões de km", "250 milhões de km"],
+            answer: "150 milhões de km",
+            word: "astronomia"
+          }
+        ],
+        story: {
+          title: "Ciências: Exploradores do Sistema Solar",
+          content: "A turma avançada de Astronomia do 6º ano embarcou numa missão virtual pelo Sistema Solar. Descobriram que Júpiter é tão grande que cabem 1.300 Terras dentro dele, que Saturno flutua na água devido à sua baixa densidade, que a Terra viaja a 108.000 km/h ao redor do Sol completando uma volta em 365 dias, e que estamos a exatos 150 milhões de quilômetros da nossa estrela. Cada descoberta os deixava mais fascinados pela imensidão e precisão do universo!"
+        }
+      }
+    }
+  },
   'Matemática': {
     '1º ano': {
       'Números': {
@@ -183,108 +382,6 @@ const expandedGranularFallbacks = {
       }
     }
   },
-  'Ciências': {
-    '3º ano': {
-      'Sistema Solar': {
-        questions: [
-          {
-            content: "Qual é a estrela que nos dá luz e calor todos os dias?",
-            choices: ["A Lua", "O Sol", "As nuvens", "Os planetas"],
-            answer: "O Sol",
-            word: "estrela"
-          },
-          {
-            content: "Quantos planetas existem no nosso Sistema Solar?",
-            choices: ["6 planetas", "7 planetas", "8 planetas", "9 planetas"],
-            answer: "8 planetas",
-            word: "planeta"
-          },
-          {
-            content: "Qual planeta é conhecido como o 'Planeta Vermelho'?",
-            choices: ["Vênus", "Marte", "Júpiter", "Saturno"],
-            answer: "Marte",
-            word: "vermelho"
-          },
-          {
-            content: "O que os planetas fazem ao redor do Sol?",
-            choices: ["Ficam parados", "Giram em órbita", "Voam para longe", "Caem no Sol"],
-            answer: "Giram em órbita",
-            word: "órbita"
-          }
-        ],
-        story: {
-          title: "A Viagem Espacial da Turma Curiosa",
-          content: "A professora Lua levou sua turma em uma viagem espacial imaginária pelo Sistema Solar. Começaram visitando Mercúrio, o planeta mais próximo do Sol e muito quente, depois Vênus coberto de nuvens, nossa Terra azul e verde, Marte vermelho como ferrugem. Continuaram para Júpiter gigante com suas tempestades, Saturno com seus anéis brilhantes, Urano azul-esverdeado e Netuno azul distante. 'Cada planeta é único e especial!', disse a professora, enquanto as crianças faziam anotações sobre suas descobertas cósmicas!"
-        }
-      },
-      'Animais': {
-        questions: [
-          {
-            content: "Qual animal é conhecido por trocar de pele quando cresce?",
-            choices: ["Cachorro", "Gato", "Cobra", "Pássaro"],
-            answer: "Cobra",
-            word: "pele"
-          },
-          {
-            content: "Que tipo de animal bota ovos e tem penas?",
-            choices: ["Mamífero", "Peixe", "Ave", "Réptil"],
-            answer: "Ave",
-            word: "penas"
-          },
-          {
-            content: "Qual animal vive na água e respira com guelras?",
-            choices: ["Cavalo", "Peixe", "Cachorro", "Gato"],
-            answer: "Peixe",
-            word: "guelras"
-          },
-          {
-            content: "Os mamíferos alimentam seus filhotes com:",
-            choices: ["Sementes", "Leite", "Água", "Folhas"],
-            answer: "Leite",
-            word: "mamífero"
-          }
-        ],
-        story: {
-          title: "O Zoológico Educativo da Professora Natura",
-          content: "A Professora Natura criou um zoológico muito especial onde cada animal ensinava algo importante sobre a vida. Os pássaros mostravam como voam com suas penas coloridas, os peixes nadavam graciosamente mostrando suas guelras, os mamíferos cuidavam carinhosamente de seus filhotes, e os répteis demonstravam como se adaptam ao ambiente. Cada visita ao zoológico era uma lição sobre como os animais são diferentes e especiais, cada um com sua forma única de viver e se alimentar!"
-        }
-      }
-    },
-    '6º ano': {
-      'Corpo Humano': {
-        questions: [
-          {
-            content: "Qual órgão bombeia sangue para todo o corpo humano?",
-            choices: ["Pulmão", "Fígado", "Coração", "Estômago"],
-            answer: "Coração",
-            word: "circulação"
-          },
-          {
-            content: "Quantos pulmões temos no nosso corpo?",
-            choices: ["1 pulmão", "2 pulmões", "3 pulmões", "4 pulmões"],
-            answer: "2 pulmões",
-            word: "respiração"
-          },
-          {
-            content: "Qual órgão é responsável por pensar e comandar o corpo?",
-            choices: ["Coração", "Fígado", "Cérebro", "Estômago"],
-            answer: "Cérebro",
-            word: "pensamento"
-          },
-          {
-            content: "Onde acontece a digestão dos alimentos?",
-            choices: ["Nos pulmões", "No coração", "No estômago", "No cérebro"],
-            answer: "No estômago",
-            word: "digestão"
-          }
-        ],
-        story: {
-          title: "A Fabulosa Jornada Dentro do Corpo Humano",
-          content: "O Dr. Coração convidou seus amigos órgãos para uma reunião especial. 'Cada um de nós tem um trabalho importante!', disse ele batendo ritmicamente. Os Pulmões gêmeos concordaram: 'Nós trazemos o oxigênio!'. O Cérebro, sempre sábio, complementou: 'Eu coordeno tudo e cuido dos pensamentos!'. O Estômago riu: 'E eu transformo a comida em energia!' Juntos, eles formavam a equipe mais incrível: o corpo humano, uma máquina perfeita onde cada parte colabora para manter a vida!"
-        }
-      }
-    }
-  },
   'História': {
     '5º ano': {
       'Grandes Navegações': {
@@ -315,7 +412,7 @@ const expandedGranularFallbacks = {
           }
         ],
         story: {
-          title: "A Aventura dos Navegadores Corajosos",
+          title: "História: A Aventura dos Navegadores Corajosos",
           content: "Há mais de 500 anos, navegadores corajosos como Pedro Álvares Cabral embarcaram em caravelas resistentes para explorar oceanos desconhecidos. Com apenas bússolas para orientação e mapas rudimentares, eles enfrentavam tempestades e mares bravios em busca de especiarias preciosas e novas terras. Durante uma dessas viagens, Cabral avistou terras brasileiras e fez uma das descobertas mais importantes da história. Esses heróis dos mares mudaram o mundo para sempre com sua coragem e determinação!"
         }
       },
@@ -383,7 +480,7 @@ const expandedGranularFallbacks = {
           }
         ],
         story: {
-          title: "A Grande Festa do Alfabeto",
+          title: "Português: A Grande Festa do Alfabeto",
           content: "Na Terra das Letras, aconteceu a maior festa do ano: o aniversário do Alfabeto! As 26 letrinhas se organizaram em uma fila alegre, com A na frente como líder. As vogais A, E, I, O, U vestiram roupas coloridas e cantaram melodias bonitas, enquanto as consoantes fizeram percussão e sons divertidos. Juntas, elas mostraram como, quando se combinam, podem formar palavras mágicas que contam histórias, expressam sentimentos e conectam pessoas ao redor do mundo!"
         }
       }
@@ -453,7 +550,7 @@ const expandedGranularFallbacks = {
           }
         ],
         story: {
-          title: "A Grande Viagem pelo Brasil Gigante",
+          title: "Geografia: A Grande Viagem pelo Brasil Gigante",
           content: "A família Descobrimento decidiu conhecer seu imenso país, o Brasil. Começaram pela capital Brasília, com seus prédios modernos e arquitetura única. Depois voaram sobre a gigantesca Floresta Amazônica, onde viram rios enormes e milhões de árvores verdes. Desceram até as praias banhadas pelo Oceano Atlântico e subiram montanhas da Mata Atlântica. Em cada região, descobriram costumes diferentes, comidas típicas e paisagens de tirar o fôlego. 'Nosso Brasil é realmente um país continental!', exclamaram ao final da aventura."
         }
       }
@@ -487,7 +584,7 @@ const expandedGranularFallbacks = {
           }
         ],
         story: {
-          title: "A Volta ao Mundo dos Sete Continentes",
+          title: "Geografia: A Volta ao Mundo dos Sete Continentes",
           content: "O explorador Geo Grafia embarcou na maior aventura de sua vida: conhecer os 7 continentes! Começou pela Ásia gigante, com suas culturas milenares e tecnologia avançada. Voou para a África berço da humanidade, depois Europa com sua rica história. Atravessou o oceano para a América, dividida em Norte e Sul, conheceu a Oceania com suas ilhas paradisíacas, e terminou na gelada Antártida. Em cada continente, descobriu que nosso planeta é incrivelmente diverso, cheio de povos, culturas, climas e paisagens únicos!"
         }
       }
@@ -498,30 +595,30 @@ const expandedGranularFallbacks = {
 export const getExpandedGranularFallback = (gameParams: GameParameters, contentType: 'question' | 'story'): GranularQuestion[] | GranularStory | null => {
   const { subject, schoolGrade, theme } = gameParams;
   
-  console.log(`[EXPANDED-FALLBACK] Buscando: ${subject} > ${schoolGrade} > ${theme}`);
+  console.log(`[EXPANDED-FALLBACK] 🎯 BUSCANDO: ${subject} > ${schoolGrade} > ${theme}`);
   
   const subjectFallbacks = expandedGranularFallbacks[subject];
   if (!subjectFallbacks) {
-    console.log(`[EXPANDED-FALLBACK] Matéria ${subject} não encontrada`);
+    console.log(`[EXPANDED-FALLBACK] ❌ Matéria ${subject} não encontrada`);
     return null;
   }
   
   const gradeFallbacks = subjectFallbacks[schoolGrade];
   if (!gradeFallbacks) {
-    console.log(`[EXPANDED-FALLBACK] Série ${schoolGrade} não encontrada para ${subject}`);
+    console.log(`[EXPANDED-FALLBACK] ❌ Série ${schoolGrade} não encontrada para ${subject}`);
     return null;
   }
   
   const themeFallbacks = gradeFallbacks[theme];
   if (!themeFallbacks) {
-    console.log(`[EXPANDED-FALLBACK] Tema ${theme} não encontrado para ${subject} - ${schoolGrade}`);
+    console.log(`[EXPANDED-FALLBACK] ❌ Tema ${theme} não encontrado para ${subject} - ${schoolGrade}`);
     return null;
   }
   
   if (contentType === 'question') {
     const questions = themeFallbacks.questions;
     if (questions && questions.length === 4) {
-      console.log(`[EXPANDED-FALLBACK] Retornando 4 questões únicas para ${subject} - ${schoolGrade} - ${theme}`);
+      console.log(`[EXPANDED-FALLBACK] ✅ SUCESSO: Retornando 4 questões específicas para ${subject} - ${schoolGrade} - ${theme}`);
       return questions;
     }
   }
@@ -529,23 +626,34 @@ export const getExpandedGranularFallback = (gameParams: GameParameters, contentT
   if (contentType === 'story') {
     const story = themeFallbacks.story;
     if (story) {
-      console.log(`[EXPANDED-FALLBACK] Retornando história narrativa para ${subject} - ${schoolGrade} - ${theme}`);
+      console.log(`[EXPANDED-FALLBACK] ✅ SUCESSO: Retornando história específica para ${subject} - ${schoolGrade} - ${theme}`);
       return story;
     }
   }
   
+  console.log(`[EXPANDED-FALLBACK] ❌ Conteúdo ${contentType} não encontrado para a combinação específica`);
   return null;
 };
 
 // Função para verificar se existe fallback expandido
 export const hasExpandedGranularFallback = (gameParams: GameParameters): boolean => {
   const { subject, schoolGrade, theme } = gameParams;
-  return !!(expandedGranularFallbacks[subject]?.[schoolGrade]?.[theme]);
+  const exists = !!(expandedGranularFallbacks[subject]?.[schoolGrade]?.[theme]);
+  console.log(`[EXPANDED-FALLBACK] Verificação de existência para ${subject}/${schoolGrade}/${theme}: ${exists}`);
+  return exists;
 };
 
 // Função para garantir 4 palavras-chave únicas
 export const ensureUniqueKeywords = (questions: GranularQuestion[]): boolean => {
+  if (!questions || questions.length !== 4) {
+    console.log(`[EXPANDED-FALLBACK] ❌ Número incorreto de questões: ${questions?.length || 0}`);
+    return false;
+  }
+  
   const words = questions.map(q => q.word);
   const uniqueWords = new Set(words);
-  return uniqueWords.size === 4 && words.length === 4;
+  const isUnique = uniqueWords.size === 4;
+  
+  console.log(`[EXPANDED-FALLBACK] Verificação de unicidade: ${words.join(', ')} = ${isUnique ? 'ÚNICAS' : 'DUPLICADAS'}`);
+  return isUnique;
 };
