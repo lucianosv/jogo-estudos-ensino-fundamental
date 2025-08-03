@@ -7,7 +7,6 @@ import { GameParameters } from "../GameSetup";
 import { useAIContent } from "@/hooks/useAIContent";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
-import { generateThematicFallback } from "@/utils/thematicFallbacks";
 
 interface Question {
   content: string;
@@ -42,14 +41,24 @@ const QuestionsFlow = ({
   const hasGenerated = useRef(false);
   const { generateQuestion, isLoading } = useAIContent();
 
-  // Gerar questões sem loop infinito
+  // Limpar cache e garantir regeneração
+  const clearCache = () => {
+    hasGenerated.current = false;
+    generationAttempts.current = 0;
+    setGeneratedQuestions([]);
+  };
+
+  // Gerar questões seguindo a nova ordem de prioridade
   useEffect(() => {
     const generateDynamicQuestions = async () => {
+      // Se já foram passadas questões, usar elas
       if (questions && questions.length > 0) {
+        console.log('[QUESTIONS-FLOW] Usando questões passadas como prop');
         setGeneratedQuestions(questions);
         return;
       }
 
+      // Se já gerou, não gerar novamente
       if (hasGenerated.current) {
         return;
       }
@@ -57,77 +66,80 @@ const QuestionsFlow = ({
       hasGenerated.current = true;
       setLoadingQuestions(true);
       
+      console.log(`[QUESTIONS-FLOW] 🎯 GERANDO QUESTÕES PARA: ${gameParams.subject} - ${gameParams.theme} - ${gameParams.schoolGrade}`);
+      
       try {
-        console.log(`Gerando questões para: ${gameParams.subject} - ${gameParams.theme}`);
-        
         const dynamicQuestions: Question[] = [];
+        const usedWords = new Set<string>();
         
-        // Primeiro tentar obter fallbacks granulares específicos (4 questões únicas)
-        const { getGranularFallback } = await import('@/utils/granularFallbacks');
-        const granularQuestions = getGranularFallback(gameParams, 'question');
-        
-        if (granularQuestions && Array.isArray(granularQuestions) && granularQuestions.length === 4) {
-          console.log('Usando 4 questões específicas do fallback granular');
-          dynamicQuestions.push(...granularQuestions);
-        } else {
-          // Tentar gerar via IA (máximo 4 questões únicas)
-          const usedWords = new Set<string>();
-          const maxAttempts = 8; // Mais tentativas para garantir variedade
+        // Tentar gerar 4 questões únicas via nossa nova lógica
+        for (let i = 0; i < 4; i++) {
+          console.log(`[QUESTIONS-FLOW] Tentando gerar questão ${i + 1}/4...`);
           
-          for (let i = 0; i < 4 && generationAttempts.current < maxAttempts; i++) {
-            try {
-              console.log(`Tentativa ${i + 1} de gerar questão via IA...`);
-              const questionData = await generateQuestion(gameParams);
+          try {
+            const questionData = await generateQuestion(gameParams);
+            
+            if (questionData && questionData.content && questionData.choices && 
+                questionData.answer && questionData.word && 
+                !usedWords.has(questionData.word)) {
               
-              if (questionData && questionData.content && questionData.choices && 
-                  questionData.answer && questionData.word && 
-                  !usedWords.has(questionData.word)) {
-                
-                dynamicQuestions.push(questionData);
-                usedWords.add(questionData.word);
-                console.log(`Questão ${i + 1} gerada com sucesso via IA - palavra: ${questionData.word}`);
-              } else {
-                console.log(`Questão rejeitada por palavra duplicada ou dados inválidos`);
-                generationAttempts.current++;
-              }
-            } catch (error) {
-              console.error(`Erro ao gerar questão ${i + 1}:`, error);
-              generationAttempts.current++;
-            }
-          }
-
-          // Completar com fallbacks temáticos únicos
-          while (dynamicQuestions.length < 4) {
-            const fallback = generateThematicFallback(gameParams);
-            if (fallback && !usedWords.has(fallback.word)) {
-              dynamicQuestions.push(fallback);
-              usedWords.add(fallback.word);
+              dynamicQuestions.push(questionData);
+              usedWords.add(questionData.word);
+              console.log(`[QUESTIONS-FLOW] ✅ Questão ${i + 1} gerada - palavra: ${questionData.word}`);
             } else {
-              // Fallback final com palavra única
-              const uniqueWord = `palavra${dynamicQuestions.length + 1}`;
-              const fallback = generateThematicFallback(gameParams);
-              if (fallback) {
-                fallback.word = uniqueWord;
-                dynamicQuestions.push(fallback);
-                usedWords.add(uniqueWord);
+              console.log(`[QUESTIONS-FLOW] ❌ Questão ${i + 1} rejeitada (palavra duplicada ou dados inválidos)`);
+              
+              // Se rejeitada, criar fallback de emergência único
+              const fallbackQuestion = {
+                content: `${gameParams.subject} - ${gameParams.theme} (${gameParams.schoolGrade}): Questão ${i + 1}`,
+                choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
+                answer: "Opção A",
+                word: `palavra${i + 1}`
+              };
+              
+              if (!usedWords.has(fallbackQuestion.word)) {
+                dynamicQuestions.push(fallbackQuestion);
+                usedWords.add(fallbackQuestion.word);
+                console.log(`[QUESTIONS-FLOW] ⚠️ Usando fallback de emergência para questão ${i + 1}`);
               }
+            }
+          } catch (error) {
+            console.error(`[QUESTIONS-FLOW] Erro ao gerar questão ${i + 1}:`, error);
+            
+            // Fallback de emergência
+            const emergencyQuestion = {
+              content: `${gameParams.subject} - ${gameParams.theme} (${gameParams.schoolGrade}): Questão de emergência ${i + 1}`,
+              choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
+              answer: "Opção A",
+              word: `emergencia${i + 1}`
+            };
+            
+            if (!usedWords.has(emergencyQuestion.word)) {
+              dynamicQuestions.push(emergencyQuestion);
+              usedWords.add(emergencyQuestion.word);
             }
           }
         }
 
-        console.log(`Geradas ${dynamicQuestions.length} questões no total`);
+        console.log(`[QUESTIONS-FLOW] 🎯 TOTAL DE QUESTÕES GERADAS: ${dynamicQuestions.length}`);
+        console.log(`[QUESTIONS-FLOW] 🔑 PALAVRAS-CHAVE: ${Array.from(usedWords).join(', ')}`);
+        
         setGeneratedQuestions(dynamicQuestions);
 
       } catch (error) {
-        console.error('Erro geral na geração de questões:', error);
+        console.error('[QUESTIONS-FLOW] ❌ ERRO GERAL:', error);
         
-        // Usar apenas fallbacks temáticos como último recurso
-        const fallbackQuestions: Question[] = [];
+        // Criar 4 questões de emergência
+        const emergencyQuestions = [];
         for (let i = 0; i < 4; i++) {
-          const fallback = generateThematicFallback(gameParams);
-          if (fallback) fallbackQuestions.push(fallback);
+          emergencyQuestions.push({
+            content: `${gameParams.subject} - ${gameParams.theme} (${gameParams.schoolGrade}): Questão de emergência ${i + 1}`,
+            choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
+            answer: "Opção A",
+            word: `emergencia${i + 1}`
+          });
         }
-        setGeneratedQuestions(fallbackQuestions);
+        setGeneratedQuestions(emergencyQuestions);
       } finally {
         setLoadingQuestions(false);
       }
@@ -140,6 +152,7 @@ const QuestionsFlow = ({
     setWasCorrect(true);
     setShowResult(true);
     if (generatedQuestions[currentIndex]) {
+      console.log(`[QUESTIONS-FLOW] ✅ Coletando palavra: ${generatedQuestions[currentIndex].word}`);
       onCollectWord(generatedQuestions[currentIndex].word);
     }
   };
@@ -165,12 +178,10 @@ const QuestionsFlow = ({
   };
 
   const regenerateQuestions = async () => {
-    setGeneratedQuestions([]);
+    clearCache();
     setCurrentIndex(0);
     setShowResult(false);
     setWasCorrect(null);
-    generationAttempts.current = 0;
-    hasGenerated.current = false;
   };
 
   // Loading state
@@ -178,8 +189,9 @@ const QuestionsFlow = ({
     return (
       <div className="text-center py-12">
         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-        <p className="text-lg">Gerando questões sobre {gameParams.subject} - {gameParams.theme}...</p>
-        <p className="text-sm text-gray-600 mt-2">Série: {gameParams.schoolGrade}</p>
+        <p className="text-lg">🎯 Gerando questões de {gameParams.subject}</p>
+        <p className="text-sm text-gray-600 mt-2">📚 Tema: {gameParams.theme}</p>
+        <p className="text-xs text-gray-500 mt-1">🎓 Série: {gameParams.schoolGrade}</p>
       </div>
     );
   }
@@ -187,10 +199,10 @@ const QuestionsFlow = ({
   if (generatedQuestions.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-lg mb-4">Não foi possível gerar questões para {gameParams.theme}.</p>
+        <p className="text-lg mb-4">❌ Não foi possível gerar questões para {gameParams.theme}.</p>
         <Button onClick={regenerateQuestions} className="mb-4">
           <RefreshCw className="w-4 h-4 mr-2" />
-          Tentar Novamente
+          🔄 Tentar Novamente
         </Button>
       </div>
     );
@@ -223,10 +235,10 @@ const QuestionsFlow = ({
     <div>
       <div className="mb-4 text-center">
         <p className="text-sm text-gray-600">
-          {gameParams.subject} - {gameParams.theme} | Série: {gameParams.schoolGrade}
+          📚 {gameParams.subject} - {gameParams.theme} | 🎓 {gameParams.schoolGrade}
         </p>
         <p className="text-xs text-gray-500">
-          Questão {currentIndex + 1} de {generatedQuestions.length}
+          ❓ Questão {currentIndex + 1} de {generatedQuestions.length}
         </p>
       </div>
       
@@ -238,6 +250,7 @@ const QuestionsFlow = ({
         onIncorrect={handleIncorrect}
         selectedGame={selectedGame}
         onRestart={onRestart}
+        gameParams={gameParams}
       />
     </div>
   );
