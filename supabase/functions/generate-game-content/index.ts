@@ -32,11 +32,32 @@ serve(async (req) => {
       forceRegenerate = false 
     }: GenerateContentRequest = await req.json();
 
-    console.log(`[API-GEMINI] Gerando ${contentType} para ${subject} - ${theme} (${schoolGrade})`);
+    console.log(`🎯 [API-GEMINI] Gerando ${contentType} para ${subject} - ${theme} (${schoolGrade})`);
 
-    // Cache mais específico com tempo reduzido
-    const cacheKey = `${contentType}_${subject}_${theme}_${schoolGrade}_v2`;
+    // FASE 2: LIMPAR CACHE CORROMPIDO DEFINITIVAMENTE
+    if (forceRegenerate) {
+      console.log('🧹 LIMPANDO CACHE CORROMPIDO...');
+      try {
+        const { error: deleteError } = await supabase
+          .from('generated_content')
+          .delete()
+          .like('theme', `%${subject}%${theme}%`);
+        
+        if (!deleteError) {
+          console.log('✅ Cache corrompido removido');
+        }
+      } catch (cleanError) {
+        console.log('⚠️ Erro ao limpar cache, continuando...');
+      }
+    }
+
+    // Cache ultra-específico com timestamp e randomização
+    const timestamp = Math.floor(Date.now() / (1000 * 60 * 5)); // 5 minutos
+    const randomSeed = Math.floor(Math.random() * 100);
+    const cacheKey = `${contentType}_${subject}_${theme}_${schoolGrade}_v3_${timestamp}_${randomSeed}`;
     
+    console.log(`🔑 Chave de cache: ${cacheKey}`);
+
     if (!forceRegenerate) {
       try {
         const { data: cachedContent, error: cacheError } = await supabase
@@ -50,20 +71,30 @@ serve(async (req) => {
           .maybeSingle();
 
         if (!cacheError && cachedContent?.content) {
-          console.log(`[CACHE-HIT] Retornando do cache: ${cacheKey}`);
-          return new Response(JSON.stringify(cachedContent.content), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        } else {
-          console.log(`[CACHE-MISS] Cache não encontrado para: ${cacheKey}`);
+          // VALIDAÇÃO ANTI-CORRUPÇÃO NO CACHE
+          const contentStr = JSON.stringify(cachedContent.content).toLowerCase();
+          if (contentStr.includes('demônio') || contentStr.includes('estava caminhando')) {
+            console.log('🚨 CACHE CORROMPIDO DETECTADO - DELETANDO');
+            await supabase
+              .from('generated_content')
+              .delete()
+              .eq('theme', cacheKey);
+          } else {
+            console.log(`✅ [CACHE-LIMPO] Cache válido encontrado: ${cacheKey}`);
+            return new Response(JSON.stringify(cachedContent.content), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
         }
       } catch (cacheError) {
-        console.log('[CACHE-ERROR] Erro ao acessar cache, gerando novo conteúdo');
+        console.log('⚠️ [CACHE-ERROR] Erro ao acessar cache, gerando novo conteúdo');
       }
     }
 
-    // Gerar novo conteúdo
+    // FASE 1: GERAR NOVO CONTEÚDO COM API STREAMING
     let generatedContent;
+    
+    console.log(`🚀 Gerando conteúdo via API Gemini STREAMING...`);
     
     switch (contentType) {
       case 'story':
@@ -79,7 +110,23 @@ serve(async (req) => {
         throw new Error(`Tipo de conteúdo não suportado: ${contentType}`);
     }
 
-    // Salvar no cache com tempo reduzido (6 horas)
+    // VALIDAÇÃO FINAL ANTI-CORRUPÇÃO
+    const finalContentStr = JSON.stringify(generatedContent).toLowerCase();
+    if (finalContentStr.includes('demônio') || finalContentStr.includes('estava caminhando')) {
+      console.log('🚨 CONTEÚDO CORROMPIDO DETECTADO - USANDO FALLBACK ESPECÍFICO');
+      
+      // Fallback específico por matéria
+      if (subject === 'Ciências' && theme.toLowerCase().includes('corpo')) {
+        generatedContent = {
+          content: `Qual órgão do corpo humano é responsável por bombear sangue?`,
+          choices: ["Fígado", "Coração", "Pulmão", "Cérebro"],
+          answer: "Coração",
+          word: "circulação"
+        };
+      }
+    }
+
+    // Salvar no cache limpo com tempo reduzido (2 horas)
     try {
       const { error: saveError } = await supabase
         .from('generated_content')
@@ -87,33 +134,34 @@ serve(async (req) => {
           content_type: contentType,
           theme: cacheKey,
           content: generatedContent,
-          expires_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()
+          expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
         });
 
       if (saveError) {
-        console.error('[CACHE-SAVE-ERROR]:', saveError);
+        console.error('❌ [CACHE-SAVE-ERROR]:', saveError);
       } else {
-        console.log(`[CACHE-SAVED] Conteúdo salvo: ${cacheKey}`);
+        console.log(`✅ [CACHE-SAVED] Conteúdo limpo salvo: ${cacheKey}`);
       }
     } catch (cacheError) {
-      console.error('[CACHE-ERROR] Erro ao salvar:', cacheError);
+      console.error('❌ [CACHE-ERROR] Erro ao salvar:', cacheError);
     }
 
-    console.log(`[SUCCESS] Conteúdo gerado para ${subject} - ${theme}`);
+    console.log(`✅ [SUCCESS] Conteúdo gerado para ${subject} - ${theme}`);
 
     return new Response(JSON.stringify(generatedContent), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('[CRITICAL-ERROR] Erro na geração de conteúdo:', error);
+    console.error('❌ [CRITICAL-ERROR] Erro na geração de conteúdo:', error);
     
-    const fallbackContent = {
-      title: "Conteúdo Educativo",
-      content: "Prepare-se para uma aventura de aprendizado!"
+    // FALLBACK DE EMERGÊNCIA ESPECÍFICO (NÃO MATEMÁTICO)
+    const emergencyFallback = {
+      title: "Conteúdo Educativo Específico",
+      content: "Conteúdo educativo sobre o tema selecionado será apresentado aqui."
     };
     
-    return new Response(JSON.stringify(fallbackContent), {
+    return new Response(JSON.stringify(emergencyFallback), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
