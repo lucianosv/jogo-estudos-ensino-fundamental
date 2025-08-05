@@ -1,8 +1,7 @@
-
 import { generateWithGemini } from '../utils/geminiClient.ts';
 import { validateContent } from '../utils/contentValidator.ts';
 
-export const generateQuestion = async (subject: string, theme: string, schoolGrade: string, difficulty: string, themeDetails?: string) => {
+export const generateQuestion = async (subject: string, theme: string, schoolGrade: string, difficulty: string, questionIndex: number = 0, themeDetails?: string) => {
   const gradeNumber = parseInt(schoolGrade.charAt(0));
   let difficultyDescription = "";
   
@@ -14,13 +13,24 @@ export const generateQuestion = async (subject: string, theme: string, schoolGra
     difficultyDescription = "conceitos mais avançados, pensamento crítico";
   }
   
+  // Adicionar seed única baseada no índice para gerar questões diferentes
+  const seedVariations = [
+    "primeira questão introdutória",
+    "segunda questão com foco em detalhes", 
+    "terceira questão com aplicação prática",
+    "quarta questão de síntese e conclusão"
+  ];
+  
+  const currentSeed = seedVariations[questionIndex % 4] || "questão única";
+  
   const prompt = `
 INSTRUÇÕES ULTRA-RÍGIDAS PARA CONTEÚDO EDUCATIVO BRASILEIRO (VERSÃO ANTI-TEMPLATE):
 
-Você DEVE criar uma questão de múltipla escolha ESPECÍFICA sobre:
+Você DEVE criar uma ${currentSeed} de múltipla escolha ESPECÍFICA sobre:
 - Matéria: ${subject}
 - Tema ESPECÍFICO: ${theme}
 - Série: ${schoolGrade}
+- Índice da questão: ${questionIndex}
 
 ⚠️ REGRAS INEGOCIÁVEIS E ABSOLUTAS:
 1. A questão DEVE ser EXCLUSIVAMENTE sobre ${theme} dentro da matéria ${subject}
@@ -30,6 +40,7 @@ Você DEVE criar uma questão de múltipla escolha ESPECÍFICA sobre:
 5. JAMAIS faça questões matemáticas se a matéria NÃO for Matemática
 6. A palavra secreta deve estar relacionada diretamente ao tema ${theme}
 7. Use linguagem educativa brasileira adequada para a idade
+8. IMPORTANTE: Esta é a questão ${questionIndex + 1} de uma série, deve ser ÚNICA e DIFERENTE das outras
 
 🚫 EXPRESSAMENTE PROIBIDO (SERÁ REJEITADO):
 - "estava caminhando pela floresta"
@@ -40,37 +51,24 @@ Você DEVE criar uma questão de múltipla escolha ESPECÍFICA sobre:
 - "precisava calcular"
 - Qualquer referência a anime, luta, violência
 
-✅ EXEMPLOS CORRETOS OBRIGATÓRIOS:
-
-Para Ciências/Corpo Humano: 
-"Qual órgão é responsável por bombear sangue pelo corpo?"
-Alternativas: ["Fígado", "Coração", "Pulmão", "Cérebro"]
-Resposta: "Coração"
-Palavra: "circulação"
-
-Para História:
-"Quem descobriu o Brasil em 1500?"
-Alternativas: ["Cabral", "Colombo", "Vasco", "Caminha"]
-Resposta: "Cabral"
-Palavra: "descobrimento"
+✅ EXEMPLOS ESPECÍFICOS OBRIGATÓRIOS POR ÍNDICE:
 
 ${subject === 'Ciências' && theme.toLowerCase().includes('corpo') ? `
-🧠 ESPECÍFICO OBRIGATÓRIO PARA CORPO HUMANO:
-A questão DEVE ser sobre: órgãos (coração, pulmões, fígado, cérebro), sistemas (digestivo, respiratório, circulatório), funções corporais, anatomia básica.
+🧠 ESPECÍFICO OBRIGATÓRIO PARA CORPO HUMANO (Questão ${questionIndex + 1}):
+Questão 0: Sobre coração e circulação
+Questão 1: Sobre pulmões e respiração  
+Questão 2: Sobre cérebro e sistema nervoso
+Questão 3: Sobre ossos e esqueleto
+A questão DEVE ser sobre: órgãos, sistemas, funções corporais, anatomia básica.
 JAMAIS sobre matemática, demônios, ou temas não relacionados ao corpo humano.
-` : ''}
-
-${subject === 'Ciências' && (theme.toLowerCase().includes('solar') || theme.toLowerCase().includes('planeta')) ? `
-🌟 ESPECÍFICO OBRIGATÓRIO PARA SISTEMA SOLAR:
-A questão DEVE ser sobre: planetas (Mercúrio, Vênus, Terra, Marte, Júpiter, Saturno, Urano, Netuno), sol, estrelas, astronomia, órbitas.
 ` : ''}
 
 Retorne APENAS um JSON válido no formato:
 {
-  "content": "pergunta específica sobre o tema",
+  "content": "pergunta específica sobre o tema (questão ${questionIndex + 1})",
   "choices": ["opção A", "opção B", "opção C", "opção D"],
   "answer": "resposta correta exata",
-  "word": "palavra-secreta-relacionada-ao-tema"
+  "word": "palavra-secreta-relacionada-ao-tema-questao-${questionIndex}"
 }
   `;
   
@@ -113,16 +111,38 @@ Retorne APENAS um JSON válido no formato:
     return parsed;
     
   } catch (error) {
-    console.error('❌ Erro na API Gemini STREAMING, usando fallback temático específico:', error);
+    console.error('❌ Erro na API Gemini STREAMING, usando fallback temático específico por índice:', error);
     
-    // FALLBACKS ESPECÍFICOS POR TEMA - NUNCA MATEMÁTICOS
+    // FALLBACKS ESPECÍFICOS POR TEMA E ÍNDICE - NUNCA MATEMÁTICOS
     if (subject === 'Ciências' && (theme.toLowerCase().includes('corpo') || theme.toLowerCase().includes('humano'))) {
-      return {
-        content: `Qual é a função principal do coração no corpo humano?`,
-        choices: ["Filtrar toxinas", "Bombear sangue", "Produzir hormônios", "Armazenar nutrientes"],
-        answer: "Bombear sangue",
-        word: "circulação"
-      };
+      const bodyQuestions = [
+        {
+          content: `Qual é a função principal do coração no corpo humano?`,
+          choices: ["Filtrar toxinas", "Bombear sangue", "Produzir hormônios", "Armazenar nutrientes"],
+          answer: "Bombear sangue",
+          word: "circulação"
+        },
+        {
+          content: `Quantos pulmões temos no nosso sistema respiratório?`,
+          choices: ["1 pulmão", "2 pulmões", "3 pulmões", "4 pulmões"],
+          answer: "2 pulmões",
+          word: "respiração"
+        },
+        {
+          content: `Qual órgão é responsável pelo controle de todo o corpo?`,
+          choices: ["Coração", "Fígado", "Cérebro", "Estômago"],
+          answer: "Cérebro",
+          word: "neurônio"
+        },
+        {
+          content: `Aproximadamente quantos ossos tem o corpo humano adulto?`,
+          choices: ["156 ossos", "186 ossos", "206 ossos", "256 ossos"],
+          answer: "206 ossos",
+          word: "esqueleto"
+        }
+      ];
+      
+      return bodyQuestions[questionIndex % 4];
     }
     
     if (subject === 'Ciências' && (theme.toLowerCase().includes('solar') || theme.toLowerCase().includes('planeta'))) {
@@ -161,7 +181,7 @@ Retorne APENAS um JSON válido no formato:
       };
     }
     
-    // Fallback genérico específico da matéria (SEM MATEMÁTICA)
+    // Fallback genérico com índice único
     const subjectWords = {
       'Matemática': 'cálculo',
       'Português': 'gramática',
@@ -171,10 +191,10 @@ Retorne APENAS um JSON válido no formato:
     };
     
     return {
-      content: `${subject} (${schoolGrade}): Questão educativa sobre ${theme}`,
+      content: `${subject} (${schoolGrade}): Questão ${questionIndex + 1} sobre ${theme}`,
       choices: ["Alternativa A", "Alternativa B", "Alternativa C", "Alternativa D"],
       answer: "Alternativa A",
-      word: subjectWords[subject] || "aprendizado"
+      word: `${subjectWords[subject] || "aprendizado"}${questionIndex + 1}`
     };
   }
 };

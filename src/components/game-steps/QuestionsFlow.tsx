@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import QuestionStep from "./QuestionStep";
 import ResultDisplay from "./question/ResultDisplay";
@@ -48,9 +47,9 @@ const QuestionsFlow = ({
     setGeneratedQuestions([]);
   };
 
-  // Gerar questões seguindo a nova ordem de prioridade
+  // Gerar questões únicas com índices específicos
   useEffect(() => {
-    const generateDynamicQuestions = async () => {
+    const generateUniqueQuestions = async () => {
       // Se já foram passadas questões, usar elas
       if (questions && questions.length > 0) {
         console.log('[QUESTIONS-FLOW] Usando questões passadas como prop');
@@ -66,86 +65,158 @@ const QuestionsFlow = ({
       hasGenerated.current = true;
       setLoadingQuestions(true);
       
-      console.log(`[QUESTIONS-FLOW] 🎯 GERANDO QUESTÕES PARA: ${gameParams.subject} - ${gameParams.theme} - ${gameParams.schoolGrade}`);
+      console.log(`[QUESTIONS-FLOW] 🎯 GERANDO 4 QUESTÕES ÚNICAS PARA: ${gameParams.subject} - ${gameParams.theme} - ${gameParams.schoolGrade}`);
       
       try {
-        const dynamicQuestions: Question[] = [];
+        const uniqueQuestions: Question[] = [];
         const usedWords = new Set<string>();
         
-        // Tentar gerar 4 questões únicas via nossa nova lógica
-        for (let i = 0; i < 4; i++) {
-          console.log(`[QUESTIONS-FLOW] Tentando gerar questão ${i + 1}/4...`);
+        // Gerar exatamente 4 questões com índices únicos
+        for (let questionIndex = 0; questionIndex < 4; questionIndex++) {
+          console.log(`[QUESTIONS-FLOW] Gerando questão ${questionIndex + 1}/4 com índice específico...`);
           
-          try {
-            const questionData = await generateQuestion(gameParams);
-            
-            if (questionData && questionData.content && questionData.choices && 
-                questionData.answer && questionData.word && 
-                !usedWords.has(questionData.word)) {
+          let attempts = 0;
+          const maxAttempts = 3;
+          
+          while (attempts < maxAttempts) {
+            try {
+              const questionData = await generateQuestion(gameParams, questionIndex);
               
-              dynamicQuestions.push(questionData);
-              usedWords.add(questionData.word);
-              console.log(`[QUESTIONS-FLOW] ✅ Questão ${i + 1} gerada - palavra: ${questionData.word}`);
-            } else {
-              console.log(`[QUESTIONS-FLOW] ❌ Questão ${i + 1} rejeitada (palavra duplicada ou dados inválidos)`);
-              
-              // Se rejeitada, criar fallback de emergência único
-              const fallbackQuestion = {
-                content: `${gameParams.subject} - ${gameParams.theme} (${gameParams.schoolGrade}): Questão ${i + 1}`,
-                choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
-                answer: "Opção A",
-                word: `palavra${i + 1}`
-              };
-              
-              if (!usedWords.has(fallbackQuestion.word)) {
-                dynamicQuestions.push(fallbackQuestion);
-                usedWords.add(fallbackQuestion.word);
-                console.log(`[QUESTIONS-FLOW] ⚠️ Usando fallback de emergência para questão ${i + 1}`);
+              if (questionData && questionData.content && questionData.choices && 
+                  questionData.answer && questionData.word && 
+                  !usedWords.has(questionData.word)) {
+                
+                uniqueQuestions.push(questionData);
+                usedWords.add(questionData.word);
+                console.log(`[QUESTIONS-FLOW] ✅ Questão ${questionIndex + 1} gerada - palavra: ${questionData.word}`);
+                break; // Questão válida gerada, sair do loop
+                
+              } else if (questionData && usedWords.has(questionData.word)) {
+                console.log(`[QUESTIONS-FLOW] ❌ Questão ${questionIndex + 1} rejeitada (palavra duplicada: ${questionData.word})`);
+                attempts++;
+                
+              } else {
+                console.log(`[QUESTIONS-FLOW] ❌ Questão ${questionIndex + 1} rejeitada (dados inválidos)`);
+                attempts++;
               }
+              
+            } catch (error) {
+              console.error(`[QUESTIONS-FLOW] Erro ao gerar questão ${questionIndex + 1}:`, error);
+              attempts++;
             }
-          } catch (error) {
-            console.error(`[QUESTIONS-FLOW] Erro ao gerar questão ${i + 1}:`, error);
             
-            // Fallback de emergência
-            const emergencyQuestion = {
-              content: `${gameParams.subject} - ${gameParams.theme} (${gameParams.schoolGrade}): Questão de emergência ${i + 1}`,
-              choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
-              answer: "Opção A",
-              word: `emergencia${i + 1}`
-            };
-            
-            if (!usedWords.has(emergencyQuestion.word)) {
-              dynamicQuestions.push(emergencyQuestion);
-              usedWords.add(emergencyQuestion.word);
+            // Se chegou ao limite de tentativas, criar fallback específico
+            if (attempts >= maxAttempts) {
+              const fallbackQuestions = [
+                {
+                  content: `Qual é a função principal do coração no corpo humano?`,
+                  choices: ["Filtrar sangue", "Bombear sangue", "Produzir sangue", "Armazenar sangue"],
+                  answer: "Bombear sangue",
+                  word: "circulação"
+                },
+                {
+                  content: `Quantos pulmões temos no sistema respiratório?`,
+                  choices: ["1 pulmão", "2 pulmões", "3 pulmões", "4 pulmões"],
+                  answer: "2 pulmões",
+                  word: "respiração"
+                },
+                {
+                  content: `Qual órgão controla todo o funcionamento do corpo?`,
+                  choices: ["Coração", "Fígado", "Cérebro", "Estômago"],
+                  answer: "Cérebro",
+                  word: "neurônio"
+                },
+                {
+                  content: `Quantos ossos aproximadamente tem o corpo humano adulto?`,
+                  choices: ["156", "186", "206", "256"],
+                  answer: "206",
+                  word: "esqueleto"
+                }
+              ];
+              
+              const fallbackQuestion = fallbackQuestions[questionIndex];
+              if (!usedWords.has(fallbackQuestion.word)) {
+                uniqueQuestions.push(fallbackQuestion);
+                usedWords.add(fallbackQuestion.word);
+                console.log(`[QUESTIONS-FLOW] ⚠️ Usando fallback específico para questão ${questionIndex + 1}`);
+              }
             }
           }
         }
 
-        console.log(`[QUESTIONS-FLOW] 🎯 TOTAL DE QUESTÕES GERADAS: ${dynamicQuestions.length}`);
-        console.log(`[QUESTIONS-FLOW] 🔑 PALAVRAS-CHAVE: ${Array.from(usedWords).join(', ')}`);
+        console.log(`[QUESTIONS-FLOW] 🎯 TOTAL DE QUESTÕES ÚNICAS GERADAS: ${uniqueQuestions.length}`);
+        console.log(`[QUESTIONS-FLOW] 🔑 PALAVRAS-CHAVE ÚNICAS: ${Array.from(usedWords).join(', ')}`);
         
-        setGeneratedQuestions(dynamicQuestions);
+        // Garantir que temos exatamente 4 questões únicas
+        if (uniqueQuestions.length === 4 && usedWords.size === 4) {
+          setGeneratedQuestions(uniqueQuestions);
+        } else {
+          console.error(`[QUESTIONS-FLOW] ❌ Não foi possível gerar 4 questões únicas. Geradas: ${uniqueQuestions.length}, Palavras únicas: ${usedWords.size}`);
+          // Usar fallbacks de emergência garantidos
+          setGeneratedQuestions([
+            {
+              content: `Qual é a função principal do coração no corpo humano?`,
+              choices: ["Filtrar sangue", "Bombear sangue", "Produzir sangue", "Armazenar sangue"],
+              answer: "Bombear sangue",
+              word: "circulação"
+            },
+            {
+              content: `Quantos pulmões temos no sistema respiratório?`,
+              choices: ["1 pulmão", "2 pulmões", "3 pulmões", "4 pulmões"],
+              answer: "2 pulmões",
+              word: "respiração"
+            },
+            {
+              content: `Qual órgão controla todo o funcionamento do corpo?`,
+              choices: ["Coração", "Fígado", "Cérebro", "Estômago"],
+              answer: "Cérebro",
+              word: "neurônio"
+            },
+            {
+              content: `Quantos ossos aproximadamente tem o corpo humano adulto?`,
+              choices: ["156", "186", "206", "256"],
+              answer: "206",
+              word: "esqueleto"
+            }
+          ]);
+        }
 
       } catch (error) {
         console.error('[QUESTIONS-FLOW] ❌ ERRO GERAL:', error);
         
-        // Criar 4 questões de emergência
-        const emergencyQuestions = [];
-        for (let i = 0; i < 4; i++) {
-          emergencyQuestions.push({
-            content: `${gameParams.subject} - ${gameParams.theme} (${gameParams.schoolGrade}): Questão de emergência ${i + 1}`,
-            choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
-            answer: "Opção A",
-            word: `emergencia${i + 1}`
-          });
-        }
-        setGeneratedQuestions(emergencyQuestions);
+        // Fallback de emergência garantido
+        setGeneratedQuestions([
+          {
+            content: `Qual é a função principal do coração no corpo humano?`,
+            choices: ["Filtrar sangue", "Bombear sangue", "Produzir sangue", "Armazenar sangue"],
+            answer: "Bombear sangue",
+            word: "circulação"
+          },
+          {
+            content: `Quantos pulmões temos no sistema respiratório?`,
+            choices: ["1 pulmão", "2 pulmões", "3 pulmões", "4 pulmões"],
+            answer: "2 pulmões",
+            word: "respiração"
+          },
+          {
+            content: `Qual órgão controla todo o funcionamento do corpo?`,
+            choices: ["Coração", "Fígado", "Cérebro", "Estômago"],
+            answer: "Cérebro",
+            word: "neurônio"
+          },
+          {
+            content: `Quantos ossos aproximadamente tem o corpo humano adulto?`,
+            choices: ["156", "186", "206", "256"],
+            answer: "206",
+            word: "esqueleto"
+          }
+        ]);
       } finally {
         setLoadingQuestions(false);
       }
     };
 
-    generateDynamicQuestions();
+    generateUniqueQuestions();
   }, [gameParams, questions, generateQuestion]);
 
   const handleCorrect = () => {

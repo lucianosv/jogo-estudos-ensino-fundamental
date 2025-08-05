@@ -592,10 +592,10 @@ const expandedGranularFallbacks = {
   }
 };
 
-export const getExpandedGranularFallback = (gameParams: GameParameters, contentType: 'question' | 'story'): GranularQuestion[] | GranularStory | null => {
+export const getExpandedGranularFallback = (gameParams: GameParameters, contentType: 'question' | 'story', questionIndex?: number): GranularQuestion[] | GranularStory | GranularQuestion | null => {
   const { subject, schoolGrade, theme } = gameParams;
   
-  console.log(`[EXPANDED-FALLBACK] 🎯 BUSCANDO: ${subject} > ${schoolGrade} > ${theme}`);
+  console.log(`[EXPANDED-FALLBACK] 🎯 BUSCANDO: ${subject} > ${schoolGrade} > ${theme} (índice: ${questionIndex})`);
   
   const subjectFallbacks = expandedGranularFallbacks[subject];
   if (!subjectFallbacks) {
@@ -617,8 +617,16 @@ export const getExpandedGranularFallback = (gameParams: GameParameters, contentT
   
   if (contentType === 'question') {
     const questions = themeFallbacks.questions;
+    
+    // Se questionIndex foi fornecido, retornar questão específica
+    if (questionIndex !== undefined && questions && questions[questionIndex]) {
+      console.log(`[EXPANDED-FALLBACK] ✅ SUCESSO: Retornando questão ${questionIndex} específica para ${subject} - ${schoolGrade} - ${theme}`);
+      return questions[questionIndex];
+    }
+    
+    // Se não há índice, retornar todas as questões (comportamento antigo)
     if (questions && questions.length === 4) {
-      console.log(`[EXPANDED-FALLBACK] ✅ SUCESSO: Retornando 4 questões específicas para ${subject} - ${schoolGrade} - ${theme}`);
+      console.log(`[EXPANDED-FALLBACK] ✅ SUCESSO: Retornando todas as 4 questões para ${subject} - ${schoolGrade} - ${theme}`);
       return questions;
     }
   }
