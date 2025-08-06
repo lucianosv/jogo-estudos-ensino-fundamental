@@ -73,7 +73,7 @@ export const useAIContent = (): AIContentHook => {
 
       // 🥈 PRIORIDADE 2: FALLBACK INTELIGENTE COM SEED
       console.log(`[AI-CONTENT] 🥈 PRIORIDADE 2: Tentando fallback inteligente com seed ${questionIndex}`);
-      const intelligentFallback = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info', questionIndex);
+      const intelligentFallback = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
       
       if (intelligentFallback && validateGeneratedContent(intelligentFallback, gameParams)) {
         console.log(`[AI-CONTENT] ✅ SUCESSO PRIORIDADE 2: Fallback inteligente validado para questão ${questionIndex}`);
