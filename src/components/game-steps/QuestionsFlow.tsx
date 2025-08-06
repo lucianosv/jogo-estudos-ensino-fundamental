@@ -37,14 +37,12 @@ const QuestionsFlow = ({
   const [generatedQuestions, setGeneratedQuestions] = useState<Question[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const generationAttempts = useRef(0);
-  const hasGenerated = useRef(false);
+  const [generationKey, setGenerationKey] = useState('');
   const { generateQuestion, isLoading } = useAIContent();
 
-  // Limpar cache e garantir regeneração
-  const clearCache = () => {
-    hasGenerated.current = false;
-    generationAttempts.current = 0;
-    setGeneratedQuestions([]);
+  // Criar chave única para cada set de parâmetros
+  const createGenerationKey = (params: GameParameters) => {
+    return `${params.subject}_${params.theme}_${params.schoolGrade}_${Date.now()}_${Math.random()}`;
   };
 
   // Gerar questões únicas com índices específicos
@@ -57,15 +55,14 @@ const QuestionsFlow = ({
         return;
       }
 
-      // Se já gerou, não gerar novamente
-      if (hasGenerated.current) {
-        return;
-      }
+      // Criar nova chave de geração para garantir conteúdo único
+      const newKey = createGenerationKey(gameParams);
+      console.log(`[QUESTIONS-FLOW] 🔄 NOVA GERAÇÃO - Chave: ${newKey}`);
+      setGenerationKey(newKey);
 
-      hasGenerated.current = true;
       setLoadingQuestions(true);
       
-      console.log(`[QUESTIONS-FLOW] 🎯 GERANDO 4 QUESTÕES ÚNICAS PARA: ${gameParams.subject} - ${gameParams.theme} - ${gameParams.schoolGrade}`);
+      console.log(`[QUESTIONS-FLOW] 🎯 NOVA GERAÇÃO DE 4 QUESTÕES ÚNICAS PARA: ${gameParams.subject} - ${gameParams.theme} - ${gameParams.schoolGrade} [${newKey}]`);
       
       try {
         const uniqueQuestions: Question[] = [];
@@ -80,7 +77,7 @@ const QuestionsFlow = ({
           
           while (attempts < maxAttempts) {
             try {
-              const questionData = await generateQuestion(gameParams, questionIndex);
+              const questionData = await generateQuestion(gameParams, questionIndex, 'auto');
               
               if (questionData && questionData.content && questionData.choices && 
                   questionData.answer && questionData.word && 
@@ -249,10 +246,13 @@ const QuestionsFlow = ({
   };
 
   const regenerateQuestions = async () => {
-    clearCache();
+    const newKey = createGenerationKey(gameParams);
+    console.log(`[QUESTIONS-FLOW] 🔄 FORÇANDO REGENERAÇÃO - Nova chave: ${newKey}`);
+    setGenerationKey(newKey);
     setCurrentIndex(0);
     setShowResult(false);
     setWasCorrect(null);
+    setGeneratedQuestions([]);
   };
 
   // Loading state

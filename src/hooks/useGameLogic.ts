@@ -107,6 +107,7 @@ export const useGameLogic = () => {
   }, [gameParams, selectedGame, generateStory, isGeneratingStory, dynamicStory]);
 
   const handleRestart = useCallback(() => {
+    console.log('[GAME-LOGIC] 🔄 REINICIANDO JOGO COMPLETAMENTE');
     setCurrentStepIndex(0);
     setCollectedWords([]);
     setSelectedGame(null);
@@ -118,11 +119,21 @@ export const useGameLogic = () => {
   }, []);
 
   const handleSetupComplete = useCallback((params: GameParameters) => {
+    console.log('[GAME-LOGIC] 🎯 NOVO SETUP COMPLETO:', params);
+    
+    // Limpar estado anterior para garantir regeneração
+    setDynamicStory(null);
+    setCollectedWords([]);
+    setCurrentStepIndex(0);
+    setIsGeneratingStory(false);
+    
+    // Definir novos parâmetros
     setGameParams(params);
     
-    // Criar um jogo genérico personalizado para qualquer tema
+    // Criar um jogo genérico personalizado com ID único baseado em timestamp
+    const uniqueId = Date.now() + Math.floor(Math.random() * 10000);
     const genericGame: Game = {
-      id: Date.now(),
+      id: uniqueId,
       theme: params.theme,
       background: 'default',
       password: ['aventura'],
@@ -130,9 +141,11 @@ export const useGameLogic = () => {
         title: `Aventura de ${params.subject}: ${params.theme}`,
         content: `História será revelada quando você completar os desafios!`
       },
-      questions: []
+      questions: [] // Questões serão geradas dinamicamente
     };
     setSelectedGame(genericGame);
+    
+    console.log('[GAME-LOGIC] ✅ Jogo criado com ID único:', uniqueId);
   }, []);
 
   const handleCollectWord = useCallback((word: string) => {

@@ -29,14 +29,15 @@ const getDifficultyForGrade = (schoolGrade: string): string => {
   return 'medium';
 };
 
-// Chave de cache ultra-específica incluindo índice da questão
+// Chave de cache ultra-específica incluindo índice da questão e força regeneração
 const generateUltraSpecificCacheKey = (contentType: string, gameParams: GameParameters, questionIndex?: number): string => {
-  const timestamp = Math.floor(Date.now() / (1000 * 60 * 5)); // 5 minutos
-  const randomSeed = Math.floor(Math.random() * 100);
+  const timestamp = Date.now(); // Usar timestamp exato para garantir unicidade
+  const randomSeed = Math.floor(Math.random() * 10000); // Aumentar range do random
   const subjectKey = gameParams.subject.replace(/\s+/g, '_');
   const themeKey = gameParams.theme.replace(/\s+/g, '_');
   const indexSuffix = questionIndex !== undefined ? `_q${questionIndex}` : '';
-  return `${contentType}_${subjectKey}_${themeKey}_${gameParams.schoolGrade}_v3_${timestamp}_${randomSeed}${indexSuffix}`;
+  const uniqueSession = Math.floor(Math.random() * 100000); // Adicionar sessão única
+  return `${contentType}_${subjectKey}_${themeKey}_${gameParams.schoolGrade}_v4_${timestamp}_${randomSeed}_${uniqueSession}${indexSuffix}`;
 };
 
 export const useAIContent = (): AIContentHook => {
@@ -206,7 +207,7 @@ export const useAIContent = (): AIContentHook => {
           }
         };
         
-        // Buscar questões específicas por tema
+        // Buscar questões específicas por tema com randomização
         const subjectQuestions = subjects[gameParams.subject as keyof typeof subjects];
         if (subjectQuestions) {
           const themeKey = Object.keys(subjectQuestions).find(key => 
@@ -216,8 +217,15 @@ export const useAIContent = (): AIContentHook => {
           if (themeKey) {
             const themeQuestions = subjectQuestions[themeKey as keyof typeof subjectQuestions] as any[];
             if (themeQuestions && Array.isArray(themeQuestions) && themeQuestions.length > 0) {
+              // Usar índice específico para garantir questões diferentes
               const questionIdx = (questionIndex || 0) % themeQuestions.length;
-              return themeQuestions[questionIdx];
+              const selectedQuestion = { ...themeQuestions[questionIdx] };
+              
+              // Adicionar timestamp à palavra para garantir unicidade
+              selectedQuestion.word = `${selectedQuestion.word}_${Date.now()}`;
+              
+              console.log(`[AI-CONTENT] ✅ Fallback específico para questão ${questionIndex}: ${selectedQuestion.content.substring(0, 50)}...`);
+              return selectedQuestion;
             }
           }
         }
