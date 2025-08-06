@@ -17,12 +17,16 @@ export const sanitizeText = (text: string): string => {
 
 export const validateGameTheme = (theme: string): boolean => {
   const allowedThemes = [
-    'Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke',
+    'Tanjiro', 'Nezuko', 'Zenitsu', 'Inosuke', 'Giyu', 'Rengoku', 'Shinobu', 'Tengen',
     'Tanjiro e a Coragem', 'Nezuko e a Família', 
     'Zenitsu e os Medos', 'Inosuke e a Natureza'
   ];
   
-  return allowedThemes.some(allowed => theme.includes(allowed));
+  // Allow basic character names and some custom variations
+  return allowedThemes.some(allowed => 
+    theme.toLowerCase().includes(allowed.toLowerCase()) || 
+    allowed.toLowerCase().includes(theme.toLowerCase())
+  ) || /^[a-záàâãéèêíïóôõöúçñA-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+$/.test(theme);
 };
 
 export const validateDifficultyLevel = (difficulty: string): 'easy' | 'medium' | 'hard' => {
