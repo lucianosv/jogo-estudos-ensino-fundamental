@@ -121,44 +121,114 @@ export const useAIContent = (): AIContentHook => {
       
       // Criar questões específicas baseadas no índice para evitar duplicatas
       if (contentType === 'question') {
-        if (gameParams.subject === 'Ciências' && gameParams.theme.toLowerCase().includes('corpo')) {
-          const bodyQuestions = [
-            {
-              content: `Qual é a função principal do coração no corpo humano?`,
-              choices: ["Filtrar o sangue", "Bombear sangue", "Produzir sangue", "Armazenar sangue"],
-              answer: "Bombear sangue",
-              word: "circulação"
-            },
-            {
-              content: `Quantos pulmões temos no nosso sistema respiratório?`,
-              choices: ["1 pulmão", "2 pulmões", "3 pulmões", "4 pulmões"],
-              answer: "2 pulmões",
-              word: "respiração"
-            },
-            {
-              content: `Qual órgão é responsável pelo controle de todo o corpo?`,
-              choices: ["Coração", "Fígado", "Cérebro", "Estômago"],
-              answer: "Cérebro",
-              word: "neurônio"
-            },
-            {
-              content: `Aproximadamente quantos ossos tem o corpo humano adulto?`,
-              choices: ["156 ossos", "186 ossos", "206 ossos", "256 ossos"],
-              answer: "206 ossos",
-              word: "esqueleto"
-            }
-          ];
+        const subjects = {
+          'Ciências': {
+            'corpo humano': [
+              {
+                content: `Qual é a função principal do coração no sistema circulatório?`,
+                choices: ["Filtrar toxinas", "Bombear sangue", "Produzir hormônios", "Digerir alimentos"],
+                answer: "Bombear sangue",
+                word: "circulação"
+              },
+              {
+                content: `Quantos pulmões possui o sistema respiratório humano?`,
+                choices: ["Um pulmão", "Dois pulmões", "Três pulmões", "Quatro pulmões"],
+                answer: "Dois pulmões",
+                word: "respiração"
+              },
+              {
+                content: `Qual órgão controla todas as funções do corpo humano?`,
+                choices: ["Coração", "Fígado", "Cérebro", "Rins"],
+                answer: "Cérebro",
+                word: "neurônio"
+              },
+              {
+                content: `Quantos ossos aproximadamente possui um adulto?`,
+                choices: ["150", "180", "206", "250"],
+                answer: "206",
+                word: "esqueleto"
+              }
+            ],
+            'sistema solar': [
+              {
+                content: `Qual é o planeta mais próximo do Sol?`,
+                choices: ["Vênus", "Terra", "Mercúrio", "Marte"],
+                answer: "Mercúrio",
+                word: "órbita"
+              },
+              {
+                content: `Quantos planetas existem no Sistema Solar?`,
+                choices: ["7", "8", "9", "10"],
+                answer: "8",
+                word: "astronomia"
+              },
+              {
+                content: `Qual é o maior planeta do Sistema Solar?`,
+                choices: ["Terra", "Saturno", "Júpiter", "Netuno"],
+                answer: "Júpiter",
+                word: "gravidade"
+              },
+              {
+                content: `O que causa o dia e a noite na Terra?`,
+                choices: ["Translação", "Rotação", "Lua", "Sol"],
+                answer: "Rotação",
+                word: "movimento"
+              }
+            ]
+          },
+          'Matemática': {
+            'operações': [
+              {
+                content: `Quanto é 15 + 27?`,
+                choices: ["40", "41", "42", "43"],
+                answer: "42",
+                word: "soma"
+              },
+              {
+                content: `Quanto é 8 × 7?`,
+                choices: ["54", "55", "56", "57"],
+                answer: "56",
+                word: "multiplicação"
+              },
+              {
+                content: `Quanto é 100 - 37?`,
+                choices: ["61", "62", "63", "64"],
+                answer: "63",
+                word: "subtração"
+              },
+              {
+                content: `Quanto é 48 ÷ 6?`,
+                choices: ["6", "7", "8", "9"],
+                answer: "8",
+                word: "divisão"
+              }
+            ]
+          }
+        };
+        
+        // Buscar questões específicas por tema
+        const subjectQuestions = subjects[gameParams.subject as keyof typeof subjects];
+        if (subjectQuestions) {
+          const themeKey = Object.keys(subjectQuestions).find(key => 
+            gameParams.theme.toLowerCase().includes(key.toLowerCase())
+          );
           
-          const questionIdx = (questionIndex || 0) % bodyQuestions.length;
-          return bodyQuestions[questionIdx];
-        } else {
-          return {
-            content: `${gameParams.subject} - ${gameParams.theme}: Questão ${(questionIndex || 0) + 1} sobre o tema`,
-            choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
-            answer: "Opção A",
-            word: `conhecimento${(questionIndex || 0) + 1}`
-          };
+          if (themeKey) {
+            const themeQuestions = subjectQuestions[themeKey as keyof typeof subjectQuestions] as any[];
+            if (themeQuestions && Array.isArray(themeQuestions) && themeQuestions.length > 0) {
+              const questionIdx = (questionIndex || 0) % themeQuestions.length;
+              return themeQuestions[questionIdx];
+            }
+          }
         }
+        
+        // Fallback genérico com índice único
+        return {
+          content: `${gameParams.subject} - ${gameParams.theme}: Questão ${(questionIndex || 0) + 1}`,
+          choices: [`Resposta A-${questionIndex}`, `Resposta B-${questionIndex}`, `Resposta C-${questionIndex}`, `Resposta D-${questionIndex}`],
+          answer: `Resposta A-${questionIndex}`,
+          word: `palavra${(questionIndex || 0) + 1}`
+        };
       } else if (contentType === 'story') {
         return {
           title: `${gameParams.subject}: ${gameParams.theme}`,
