@@ -4,6 +4,8 @@ import { useToast } from '@/hooks/use-toast';
 import { GameParameters } from '@/components/GameSetup';
 import { generateIntelligentFallback, validateGeneratedContent } from '@/utils/intelligentFallbacks';
 import { getExpandedGranularFallback, ensureUniqueKeywords } from '@/utils/expandedGranularFallbacks';
+import { validateUniqueQuestions, finalValidation } from '@/utils/uniqueContentValidator';
+import { getRomaQuestionByIndex } from '@/utils/expandedRomaFallbacks';
 
 interface AIContentHook {
   generateStory: (gameParams: GameParameters) => Promise<any>;
@@ -74,7 +76,7 @@ export const useAIContent = (): AIContentHook => {
 
       // 🥈 PRIORIDADE 2: FALLBACK INTELIGENTE COM SEED
       console.log(`[AI-CONTENT] 🥈 PRIORIDADE 2: Tentando fallback inteligente com seed ${questionIndex}`);
-      const intelligentFallback = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info');
+      const intelligentFallback = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info', questionIndex);
       
       if (intelligentFallback && validateGeneratedContent(intelligentFallback, gameParams)) {
         console.log(`[AI-CONTENT] ✅ SUCESSO PRIORIDADE 2: Fallback inteligente validado para questão ${questionIndex}`);

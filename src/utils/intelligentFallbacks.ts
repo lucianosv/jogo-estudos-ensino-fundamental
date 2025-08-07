@@ -1,5 +1,6 @@
 
 import { GameParameters } from "@/components/GameSetup";
+import { getRomaQuestionByIndex } from "@/utils/expandedRomaFallbacks";
 
 interface FallbackContent {
   story?: {
@@ -20,38 +21,18 @@ interface FallbackContent {
   };
 }
 
-// Gerar questões ESPECÍFICAS por matéria, série e tema
-const generateSubjectSpecificQuestion = (gameParams: GameParameters): FallbackContent['question'] => {
+// Gerar questões ESPECÍFICAS por matéria, série e tema COM QUESTIONINDEX
+const generateSubjectSpecificQuestion = (gameParams: GameParameters, questionIndex: number = 0): FallbackContent['question'] => {
   const { subject, schoolGrade, theme } = gameParams;
   const grade = parseInt(schoolGrade.charAt(0));
 
-  console.log(`[INTELLIGENT-FALLBACK] Gerando para ${subject} - ${schoolGrade} - ${theme}`);
+  console.log(`[INTELLIGENT-FALLBACK] Gerando questão ${questionIndex} para ${subject} - ${schoolGrade} - ${theme}`);
 
-  // HISTÓRIA
+  // HISTÓRIA - Roma Antiga com 4 questões DIFERENTES por índice
   if (subject === 'História') {
     if (theme.toLowerCase().includes('roma')) {
-      if (grade >= 1 && grade <= 3) {
-        return {
-          content: `História - Roma Antiga (${schoolGrade}): Onde ficava o Império Romano?`,
-          choices: ["Na América", "Na Europa", "Na África", "Na Ásia"],
-          answer: "Na Europa",
-          word: "império"
-        };
-      } else if (grade >= 4 && grade <= 6) {
-        return {
-          content: `História - Roma Antiga (${schoolGrade}): Qual era a capital do Império Romano?`,
-          choices: ["Atenas", "Roma", "Esparta", "Alexandria"],
-          answer: "Roma",
-          word: "capital"
-        };
-      } else {
-        return {
-          content: `História - Roma Antiga (${schoolGrade}): Em que século começou o Império Romano?`,
-          choices: ["Século I a.C.", "Século I d.C.", "Século II d.C.", "Século III d.C."],
-          answer: "Século I a.C.",
-          word: "século"
-        };
-      }
+      console.log(`[INTELLIGENT-FALLBACK] 🏛️ Usando fallback específico para Roma Antiga - Questão ${questionIndex}`);
+      return getRomaQuestionByIndex(schoolGrade, questionIndex);
     }
     
     if (theme.toLowerCase().includes('egito')) {
@@ -220,15 +201,16 @@ const generateSubjectSpecificCharacterInfo = (gameParams: GameParameters): Fallb
 
 export const generateIntelligentFallback = (
   gameParams: GameParameters, 
-  contentType: 'story' | 'question' | 'character_info'
+  contentType: 'story' | 'question' | 'character_info',
+  questionIndex: number = 0
 ): any => {
-  console.log(`[INTELLIGENT-FALLBACK] Gerando ${contentType} para ${gameParams.subject}/${gameParams.theme}/${gameParams.schoolGrade}`);
+  console.log(`[INTELLIGENT-FALLBACK] Gerando ${contentType} (índice: ${questionIndex}) para ${gameParams.subject}/${gameParams.theme}/${gameParams.schoolGrade}`);
   
   switch (contentType) {
     case 'story':
       return generateSubjectSpecificStory(gameParams);
     case 'question':
-      return generateSubjectSpecificQuestion(gameParams);
+      return generateSubjectSpecificQuestion(gameParams, questionIndex);
     case 'character_info':
       return generateSubjectSpecificCharacterInfo(gameParams);
     default:

@@ -6,6 +6,7 @@ import { GameParameters } from "../GameSetup";
 import { useAIContent } from "@/hooks/useAIContent";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
+import { validateUniqueQuestions, finalValidation } from "@/utils/uniqueContentValidator";
 
 interface Question {
   content: string;
@@ -144,10 +145,14 @@ const QuestionsFlow = ({
         console.log(`[QUESTIONS-FLOW] 🎯 TOTAL DE QUESTÕES ÚNICAS GERADAS: ${uniqueQuestions.length}`);
         console.log(`[QUESTIONS-FLOW] 🔑 PALAVRAS-CHAVE ÚNICAS: ${Array.from(usedWords).join(', ')}`);
         
-        // Garantir que temos exatamente 4 questões únicas
-        if (uniqueQuestions.length === 4 && usedWords.size === 4) {
+        // VALIDAÇÃO FINAL ULTRA-RIGOROSA 
+        const validation = validateUniqueQuestions(uniqueQuestions);
+        
+        if (uniqueQuestions.length === 4 && usedWords.size === 4 && validation.isValid) {
+          console.log(`[QUESTIONS-FLOW] ✅ VALIDAÇÃO FINAL APROVADA - 4 questões únicas confirmadas`);
           setGeneratedQuestions(uniqueQuestions);
         } else {
+          console.error(`[QUESTIONS-FLOW] ❌ VALIDAÇÃO FINAL FALHOU:`, validation.issues);
           console.error(`[QUESTIONS-FLOW] ❌ Não foi possível gerar 4 questões únicas. Geradas: ${uniqueQuestions.length}, Palavras únicas: ${usedWords.size}`);
           // Usar fallbacks de emergência garantidos
           setGeneratedQuestions([
