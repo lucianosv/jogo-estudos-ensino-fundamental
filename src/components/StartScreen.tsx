@@ -7,6 +7,7 @@ import { GameParameters } from "./GameSetup";
 import { getDynamicTheme, getSubjectIcon } from "@/utils/dynamicThemeUtils";
 import { useAIContent } from "@/hooks/useAIContent";
 import { useToast } from "@/hooks/use-toast";
+import { validateQuestionUniqueness, logQuestionDetails } from "@/utils/antiDuplicationValidator";
 
 interface StartScreenProps {
   title: string;
@@ -64,10 +65,13 @@ const StartScreen = ({ title, description, onStart, gameParams }: StartScreenPro
       
       for (let i = 0; i < 4; i++) {
         try {
-          console.log(`Gerando questão ${i + 1}/4...`);
-          const question = await generateQuestion(gameParams);
+          console.log(`Gerando questão ${i + 1}/4 com índice específico ${i}...`);
+          const question = await generateQuestion(gameParams, i); // CRITICAL FIX: Pass questionIndex
           if (question) {
+            console.log(`✅ Questão ${i} gerada: ${question.content?.substring(0, 50) || 'N/A'}...`);
             questions.push(question);
+          } else {
+            console.error(`❌ Questão ${i} retornou nula`);
           }
           // Delay entre chamadas para evitar rate limiting
           if (i < 3) await delay(2000);
@@ -76,6 +80,37 @@ const StartScreen = ({ title, description, onStart, gameParams }: StartScreenPro
         }
       }
 
+      // Validate uniqueness before proceeding
+      const questionContents = questions.map(q => q.content).filter(Boolean);
+      const uniqueContents = new Set(questionContents);
+      
+      if (questionContents.length !== uniqueContents.size) {
+        console.error('🚨 QUESTÕES DUPLICADAS DETECTADAS - Forçando regeneração');
+        toast({
+          title: "Questões Duplicadas Detectadas",
+          description: "Regenerando questões únicas...",
+          variant: "destructive"
+        });
+        // Force regeneration with different cache
+        return;
+      }
+
+      // Final validation and logging
+      logQuestionDetails(questions);
+      const validation = validateQuestionUniqueness(questions);
+      
+      if (!validation.isValid) {
+        console.error('🚨 VALIDAÇÃO FINAL FALHOU:', validation);
+        toast({
+          title: "Erro de Validação",
+          description: `Questões duplicadas detectadas: ${validation.duplicates.length}`,
+          variant: "destructive"
+        });
+        setLoadingState(prev => ({ ...prev, questions: 'error' }));
+        return;
+      }
+
+      console.log('✅ TODAS AS 4 QUESTÕES SÃO ÚNICAS E VÁLIDAS');
       setLoadingState(prev => ({ ...prev, questions: questions.length > 0 ? 'success' : 'error' }));
       
       // Delay antes de gerar história
