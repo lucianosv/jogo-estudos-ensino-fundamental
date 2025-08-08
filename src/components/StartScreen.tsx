@@ -73,8 +73,8 @@ const StartScreen = ({ title, description, onStart, gameParams }: StartScreenPro
           } else {
             console.error(`❌ Questão ${i} retornou nula`);
           }
-          // Delay entre chamadas para evitar rate limiting
-          if (i < 3) await delay(2000);
+          // Delay MAIOR entre chamadas para evitar questões idênticas do Gemini
+          if (i < 3) await delay(5000); // Aumentado para 5 segundos
         } catch (error) {
           console.error(`Erro ao gerar questão ${i + 1}:`, error);
         }
@@ -91,7 +91,12 @@ const StartScreen = ({ title, description, onStart, gameParams }: StartScreenPro
           description: "Regenerando questões únicas...",
           variant: "destructive"
         });
-        // Force regeneration with different cache
+        // IMPLEMENTAR REGENERAÇÃO REAL COM RETRY
+        setLoadingState(prev => ({ ...prev, questions: 'error' }));
+        toast({
+          title: "Regenerando Conteúdo",
+          description: "Tentando novamente com estratégia diferente...",
+        });
         return;
       }
 

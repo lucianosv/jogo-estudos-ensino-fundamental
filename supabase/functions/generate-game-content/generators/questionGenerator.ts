@@ -13,34 +13,54 @@ export const generateQuestion = async (subject: string, theme: string, schoolGra
     difficultyDescription = "conceitos mais avançados, pensamento crítico";
   }
   
-  // Adicionar seed única baseada no índice para gerar questões diferentes
-  const seedVariations = [
-    "primeira questão introdutória",
-    "segunda questão com foco em detalhes", 
-    "terceira questão com aplicação prática",
-    "quarta questão de síntese e conclusão"
+  // PROMPTS ULTRA-DIFERENCIADOS para evitar questões idênticas do Gemini
+  const questionTypes = [
+    {
+      type: "DEFINIÇÕES E CONCEITOS BÁSICOS",
+      focus: "O QUE É, definições fundamentais, termos básicos",
+      style: "questão conceitual sobre fundamentos"
+    },
+    {
+      type: "PERSONAGENS E FIGURAS IMPORTANTES", 
+      focus: "QUEM FOI, personalidades, líderes, descobridores",
+      style: "questão sobre pessoas relevantes"
+    },
+    {
+      type: "EVENTOS ESPECÍFICOS E DATAS",
+      focus: "QUANDO ACONTECEU, fatos históricos, descobertas",
+      style: "questão sobre acontecimentos e cronologia"
+    },
+    {
+      type: "CONSEQUÊNCIAS E LEGADOS",
+      focus: "QUAL FOI O RESULTADO, impactos, influências",
+      style: "questão sobre resultados e importância"
+    }
   ];
   
-  const currentSeed = seedVariations[questionIndex % 4] || "questão única";
+  const currentQuestionType = questionTypes[questionIndex % 4];
   
   const prompt = `
-INSTRUÇÕES ULTRA-RÍGIDAS PARA CONTEÚDO EDUCATIVO BRASILEIRO (VERSÃO ANTI-TEMPLATE):
+INSTRUÇÕES ULTRA-ESPECÍFICAS PARA QUESTÃO ÚNICA (ANTI-DUPLICAÇÃO GEMINI):
 
-Você DEVE criar uma ${currentSeed} de múltipla escolha ESPECÍFICA sobre:
+🎯 TIPO ESPECÍFICO DE QUESTÃO: ${currentQuestionType.type}
+Você DEVE criar uma questão de múltipla escolha FOCADA EM: ${currentQuestionType.focus}
+
+PARÂMETROS ESPECÍFICOS:
 - Matéria: ${subject}
 - Tema ESPECÍFICO: ${theme}
 - Série: ${schoolGrade}
-- Índice da questão: ${questionIndex}
+- Questão Nº: ${questionIndex + 1} de 4
+- Estilo: ${currentQuestionType.style}
 
-⚠️ REGRAS INEGOCIÁVEIS E ABSOLUTAS:
-1. A questão DEVE ser EXCLUSIVAMENTE sobre ${theme} dentro da matéria ${subject}
-2. Use ${difficultyDescription} apropriados para crianças brasileiras do ${schoolGrade}
-3. Tenha EXATAMENTE 4 alternativas diferentes
-4. JAMAIS use: demônios, violência, personagens de anime, lutas, sangue, morte
-5. JAMAIS faça questões matemáticas se a matéria NÃO for Matemática
-6. A palavra secreta deve estar relacionada diretamente ao tema ${theme}
-7. Use linguagem educativa brasileira adequada para a idade
-8. IMPORTANTE: Esta é a questão ${questionIndex + 1} de uma série, deve ser ÚNICA e DIFERENTE das outras
+⚠️ FOCO ULTRA-ESPECÍFICO PARA ESTA QUESTÃO:
+1. OBRIGATÓRIO: Foque APENAS em ${currentQuestionType.focus} sobre ${theme}
+2. PROIBIDO: Qualquer outro tipo de pergunta que não seja sobre ${currentQuestionType.type}
+3. Use ${difficultyDescription} apropriados para ${schoolGrade}
+4. Tenha EXATAMENTE 4 alternativas diferentes
+5. JAMAIS use: demônios, violência, anime, lutas, sangue, morte
+6. JAMAIS faça questões matemáticas se a matéria NÃO for Matemática
+7. A palavra secreta deve relacionar-se ao aspecto específico: ${currentQuestionType.focus}
+8. Esta questão Nº${questionIndex + 1} DEVE ser sobre ${currentQuestionType.type} - NÃO misture com outros tipos
 
 🚫 EXPRESSAMENTE PROIBIDO (SERÁ REJEITADO):
 - "estava caminhando pela floresta"
@@ -51,24 +71,46 @@ Você DEVE criar uma ${currentSeed} de múltipla escolha ESPECÍFICA sobre:
 - "precisava calcular"
 - Qualquer referência a anime, luta, violência
 
-✅ EXEMPLOS ESPECÍFICOS OBRIGATÓRIOS POR ÍNDICE:
+✅ EXEMPLOS ULTRA-ESPECÍFICOS PARA ${currentQuestionType.type}:
 
-${subject === 'Ciências' && theme.toLowerCase().includes('corpo') ? `
-🧠 ESPECÍFICO OBRIGATÓRIO PARA CORPO HUMANO (Questão ${questionIndex + 1}):
-Questão 0: Sobre coração e circulação
-Questão 1: Sobre pulmões e respiração  
-Questão 2: Sobre cérebro e sistema nervoso
-Questão 3: Sobre ossos e esqueleto
-A questão DEVE ser sobre: órgãos, sistemas, funções corporais, anatomia básica.
-JAMAIS sobre matemática, demônios, ou temas não relacionados ao corpo humano.
+${questionIndex === 0 ? `
+🎯 QUESTÃO TIPO 0 - DEFINIÇÕES E CONCEITOS:
+- "O que é...?"
+- "Como se define...?"  
+- "Qual o significado de...?"
+- "O que caracteriza...?"
+` : ''}
+
+${questionIndex === 1 ? `
+🎯 QUESTÃO TIPO 1 - PERSONAGENS E FIGURAS:
+- "Quem foi...?"
+- "Qual personagem...?"
+- "Que líder...?"
+- "Quem descobriu...?"
+` : ''}
+
+${questionIndex === 2 ? `
+🎯 QUESTÃO TIPO 2 - EVENTOS E DATAS:
+- "Quando aconteceu...?"
+- "Em que século...?"
+- "Que evento marcou...?"
+- "Em que ano...?"
+` : ''}
+
+${questionIndex === 3 ? `
+🎯 QUESTÃO TIPO 3 - CONSEQUÊNCIAS E LEGADOS:
+- "Qual foi o resultado...?"
+- "Que impacto teve...?"
+- "Qual a importância...?"
+- "Que influência deixou...?"
 ` : ''}
 
 Retorne APENAS um JSON válido no formato:
 {
-  "content": "pergunta específica sobre o tema (questão ${questionIndex + 1})",
+  "content": "pergunta TIPO ${currentQuestionType.type} sobre ${theme}",
   "choices": ["opção A", "opção B", "opção C", "opção D"],
   "answer": "resposta correta exata",
-  "word": "palavra-secreta-relacionada-ao-tema-questao-${questionIndex}"
+  "word": "palavra-${currentQuestionType.type.toLowerCase().replace(/\s+/g, '')}-${questionIndex}"
 }
   `;
   
