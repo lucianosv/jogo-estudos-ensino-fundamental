@@ -160,7 +160,7 @@ const StartScreen = ({ title, description, onStart, gameParams }: StartScreenPro
       </CardHeader>
       <CardContent className={`p-8 text-center ${
         dynamicTheme 
-          ? `bg-gradient-to-br from-${dynamicTheme.colors.primary}-50 to-${dynamicTheme.colors.secondary}-50`
+          ? `bg-gradient-to-br from-${dynamicTheme.colors.primary} to-${dynamicTheme.colors.secondary}`
           : 'bg-gradient-to-br from-orange-50 to-red-50'
       }`}>
         <div className="mb-6">

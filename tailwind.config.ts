@@ -9,6 +9,7 @@ export default {
 		"./src/**/*.{ts,tsx}",
 	],
 	prefix: "",
+	safelist: [{ pattern: /(text|bg|border|from|via|to)-(blue|indigo|purple|amber|yellow|orange|green|emerald|teal|violet|pink|red)-(50|400|500|600|700)/ }],
 	theme: {
 		container: {
 			center: true,

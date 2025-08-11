@@ -31,7 +31,7 @@ const TextStep = ({ content, onNext, collectedWords, selectedGame, gameParams }:
 
   const dynamicTheme = gameParams ? getDynamicTheme(gameParams) : null;
   const colors = dynamicTheme ? {
-    border: `border-${dynamicTheme.colors.primary}-400`,
+    border: dynamicTheme.colors.border,
     button: `bg-gradient-to-r ${dynamicTheme.colors.gradient} hover:opacity-90`
   } : {
     border: "border-amber-400",

@@ -154,18 +154,6 @@ const QuestionsFlow = ({
     );
   }
 
-  if (generatedQuestions.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-lg mb-4">❌ Não foi possível gerar questões para {gameParams.theme}.</p>
-        <Button onClick={regenerateQuestions} className="mb-4">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          🔄 Tentar Novamente
-        </Button>
-      </div>
-    );
-  }
-
   const colors = getThemeColors(selectedGame);
 
   // Página de feedback após resposta
