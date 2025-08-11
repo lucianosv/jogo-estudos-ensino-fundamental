@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import TextStep from "./game-steps/TextStep";
@@ -17,7 +18,7 @@ import { useGameLogic } from "@/hooks/useGameLogic";
 
 // Interface para conteúdo pré-carregado
 interface PreloadedContent {
-  questions: any[];
+  firstQuestion: any;
   story: any;
 }
 
@@ -86,21 +87,12 @@ const GameEngine = () => {
     }
   };
 
+  const [preloadedContent, setPreloadedContent] = useState<PreloadedContent | null>(null);
+
   // Função para lidar com o início da aventura com conteúdo pré-carregado
-  const handleStartWithPreloadedContent = (preloadedContent: PreloadedContent) => {
-    console.log('Iniciando aventura com conteúdo pré-carregado:', preloadedContent);
-    
-    // Atualizar o jogo selecionado com o conteúdo pré-carregado
-    if (selectedGame && preloadedContent.questions.length > 0) {
-      selectedGame.questions = preloadedContent.questions;
-    }
-    
-    // Definir história dinâmica se disponível
-    if (preloadedContent.story) {
-      // Usar o hook para definir a história (isso pode precisar ser ajustado)
-      console.log('História pré-carregada disponível:', preloadedContent.story);
-    }
-    
+  const handleStartWithPreloadedContent = (content: PreloadedContent) => {
+    console.log('🚀 Iniciando aventura com primeira questão pré-carregada');
+    setPreloadedContent(content);
     setGameStarted(true);
     setCurrentStepIndex(0);
   };
@@ -133,12 +125,13 @@ const GameEngine = () => {
     if (isQuestionStep && selectedGame) {
       return (
         <QuestionsFlow
-          questions={selectedGame.questions}
+          questions={[]}
           onCollectWord={handleCollectWord}
           onFinish={handleFinishQuestions}
           selectedGame={selectedGame}
           onRestart={handleRestart}
           gameParams={gameParams}
+          firstQuestion={preloadedContent?.firstQuestion}
         />
       );
     }

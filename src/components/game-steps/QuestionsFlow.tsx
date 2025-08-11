@@ -22,6 +22,7 @@ interface QuestionsFlowProps {
   selectedGame: any;
   onRestart: () => void;
   gameParams: GameParameters;
+  firstQuestion?: Question;
 }
 
 const QuestionsFlow = ({
@@ -31,195 +32,69 @@ const QuestionsFlow = ({
   selectedGame,
   onRestart,
   gameParams,
+  firstQuestion,
 }: QuestionsFlowProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [wasCorrect, setWasCorrect] = useState<boolean | null>(null);
   const [generatedQuestions, setGeneratedQuestions] = useState<Question[]>([]);
-  const [loadingQuestions, setLoadingQuestions] = useState(false);
-  const generationAttempts = useRef(0);
-  const [generationKey, setGenerationKey] = useState('');
+  const [loadingNextQuestion, setLoadingNextQuestion] = useState(false);
+  const [isGeneratingNext, setIsGeneratingNext] = useState(false);
   const { generateQuestion, isLoading } = useAIContent();
 
-  // Criar chave única para cada set de parâmetros
-  const createGenerationKey = (params: GameParameters) => {
-    return `${params.subject}_${params.theme}_${params.schoolGrade}_${Date.now()}_${Math.random()}`;
-  };
-
-  // Gerar questões únicas com índices específicos
+  // Inicializar questões com primeira questão já gerada
   useEffect(() => {
-    const generateUniqueQuestions = async () => {
-      // Se já foram passadas questões, usar elas
-      if (questions && questions.length > 0) {
-        console.log('[QUESTIONS-FLOW] Usando questões passadas como prop');
-        setGeneratedQuestions(questions);
-        return;
-      }
+    if (firstQuestion) {
+      console.log('[QUESTIONS-FLOW] 🚀 Inicializando com primeira questão pré-carregada');
+      setGeneratedQuestions([firstQuestion]);
+    } else if (questions && questions.length > 0) {
+      console.log('[QUESTIONS-FLOW] Usando questões passadas como prop');
+      setGeneratedQuestions(questions);
+    }
+  }, [firstQuestion, questions]);
 
-      // Criar nova chave de geração para garantir conteúdo único
-      const newKey = createGenerationKey(gameParams);
-      console.log(`[QUESTIONS-FLOW] 🔄 NOVA GERAÇÃO - Chave: ${newKey}`);
-      setGenerationKey(newKey);
+  // Gerar próxima questão quando necessário
+  const generateNextQuestion = async (nextIndex: number) => {
+    if (nextIndex >= 4 || isGeneratingNext) return;
 
-      setLoadingQuestions(true);
+    setIsGeneratingNext(true);
+    setLoadingNextQuestion(true);
+    
+    console.log(`[QUESTIONS-FLOW] 🎯 Gerando questão ${nextIndex + 1} sequencialmente...`);
+    
+    try {
+      const nextQuestion = await generateQuestion(gameParams, nextIndex);
       
-      console.log(`[QUESTIONS-FLOW] 🎯 NOVA GERAÇÃO DE 4 QUESTÕES ÚNICAS PARA: ${gameParams.subject} - ${gameParams.theme} - ${gameParams.schoolGrade} [${newKey}]`);
-      
-      try {
-        const uniqueQuestions: Question[] = [];
-        const usedWords = new Set<string>();
+      if (nextQuestion && nextQuestion.content && nextQuestion.choices && 
+          nextQuestion.answer && nextQuestion.word) {
         
-        // Gerar exatamente 4 questões com índices únicos
-        for (let questionIndex = 0; questionIndex < 4; questionIndex++) {
-          console.log(`[QUESTIONS-FLOW] Gerando questão ${questionIndex + 1}/4 com índice específico...`);
-          
-          let attempts = 0;
-          const maxAttempts = 3;
-          
-          while (attempts < maxAttempts) {
-            try {
-              const questionData = await generateQuestion(gameParams, questionIndex, 'auto');
-              
-              if (questionData && questionData.content && questionData.choices && 
-                  questionData.answer && questionData.word && 
-                  !usedWords.has(questionData.word)) {
-                
-                uniqueQuestions.push(questionData);
-                usedWords.add(questionData.word);
-                console.log(`[QUESTIONS-FLOW] ✅ Questão ${questionIndex + 1} gerada - palavra: ${questionData.word}`);
-                break; // Questão válida gerada, sair do loop
-                
-              } else if (questionData && usedWords.has(questionData.word)) {
-                console.log(`[QUESTIONS-FLOW] ❌ Questão ${questionIndex + 1} rejeitada (palavra duplicada: ${questionData.word})`);
-                attempts++;
-                
-              } else {
-                console.log(`[QUESTIONS-FLOW] ❌ Questão ${questionIndex + 1} rejeitada (dados inválidos)`);
-                attempts++;
-              }
-              
-            } catch (error) {
-              console.error(`[QUESTIONS-FLOW] Erro ao gerar questão ${questionIndex + 1}:`, error);
-              attempts++;
-            }
-            
-            // Se chegou ao limite de tentativas, criar fallback específico
-            if (attempts >= maxAttempts) {
-              const fallbackQuestions = [
-                {
-                  content: `Qual é a função principal do coração no corpo humano?`,
-                  choices: ["Filtrar sangue", "Bombear sangue", "Produzir sangue", "Armazenar sangue"],
-                  answer: "Bombear sangue",
-                  word: "circulação"
-                },
-                {
-                  content: `Quantos pulmões temos no sistema respiratório?`,
-                  choices: ["1 pulmão", "2 pulmões", "3 pulmões", "4 pulmões"],
-                  answer: "2 pulmões",
-                  word: "respiração"
-                },
-                {
-                  content: `Qual órgão controla todo o funcionamento do corpo?`,
-                  choices: ["Coração", "Fígado", "Cérebro", "Estômago"],
-                  answer: "Cérebro",
-                  word: "neurônio"
-                },
-                {
-                  content: `Quantos ossos aproximadamente tem o corpo humano adulto?`,
-                  choices: ["156", "186", "206", "256"],
-                  answer: "206",
-                  word: "esqueleto"
-                }
-              ];
-              
-              const fallbackQuestion = fallbackQuestions[questionIndex];
-              if (!usedWords.has(fallbackQuestion.word)) {
-                uniqueQuestions.push(fallbackQuestion);
-                usedWords.add(fallbackQuestion.word);
-                console.log(`[QUESTIONS-FLOW] ⚠️ Usando fallback específico para questão ${questionIndex + 1}`);
-              }
-            }
-          }
-        }
-
-        console.log(`[QUESTIONS-FLOW] 🎯 TOTAL DE QUESTÕES ÚNICAS GERADAS: ${uniqueQuestions.length}`);
-        console.log(`[QUESTIONS-FLOW] 🔑 PALAVRAS-CHAVE ÚNICAS: ${Array.from(usedWords).join(', ')}`);
-        
-        // VALIDAÇÃO FINAL ULTRA-RIGOROSA 
-        const validation = validateUniqueQuestions(uniqueQuestions);
-        
-        if (uniqueQuestions.length === 4 && usedWords.size === 4 && validation.isValid) {
-          console.log(`[QUESTIONS-FLOW] ✅ VALIDAÇÃO FINAL APROVADA - 4 questões únicas confirmadas`);
-          setGeneratedQuestions(uniqueQuestions);
+        // Verificar se não é duplicata
+        const existingWords = generatedQuestions.map(q => q.word);
+        if (!existingWords.includes(nextQuestion.word)) {
+          setGeneratedQuestions(prev => [...prev, nextQuestion]);
+          console.log(`[QUESTIONS-FLOW] ✅ Questão ${nextIndex + 1} gerada: ${nextQuestion.word}`);
         } else {
-          console.error(`[QUESTIONS-FLOW] ❌ VALIDAÇÃO FINAL FALHOU:`, validation.issues);
-          console.error(`[QUESTIONS-FLOW] ❌ Não foi possível gerar 4 questões únicas. Geradas: ${uniqueQuestions.length}, Palavras únicas: ${usedWords.size}`);
-          // Usar fallbacks de emergência garantidos
-          setGeneratedQuestions([
-            {
-              content: `Qual é a função principal do coração no corpo humano?`,
-              choices: ["Filtrar sangue", "Bombear sangue", "Produzir sangue", "Armazenar sangue"],
-              answer: "Bombear sangue",
-              word: "circulação"
-            },
-            {
-              content: `Quantos pulmões temos no sistema respiratório?`,
-              choices: ["1 pulmão", "2 pulmões", "3 pulmões", "4 pulmões"],
-              answer: "2 pulmões",
-              word: "respiração"
-            },
-            {
-              content: `Qual órgão controla todo o funcionamento do corpo?`,
-              choices: ["Coração", "Fígado", "Cérebro", "Estômago"],
-              answer: "Cérebro",
-              word: "neurônio"
-            },
-            {
-              content: `Quantos ossos aproximadamente tem o corpo humano adulto?`,
-              choices: ["156", "186", "206", "256"],
-              answer: "206",
-              word: "esqueleto"
-            }
-          ]);
-        }
-
-      } catch (error) {
-        console.error('[QUESTIONS-FLOW] ❌ ERRO GERAL:', error);
-        
-        // Fallback de emergência garantido
-        setGeneratedQuestions([
-          {
-            content: `Qual é a função principal do coração no corpo humano?`,
-            choices: ["Filtrar sangue", "Bombear sangue", "Produzir sangue", "Armazenar sangue"],
-            answer: "Bombear sangue",
-            word: "circulação"
-          },
-          {
-            content: `Quantos pulmões temos no sistema respiratório?`,
-            choices: ["1 pulmão", "2 pulmões", "3 pulmões", "4 pulmões"],
-            answer: "2 pulmões",
-            word: "respiração"
-          },
-          {
-            content: `Qual órgão controla todo o funcionamento do corpo?`,
-            choices: ["Coração", "Fígado", "Cérebro", "Estômago"],
-            answer: "Cérebro",
-            word: "neurônio"
-          },
-          {
-            content: `Quantos ossos aproximadamente tem o corpo humano adulto?`,
-            choices: ["156", "186", "206", "256"],
-            answer: "206",
-            word: "esqueleto"
+          console.log(`[QUESTIONS-FLOW] ❌ Questão ${nextIndex + 1} rejeitada (palavra duplicada)`);
+          // Usar fallback
+          const fallbackQuestions = [
+            { content: "Qual é a função principal do coração?", choices: ["Filtrar", "Bombear", "Produzir", "Armazenar"], answer: "Bombear", word: "circulação" },
+            { content: "Quantos pulmões temos?", choices: ["1", "2", "3", "4"], answer: "2", word: "respiração" },
+            { content: "Qual órgão controla o corpo?", choices: ["Coração", "Fígado", "Cérebro", "Estômago"], answer: "Cérebro", word: "neurônio" },
+            { content: "Quantos ossos tem o corpo adulto?", choices: ["156", "186", "206", "256"], answer: "206", word: "esqueleto" }
+          ];
+          const fallback = fallbackQuestions[nextIndex];
+          if (!existingWords.includes(fallback.word)) {
+            setGeneratedQuestions(prev => [...prev, fallback]);
           }
-        ]);
-      } finally {
-        setLoadingQuestions(false);
+        }
       }
-    };
-
-    generateUniqueQuestions();
-  }, [gameParams, questions, generateQuestion]);
+    } catch (error) {
+      console.error(`[QUESTIONS-FLOW] Erro ao gerar questão ${nextIndex + 1}:`, error);
+    } finally {
+      setIsGeneratingNext(false);
+      setLoadingNextQuestion(false);
+    }
+  };
 
   const handleCorrect = () => {
     setWasCorrect(true);
@@ -238,8 +113,18 @@ const QuestionsFlow = ({
   const nextQuestion = () => {
     setShowResult(false);
     setWasCorrect(null);
-    if (currentIndex < generatedQuestions.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+    
+    const nextIndex = currentIndex + 1;
+    
+    if (nextIndex < 4) {
+      // Se a próxima questão já existe, avançar
+      if (generatedQuestions[nextIndex]) {
+        setCurrentIndex(nextIndex);
+      } else {
+        // Gerar próxima questão em background
+        generateNextQuestion(nextIndex);
+        setCurrentIndex(nextIndex);
+      }
     } else {
       onFinish();
     }
@@ -251,23 +136,20 @@ const QuestionsFlow = ({
   };
 
   const regenerateQuestions = async () => {
-    const newKey = createGenerationKey(gameParams);
-    console.log(`[QUESTIONS-FLOW] 🔄 FORÇANDO REGENERAÇÃO - Nova chave: ${newKey}`);
-    setGenerationKey(newKey);
+    console.log('[QUESTIONS-FLOW] 🔄 REGENERANDO QUESTÕES');
     setCurrentIndex(0);
     setShowResult(false);
     setWasCorrect(null);
-    setGeneratedQuestions([]);
+    setGeneratedQuestions(firstQuestion ? [firstQuestion] : []);
   };
 
-  // Loading state
-  if (loadingQuestions || isLoading) {
+  // Loading state para primeira questão
+  if (generatedQuestions.length === 0) {
     return (
       <div className="text-center py-12">
         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-        <p className="text-lg">🎯 Gerando questões de {gameParams.subject}</p>
-        <p className="text-sm text-gray-600 mt-2">📚 Tema: {gameParams.theme}</p>
-        <p className="text-xs text-gray-500 mt-1">🎓 Série: {gameParams.schoolGrade}</p>
+        <p className="text-lg">⚡ Carregando primeira questão...</p>
+        <p className="text-sm text-gray-600 mt-2">📚 {gameParams.subject} - {gameParams.theme}</p>
       </div>
     );
   }
@@ -304,8 +186,18 @@ const QuestionsFlow = ({
     );
   }
 
-  // Pergunta atual
+  // Pergunta atual ou loading da próxima
   const thisQuestion = generatedQuestions[currentIndex];
+  
+  // Se não existe a questão atual, mostrar loading
+  if (!thisQuestion && currentIndex < 4) {
+    return (
+      <div className="text-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+        <p className="text-sm">🎯 Gerando questão {currentIndex + 1}...</p>
+      </div>
+    );
+  }
 
   return (
     <div>

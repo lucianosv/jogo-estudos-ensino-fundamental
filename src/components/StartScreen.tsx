@@ -17,18 +17,18 @@ interface StartScreenProps {
 }
 
 interface PreloadedContent {
-  questions: any[];
+  firstQuestion: any;
   story: any;
 }
 
 interface LoadingState {
-  questions: 'idle' | 'loading' | 'success' | 'error';
+  firstQuestion: 'idle' | 'loading' | 'success' | 'error';
   story: 'idle' | 'loading' | 'success' | 'error';
 }
 
 const StartScreen = ({ title, description, onStart, gameParams }: StartScreenProps) => {
   const [loadingState, setLoadingState] = useState<LoadingState>({
-    questions: 'idle',
+    firstQuestion: 'idle',
     story: 'idle'
   });
   const [preloadedContent, setPreloadedContent] = useState<PreloadedContent | null>(null);
@@ -40,14 +40,13 @@ const StartScreen = ({ title, description, onStart, gameParams }: StartScreenPro
   const dynamicTheme = gameParams ? getDynamicTheme(gameParams) : null;
   const subjectIcon = gameParams ? getSubjectIcon(gameParams.subject) : '📖';
 
-  const isContentReady = loadingState.questions === 'success' && loadingState.story === 'success';
-  const hasErrors = loadingState.questions === 'error' || loadingState.story === 'error';
+  const isContentReady = loadingState.firstQuestion === 'success';
+  const hasErrors = loadingState.firstQuestion === 'error' || loadingState.story === 'error';
 
   const getLoadingProgress = () => {
     let completed = 0;
-    if (loadingState.questions === 'success') completed++;
-    if (loadingState.story === 'success') completed++;
-    return { completed, total: 2 };
+    if (loadingState.firstQuestion === 'success') completed++;
+    return { completed, total: 1 };
   };
 
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -56,91 +55,33 @@ const StartScreen = ({ title, description, onStart, gameParams }: StartScreenPro
     if (!gameParams || startPreloading) return;
     
     setStartPreloading(true);
-    console.log('Iniciando pré-carregamento de conteúdo...');
+    console.log('🚀 Carregamento rápido - apenas primeira questão...');
 
     try {
-      // Gerar questões primeiro
-      setLoadingState(prev => ({ ...prev, questions: 'loading' }));
-      const questions = [];
+      // Gerar apenas a primeira questão
+      setLoadingState(prev => ({ ...prev, firstQuestion: 'loading' }));
       
-      for (let i = 0; i < 4; i++) {
-        try {
-          console.log(`Gerando questão ${i + 1}/4 com índice específico ${i}...`);
-          const question = await generateQuestion(gameParams, i); // CRITICAL FIX: Pass questionIndex
-          if (question) {
-            console.log(`✅ Questão ${i} gerada: ${question.content?.substring(0, 50) || 'N/A'}...`);
-            questions.push(question);
-          } else {
-            console.error(`❌ Questão ${i} retornou nula`);
-          }
-          // Delay MAIOR entre chamadas para evitar questões idênticas do Gemini
-          if (i < 3) await delay(5000); // Aumentado para 5 segundos
-        } catch (error) {
-          console.error(`Erro ao gerar questão ${i + 1}:`, error);
-        }
-      }
-
-      // Validate uniqueness before proceeding
-      const questionContents = questions.map(q => q.content).filter(Boolean);
-      const uniqueContents = new Set(questionContents);
+      console.log('⚡ Gerando primeira questão...');
+      const firstQuestion = await generateQuestion(gameParams, 0);
       
-      if (questionContents.length !== uniqueContents.size) {
-        console.error('🚨 QUESTÕES DUPLICADAS DETECTADAS - Forçando regeneração');
-        toast({
-          title: "Questões Duplicadas Detectadas",
-          description: "Regenerando questões únicas...",
-          variant: "destructive"
-        });
-        // IMPLEMENTAR REGENERAÇÃO REAL COM RETRY
-        setLoadingState(prev => ({ ...prev, questions: 'error' }));
-        toast({
-          title: "Regenerando Conteúdo",
-          description: "Tentando novamente com estratégia diferente...",
-        });
-        return;
-      }
-
-      // Final validation and logging
-      logQuestionDetails(questions);
-      const validation = validateQuestionUniqueness(questions);
-      
-      if (!validation.isValid) {
-        console.error('🚨 VALIDAÇÃO FINAL FALHOU:', validation);
-        toast({
-          title: "Erro de Validação",
-          description: `Questões duplicadas detectadas: ${validation.duplicates.length}`,
-          variant: "destructive"
-        });
-        setLoadingState(prev => ({ ...prev, questions: 'error' }));
-        return;
-      }
-
-      console.log('✅ TODAS AS 4 QUESTÕES SÃO ÚNICAS E VÁLIDAS');
-      setLoadingState(prev => ({ ...prev, questions: questions.length > 0 ? 'success' : 'error' }));
-      
-      // Delay antes de gerar história
-      await delay(3000);
-      
-      // Gerar história
-      setLoadingState(prev => ({ ...prev, story: 'loading' }));
-      try {
-        console.log('Gerando história...');
-        const story = await generateStory(gameParams);
+      if (firstQuestion) {
+        console.log('✅ Primeira questão gerada:', firstQuestion.content?.substring(0, 50) || 'N/A');
         setPreloadedContent({
-          questions,
-          story: story || null
+          firstQuestion,
+          story: null // História será gerada depois
         });
-        setLoadingState(prev => ({ ...prev, story: story ? 'success' : 'error' }));
-      } catch (error) {
-        console.error('Erro ao gerar história:', error);
-        setLoadingState(prev => ({ ...prev, story: 'error' }));
+        setLoadingState(prev => ({ ...prev, firstQuestion: 'success' }));
+      } else {
+        console.error('❌ Primeira questão falhou');
+        setLoadingState(prev => ({ ...prev, firstQuestion: 'error' }));
       }
 
     } catch (error) {
-      console.error('Erro no pré-carregamento:', error);
+      console.error('Erro ao gerar primeira questão:', error);
+      setLoadingState(prev => ({ ...prev, firstQuestion: 'error' }));
       toast({
         title: "Erro no Carregamento",
-        description: "Houve um problema ao preparar o conteúdo. Usando conteúdo alternativo.",
+        description: "Usando questão alternativa para começar.",
         variant: "destructive"
       });
     }
@@ -168,20 +109,11 @@ const StartScreen = ({ title, description, onStart, gameParams }: StartScreenPro
         
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            {loadingState.questions === 'loading' && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loadingState.questions === 'success' && <CheckCircle className="w-4 h-4 text-green-500" />}
-            {loadingState.questions === 'error' && <div className="w-4 h-4 rounded-full bg-red-500" />}
+            {loadingState.firstQuestion === 'loading' && <Loader2 className="w-4 h-4 animate-spin" />}
+            {loadingState.firstQuestion === 'success' && <CheckCircle className="w-4 h-4 text-green-500" />}
+            {loadingState.firstQuestion === 'error' && <div className="w-4 h-4 rounded-full bg-red-500" />}
             <span className="text-sm">
-              Criando questões sobre {gameParams?.theme}...
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {loadingState.story === 'loading' && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loadingState.story === 'success' && <CheckCircle className="w-4 h-4 text-green-500" />}
-            {loadingState.story === 'error' && <div className="w-4 h-4 rounded-full bg-red-500" />}
-            <span className="text-sm">
-              Gerando história educativa para {gameParams?.schoolGrade}...
+              ⚡ Preparando primeira questão sobre {gameParams?.theme}...
             </span>
           </div>
         </div>
