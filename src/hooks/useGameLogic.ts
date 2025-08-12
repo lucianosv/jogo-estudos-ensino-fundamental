@@ -89,10 +89,20 @@ export const useGameLogic = () => {
     try {
       console.log('Gerando história para:', gameParams.subject, gameParams.theme);
       const storyData = await generateStory(gameParams);
-      if (storyData && storyData.title && storyData.content) {
+
+      const looksAdventure = (s: any) => {
+        const content = (s?.content || '').toLowerCase();
+        return (
+          content.includes('sua aventura:') ||
+          content.includes('você ') ||
+          /\n\s*1\./.test(s?.content || '')
+        );
+      };
+
+      if (storyData && storyData.title && storyData.content && looksAdventure(storyData)) {
         setDynamicStory(storyData);
       } else {
-        // Usar fallback inteligente se a IA falhar
+        // Forçar estilo aventura para qualquer matéria/tema
         const fallbackStory = generateIntelligentFallback(gameParams, 'story');
         setDynamicStory(fallbackStory);
       }
