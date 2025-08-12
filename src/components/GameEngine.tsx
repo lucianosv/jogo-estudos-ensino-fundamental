@@ -125,7 +125,7 @@ const GameEngine = () => {
     if (isQuestionStep && selectedGame) {
       return (
         <QuestionsFlow
-          questions={[]}
+          questions={selectedGame?.questions || []}
           onCollectWord={handleCollectWord}
           onFinish={handleFinishQuestions}
           selectedGame={selectedGame}

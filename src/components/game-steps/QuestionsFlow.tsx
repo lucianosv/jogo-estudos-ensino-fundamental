@@ -44,14 +44,20 @@ const QuestionsFlow = ({
 
   // Inicializar questões com primeira questão já gerada
   useEffect(() => {
-    if (firstQuestion) {
-      console.log('[QUESTIONS-FLOW] 🚀 Inicializando com primeira questão pré-carregada');
-      setGeneratedQuestions([firstQuestion]);
-    } else if (questions && questions.length > 0) {
-      console.log('[QUESTIONS-FLOW] Usando questões passadas como prop');
-      setGeneratedQuestions(questions);
-    }
-  }, [firstQuestion, questions]);
+    // Initialize only once per session unless firstQuestion changes
+    setGeneratedQuestions(prev => {
+      if (prev.length > 0 && !firstQuestion) return prev;
+      if (firstQuestion) {
+        console.log('[QUESTIONS-FLOW] 🚀 Inicializando com primeira questão pré-carregada');
+        return [firstQuestion];
+      }
+      if (questions && questions.length > 0) {
+        console.log('[QUESTIONS-FLOW] Usando questões passadas como prop');
+        return questions;
+      }
+      return prev;
+    });
+  }, [firstQuestion]);
 
   // Gerar próxima questão quando necessário
   const generateNextQuestion = async (nextIndex: number) => {
@@ -158,7 +164,8 @@ const QuestionsFlow = ({
 
   // Página de feedback após resposta
   if (showResult) {
-    const correctResponse = `🎉 Excelente! A palavra secreta é **${generatedQuestions[currentIndex].word}**.`;
+    const current = generatedQuestions[currentIndex];
+    const correctResponse = current ? `🎉 Excelente! A palavra secreta é **${current.word}**.` : "🎉 Excelente!";
     const incorrectResponse = "❌ Resposta incorreta! Tente novamente.";
 
     return (
@@ -177,8 +184,11 @@ const QuestionsFlow = ({
   // Pergunta atual ou loading da próxima
   const thisQuestion = generatedQuestions[currentIndex];
   
-  // Se não existe a questão atual, mostrar loading
+  // Se não existe a questão atual, disparar geração e mostrar loading
   if (!thisQuestion && currentIndex < 4) {
+    if (!isGeneratingNext && !loadingNextQuestion) {
+      void generateNextQuestion(currentIndex);
+    }
     return (
       <div className="text-center py-8">
         <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
