@@ -221,24 +221,65 @@ export const generateIntelligentFallback = (
 // Função para validar se o conteúdo gerado é adequado
 export const validateGeneratedContent = (content: any, gameParams: GameParameters): boolean => {
   if (!content) return false;
-  
+
+  // Try to extract human-readable text
   const contentStr = JSON.stringify(content).toLowerCase();
+  const text = (
+    (typeof content === 'string' && content) ||
+    (typeof content?.content === 'string' && content.content) ||
+    contentStr
+  ).toLowerCase();
+
   const { subject, theme } = gameParams;
-  
-  // Verificar se o conteúdo é realmente sobre a matéria selecionada
   const subjectLower = subject.toLowerCase();
-  
-  // Para História, não deve ter questões de matemática
-  if (subjectLower === 'história' && (contentStr.includes('2 + 2') || contentStr.includes('soma') || contentStr.includes('multiplicação'))) {
-    console.warn(`[VALIDATION] Conteúdo de História contém matemática inadequadamente`);
+
+  // Minimal structural checks for questions
+  const looksLikeQuestion = typeof (content as any)?.content === 'string';
+  const hasChoices = Array.isArray((content as any)?.choices) && (content as any).choices.length === 4;
+  const hasAnswer = typeof (content as any)?.answer === 'string' && (content as any).answer.length > 0;
+
+  // If it looks like a question but lacks structure, reject
+  if (looksLikeQuestion && (!hasChoices || !hasAnswer)) {
     return false;
   }
-  
-  // Para Ciências, deve ser sobre ciência
-  if (subjectLower === 'ciências' && contentStr.includes('quanto é') && contentStr.includes(' + ')) {
-    console.warn(`[VALIDATION] Conteúdo de Ciências contém matemática inadequadamente`);
-    return false;
+
+  // Subject-specific allow/deny keywords
+  const mathAllow = [
+    'matemática','quanto é','soma','subtração','multiplicação','divisão','calcular','número','resultado','operações','equação','x '
+  ];
+  const mathDeny = ['roma', 'história', 'faraó', 'pirâmide', 'planeta', 'sistema solar', 'capital', 'substantivo', 'vogal'];
+
+  const histAllow = ['história','romano','roma','egito','civilização','imperador','coliseu','gladiador','antigo'];
+  const histDenyMathPatterns = [/\bquanto\s+é\b/, /\d+\s*[+\-×x*÷/]\s*\d+/];
+
+  const sciAllow = ['ciências','planeta','sistema solar','gravidade','órbita','coração','pulmões','respiração','neurônio','astronomia','animal','plantas','energia'];
+  const sciDenyMath = [/\bquanto\s+é\b/, /\d+\s*[+\-×x*÷/]\s*\d+/];
+
+  const geoAllow = ['geografia','mapa','capital','país','continente','coordenada','latitude','longitude','rio','montanha','clima'];
+  const geoDenyMath = [/\bquanto\s+é\b/, /\d+\s*[+\-×x*÷/]\s*\d+/];
+
+  const porAllow = ['português','gramática','substantivo','verbo','vogal','consoante','texto','sílaba','ortografia'];
+  const porDenyMath = [/\bquanto\s+é\b/, /\d+\s*[+\-×x*÷/]\s*\d+/];
+
+  const includesAny = (arr: string[]) => arr.some(k => text.includes(k));
+  const matchesAny = (arr: RegExp[]) => arr.some(rx => rx.test(text));
+
+  if (subjectLower === 'matemática') {
+    if (mathDeny.some(k => text.includes(k))) return false;
+    if (!includesAny(mathAllow)) return false;
+  } else if (subjectLower === 'história') {
+    if (matchesAny(histDenyMathPatterns)) return false;
+    if (!includesAny(histAllow)) return false;
+  } else if (subjectLower === 'ciências') {
+    if (matchesAny(sciDenyMath)) return false;
+    if (!includesAny(sciAllow)) return false;
+  } else if (subjectLower === 'geografia') {
+    if (matchesAny(geoDenyMath)) return false;
+    if (!includesAny(geoAllow)) return false;
+  } else if (subjectLower === 'português' || subjectLower === 'portugues') {
+    if (matchesAny(porDenyMath)) return false;
+    if (!includesAny(porAllow)) return false;
   }
-  
+
   return true;
 };
