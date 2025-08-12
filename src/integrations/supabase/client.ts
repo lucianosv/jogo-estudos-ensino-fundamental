@@ -5,9 +5,46 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  // Fail fast to avoid leaking requests to an unintended project
-  throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables');
+// Graceful fallback: if envs are missing, export a stub client that won't crash the app
+function createStubClient() {
+  const notConfiguredError = new Error('Supabase is not configured (missing VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY)');
+  const noData = { data: null as any, error: notConfiguredError };
+
+  const stub = {
+    auth: {
+      async getSession() {
+        return { data: { session: null }, error: null };
+      },
+      onAuthStateChange(_cb: any) {
+        return { data: { subscription: { unsubscribe: () => {} } } } as any;
+      },
+      async signUp() { return noData; },
+      async signInWithPassword() { return noData; },
+      async signOut() { return noData; },
+    },
+    from() {
+      return {
+        select: async () => noData,
+        single: async () => noData,
+        update: async () => noData,
+        delete: async () => noData,
+        eq: () => ({ select: async () => noData, update: async () => noData, delete: async () => noData }),
+        neq: () => ({ delete: async () => noData })
+      } as any;
+    },
+    functions: {
+      async invoke() { return noData; }
+    }
+  };
+
+  if (typeof console !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.warn('[Supabase] Missing env vars. Running with stub client; online features disabled.');
+  }
+
+  return stub as any;
 }
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = (SUPABASE_URL && SUPABASE_ANON_KEY)
+  ? createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : createStubClient();
