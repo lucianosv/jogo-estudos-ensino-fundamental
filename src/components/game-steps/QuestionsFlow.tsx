@@ -104,26 +104,24 @@ const QuestionsFlow = ({
         return;
       }
 
-      // Usar fallback caso não consiga gerar única
-      console.log(`[QUESTIONS-FLOW] 🚨 Usando fallback para questão ${nextIndex + 1}`);
-      const fallbackQuestions: Question[] = [
-        { content: "Qual é a função principal do coração?", choices: ["Filtrar", "Bombear", "Produzir", "Armazenar"], answer: "Bombear", word: "circulação" },
-        { content: "Quantos pulmões temos?", choices: ["1", "2", "3", "4"], answer: "2", word: "respiração" },
-        { content: "Qual órgão controla o corpo?", choices: ["Coração", "Fígado", "Cérebro", "Estômago"], answer: "Cérebro", word: "neurônio" },
-        { content: "Quantos ossos tem o corpo adulto?", choices: ["156", "186", "206", "256"], answer: "206", word: "esqueleto" }
-      ];
+      // Usar fallback sujeito/tema específico caso não consiga gerar única
+      console.log(`[QUESTIONS-FLOW] 🚨 Usando fallback sujeito/tema para questão ${nextIndex + 1}`);
+      const subjectFallback = generateIntelligentFallback(gameParams, 'question', nextIndex) as any;
 
       const existingContents = generatedQuestions.map(q => q.content?.toLowerCase().trim());
       const existingWords = generatedQuestions.map(q => q.word?.toLowerCase().trim());
 
-      // Selecionar um fallback que não duplique conteúdo nem palavra
-      let fallback = fallbackQuestions.find(f =>
-        !existingContents.includes(f.content.toLowerCase().trim()) &&
-        !existingWords.includes(f.word.toLowerCase().trim())
-      ) || fallbackQuestions[nextIndex];
+      let fallback: Question = subjectFallback && subjectFallback.content && subjectFallback.choices && subjectFallback.answer && subjectFallback.word
+        ? subjectFallback as Question
+        : {
+            content: `${gameParams.subject} - ${gameParams.theme}: Questão ${nextIndex + 1}`,
+            choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
+            answer: "Opção A",
+            word: `palavra${nextIndex + 1}`
+          };
 
-      // Garantir palavra única caso ainda conflite
-      if (existingWords.includes(fallback.word.toLowerCase().trim())) {
+      // Evitar duplicidades
+      if (existingContents.includes(fallback.content.toLowerCase().trim()) || existingWords.includes(fallback.word.toLowerCase().trim())) {
         fallback = { ...fallback, word: `${fallback.word}_${Date.now()}` } as Question;
       }
 
