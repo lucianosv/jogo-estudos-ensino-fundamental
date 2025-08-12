@@ -52,16 +52,31 @@ const GameEngine = () => {
   const handlePasswordSubmit = (password: string) => {
     if (!selectedGame) return;
     const sanitizedPassword = sanitizeText(password);
-    
-    // Aceitar as palavras coletadas em qualquer ordem
-    const wordsInPassword = sanitizedPassword.toLowerCase().split(/\s+/);
-    const collectedWordsLower = collectedWords.map(w => w.toLowerCase());
-    
-    const hasAllWords = collectedWordsLower.every(word => 
-      wordsInPassword.some(inputWord => inputWord.includes(word))
-    );
-    
-    if (hasAllWords && collectedWords.length > 0) {
+
+    // Exigir que o usuário tenha coletado as 4 palavras
+    if (collectedWords.length < 4) {
+      toast({
+        title: "⚠️ Faltam palavras!",
+        description: `Você precisa coletar as 4 palavras secretas. Você tem ${collectedWords.length}/4.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Aceitar as palavras em qualquer ordem, com correspondência exata por token
+    const normalize = (s: string) => s.toLowerCase().replace(/[.,;:!?]/g, "");
+    const wordsInPassword = sanitizedPassword
+      .toLowerCase()
+      .split(/\s+/)
+      .map(w => normalize(w))
+      .filter(Boolean);
+
+    const inputSet = new Set(wordsInPassword);
+    const collectedWordsLower = collectedWords.map(w => normalize(w));
+
+    const hasAllWords = collectedWordsLower.every(word => inputSet.has(word));
+
+    if (hasAllWords) {
       handlePasswordSuccess();
     } else {
       logSecurityEvent('Incorrect password attempt', {
@@ -70,7 +85,7 @@ const GameEngine = () => {
       });
       toast({
         title: "❌ Senha incorreta!",
-        description: "Use as palavras que você coletou durante as questões.",
+        description: "Certifique-se de digitar todas as 4 palavras coletadas (qualquer ordem).",
         variant: "destructive"
       });
     }

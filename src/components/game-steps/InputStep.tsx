@@ -61,7 +61,7 @@ const InputStep = ({ content, onSubmit, collectedWords, selectedGame, gameParams
           ))}
         </div>
         <p className="text-gray-600 mt-4 text-sm">
-          💡 Dica: Digite as palavras separadas por espaço, na ordem que coletou!
+          💡 Dica: Digite as palavras separadas por espaço, em qualquer ordem!
         </p>
       </div>
 
