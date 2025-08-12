@@ -2,12 +2,19 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const SUPABASE_URL_ENV = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const SUPABASE_ANON_KEY_ENV = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-// Graceful fallback: if envs are missing, export a stub client that won't crash the app
+// User-provided defaults for hosted environments without env management
+const SUPABASE_URL_DEFAULT = 'https://xjvqjfxcdyjjkbqxhdlo.supabase.co';
+const SUPABASE_ANON_KEY_DEFAULT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqdnFqZnhjZHlqamticXhoZGxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwODczMTIsImV4cCI6MjA2NDY2MzMxMn0.kjOlLD3PU9QqTeDlPbpE6QZL5KjM84kDQgdvUlwIlnk';
+
+const SUPABASE_URL = SUPABASE_URL_ENV || SUPABASE_URL_DEFAULT;
+const SUPABASE_ANON_KEY = SUPABASE_ANON_KEY_ENV || SUPABASE_ANON_KEY_DEFAULT;
+
+// Graceful fallback: if nothing is available, export a stub client that won't crash the app
 function createStubClient() {
-  const notConfiguredError = new Error('Supabase is not configured (missing VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY)');
+  const notConfiguredError = new Error('Supabase is not configured');
   const noData = { data: null as any, error: notConfiguredError };
 
   const stub = {
@@ -39,7 +46,7 @@ function createStubClient() {
 
   if (typeof console !== 'undefined') {
     // eslint-disable-next-line no-console
-    console.warn('[Supabase] Missing env vars. Running with stub client; online features disabled.');
+    console.warn('[Supabase] Using stub client; configuration is missing.');
   }
 
   return stub as any;
