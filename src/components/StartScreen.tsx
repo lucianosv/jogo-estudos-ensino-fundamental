@@ -120,8 +120,8 @@ const StartScreen = ({ title, description, onStart, gameParams }: StartScreenPro
         
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div 
-            className={`h-2 rounded-full transition-all duration-300 ${
-              dynamicTheme ? `bg-${dynamicTheme.colors.primary}` : 'bg-blue-500'
+                          className={`h-2 rounded-full transition-all duration-300 ${
+              dynamicTheme ? `bg-${dynamicTheme.colors.primary.split('-')[0]}-500` : 'bg-blue-500'
             }`}
             style={{ width: `${(progress.completed / progress.total) * 100}%` }}
           />
