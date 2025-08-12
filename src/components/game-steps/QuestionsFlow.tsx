@@ -69,31 +69,65 @@ const QuestionsFlow = ({
     console.log(`[QUESTIONS-FLOW] 🎯 Gerando questão ${nextIndex + 1} sequencialmente...`);
     
     try {
-      const nextQuestion = await generateQuestion(gameParams, nextIndex);
-      
-      if (nextQuestion && nextQuestion.content && nextQuestion.choices && 
-          nextQuestion.answer && nextQuestion.word) {
-        
-        // Verificar se não é duplicata
-        const existingWords = generatedQuestions.map(q => q.word);
-        if (!existingWords.includes(nextQuestion.word)) {
-          setGeneratedQuestions(prev => [...prev, nextQuestion]);
-          console.log(`[QUESTIONS-FLOW] ✅ Questão ${nextIndex + 1} gerada: ${nextQuestion.word}`);
-        } else {
-          console.log(`[QUESTIONS-FLOW] ❌ Questão ${nextIndex + 1} rejeitada (palavra duplicada)`);
-          // Usar fallback
-          const fallbackQuestions = [
-            { content: "Qual é a função principal do coração?", choices: ["Filtrar", "Bombear", "Produzir", "Armazenar"], answer: "Bombear", word: "circulação" },
-            { content: "Quantos pulmões temos?", choices: ["1", "2", "3", "4"], answer: "2", word: "respiração" },
-            { content: "Qual órgão controla o corpo?", choices: ["Coração", "Fígado", "Cérebro", "Estômago"], answer: "Cérebro", word: "neurônio" },
-            { content: "Quantos ossos tem o corpo adulto?", choices: ["156", "186", "206", "256"], answer: "206", word: "esqueleto" }
-          ];
-          const fallback = fallbackQuestions[nextIndex];
-          if (!existingWords.includes(fallback.word)) {
-            setGeneratedQuestions(prev => [...prev, fallback]);
+      let attempt = 0;
+      const maxAttempts = 2;
+      let acceptedQuestion: Question | null = null;
+
+      while (attempt <= maxAttempts) {
+        const candidate = await generateQuestion(gameParams, nextIndex);
+
+        if (
+          candidate &&
+          candidate.content &&
+          candidate.choices &&
+          candidate.answer &&
+          candidate.word
+        ) {
+          const existingContents = generatedQuestions.map(q => q.content?.toLowerCase().trim());
+          const existingWords = generatedQuestions.map(q => q.word?.toLowerCase().trim());
+          const contentDup = existingContents.includes(candidate.content.toLowerCase().trim());
+          const wordDup = existingWords.includes(candidate.word.toLowerCase().trim());
+
+          if (!contentDup && !wordDup) {
+            acceptedQuestion = candidate as Question;
+            break;
+          } else {
+            console.log(`[QUESTIONS-FLOW] ♻️ Candidato rejeitado por duplicidade (contentDup=${contentDup}, wordDup=${wordDup}). Tentativa ${attempt + 1}/${maxAttempts + 1}`);
           }
         }
+        attempt++;
       }
+
+      if (acceptedQuestion) {
+        setGeneratedQuestions(prev => [...prev, acceptedQuestion!]);
+        console.log(`[QUESTIONS-FLOW] ✅ Questão ${nextIndex + 1} gerada: ${acceptedQuestion.word}`);
+        return;
+      }
+
+      // Usar fallback caso não consiga gerar única
+      console.log(`[QUESTIONS-FLOW] 🚨 Usando fallback para questão ${nextIndex + 1}`);
+      const fallbackQuestions: Question[] = [
+        { content: "Qual é a função principal do coração?", choices: ["Filtrar", "Bombear", "Produzir", "Armazenar"], answer: "Bombear", word: "circulação" },
+        { content: "Quantos pulmões temos?", choices: ["1", "2", "3", "4"], answer: "2", word: "respiração" },
+        { content: "Qual órgão controla o corpo?", choices: ["Coração", "Fígado", "Cérebro", "Estômago"], answer: "Cérebro", word: "neurônio" },
+        { content: "Quantos ossos tem o corpo adulto?", choices: ["156", "186", "206", "256"], answer: "206", word: "esqueleto" }
+      ];
+
+      const existingContents = generatedQuestions.map(q => q.content?.toLowerCase().trim());
+      const existingWords = generatedQuestions.map(q => q.word?.toLowerCase().trim());
+
+      // Selecionar um fallback que não duplique conteúdo nem palavra
+      let fallback = fallbackQuestions.find(f =>
+        !existingContents.includes(f.content.toLowerCase().trim()) &&
+        !existingWords.includes(f.word.toLowerCase().trim())
+      ) || fallbackQuestions[nextIndex];
+
+      // Garantir palavra única caso ainda conflite
+      if (existingWords.includes(fallback.word.toLowerCase().trim())) {
+        fallback = { ...fallback, word: `${fallback.word}_${Date.now()}` } as Question;
+      }
+
+      setGeneratedQuestions(prev => [...prev, fallback]);
     } catch (error) {
       console.error(`[QUESTIONS-FLOW] Erro ao gerar questão ${nextIndex + 1}:`, error);
     } finally {
