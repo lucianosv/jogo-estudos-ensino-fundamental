@@ -166,25 +166,125 @@ const generateSubjectSpecificQuestion = (gameParams: GameParameters, questionInd
 // Gerar história específica por matéria e tema
 const generateSubjectSpecificStory = (gameParams: GameParameters): FallbackContent['story'] => {
   const { subject, theme, schoolGrade } = gameParams;
-  
-  if (subject === 'História' && theme.toLowerCase().includes('roma')) {
-    return {
-      title: `História: Roma Antiga`,
-      content: `Era uma vez, há mais de 2000 anos, existiu um dos maiores impérios da história: Roma! Começou como uma pequena cidade na península italiana e cresceu até dominar grande parte do mundo conhecido. Os romanos eram famosos por suas estradas bem construídas, seus aquedutos que levavam água limpa para as cidades, e seus soldados corajosos chamados legionários. Eles construíram o Coliseu, onde gladiadores lutavam, e criaram leis que ainda influenciam nosso mundo hoje. A cidade de Roma era governada por imperadores poderosos como Júlio César. Estudar Roma Antiga nos ensina sobre coragem, organização e como uma civilização pode deixar sua marca na história para sempre!`
-    };
+
+  const makeAdventure = (title: string, hook: string, beats: string[]): FallbackContent['story'] => ({
+    title,
+    content: [
+      `Você está prestes a começar uma missão em ${subject.toLowerCase()}!`,
+      hook,
+      '',
+      `Sua aventura:`,
+      ...beats.map((b, i) => `${i + 1}. ${b}`),
+      '',
+      'Complete os desafios, colete as palavras secretas e desbloqueie o final desta missão!',
+    ].join('\n')
+  });
+
+  const lowerTheme = theme.toLowerCase();
+  const lowerSubject = subject.toLowerCase();
+
+  if (lowerSubject === 'história') {
+    if (lowerTheme.includes('roma')) {
+      return makeAdventure(
+        'Jornada Histórica: Segredos de Roma Antiga',
+        'Você viaja no tempo para Roma Antiga. Nas ruas movimentadas, sente o cheiro de pão recém-assado e ouve o som distante de um gladiador treinando. Uma pergamina misteriosa revela uma missão: encontrar três pistas escondidas pela cidade para decifrar um segredo do Senado.',
+        [
+          'Investigue o Coliseu para entender por que ele era tão importante para os romanos.',
+          'Descubra o caminho da água nos aquedutos e como Roma se mantinha abastecida.',
+          'Converse com um mercador no fórum e aprenda sobre as leis e moedas romanas.',
+          'Retorne ao Senado para decifrar a mensagem final com seu novo conhecimento.'
+        ]
+      );
+    }
+
+    return makeAdventure(
+      `Jornada Histórica: ${theme}`,
+      `Você acorda em uma época distante e precisa registrar os fatos mais importantes sobre ${theme.toLowerCase()}. Um historiador te presenteia com um caderno e uma dica: cada resposta correta revela uma nova pista sobre o passado.`,
+      [
+        'Localize os personagens-chave e entenda suas motivações.',
+        'Visite um local histórico e identifique seus símbolos e seu propósito.',
+        'Colete informações sobre cultura, economia e sociedade da época.',
+        'Monte a linha do tempo e apresente sua conclusão histórica.'
+      ]
+    );
   }
-  
-  if (subject === 'Ciências' && (theme.toLowerCase().includes('solar') || theme.toLowerCase().includes('planeta'))) {
-    return {
-      title: `Ciências: Sistema Solar`,
-      content: `Era uma vez uma família muito especial chamada Sistema Solar! No centro vivia o Sr. Sol, uma estrela brilhante e quente que iluminava todos ao seu redor. Seus oito filhos planetas giravam em círculos perfeitos ao seu redor: Mercúrio o mais rápido, Vênus a mais quente, Terra nossa casa azul e verde, Marte o vermelho, Júpiter o gigante, Saturno com seus anéis brilhantes, Urano deitado de lado, e Netuno o mais distante. Cada planeta tinha suas próprias características especiais, mas todos seguiam as regras da gravidade, dançando eternamente ao redor do Sol em uma valsa cósmica perfeita!`
-    };
+
+  if (lowerSubject === 'ciências') {
+    if (lowerTheme.includes('sistema solar') || lowerTheme.includes('solar') || lowerTheme.includes('planeta')) {
+      return makeAdventure(
+        'Expedição Científica: A Missão do Sistema Solar',
+        'Você entra a bordo da nave Argos-6. Seu objetivo é visitar mundos diferentes para coletar dados essenciais. Cada acerto energiza os motores; cada erro exige recalibrar os instrumentos.',
+        [
+          'Estabeleça órbita ao redor de um planeta gasoso e identifique suas camadas.',
+          'Pouse em uma lua gelada e descubra pistas sobre a presença de água.',
+          'Analise a gravidade de um planeta rochoso e registre o dia e a noite.',
+          'Retorne à base com um relatório que explique por que cada mundo é único.'
+        ]
+      );
+    }
+
+    return makeAdventure(
+      `Missão Científica: ${theme}`,
+      `Você recebeu um crachá de pesquisador e um laboratório portátil. Seu time precisa desvendar um mistério de ${theme.toLowerCase()}. Cada hipótese correta libera um novo equipamento para a investigação.`,
+      [
+        'Observe o fenômeno e descreva o que consegue medir (tempo, massa, temperatura).',
+        'Forme hipóteses e compare com conhecimentos anteriores.',
+        'Realize um experimento mental ou prático para testar suas ideias.',
+        'Explique a conclusão usando termos científicos do seu ano escolar.'
+      ]
+    );
   }
-  
-  return {
-    title: `${subject}: ${theme}`,
-    content: `Era uma vez um estudante curioso que descobriu o fascinante mundo de ${theme} em ${subject}. Durante sua jornada de aprendizado no ${schoolGrade}, ele encontrou conceitos interessantes que mudaram sua forma de ver o mundo. Com a ajuda de professores dedicados e muito estudo, conseguiu dominar os segredos de ${theme}. Sua aventura mostrou que aprender é sempre uma experiência mágica, cheia de descobertas surpreendentes que nos tornam pessoas mais sábias e preparadas para enfrentar os desafios da vida com conhecimento e confiança!`
-  };
+
+  if (lowerSubject === 'geografia') {
+    return makeAdventure(
+      `Rota Geográfica: ${theme}`,
+      `Você abre um mapa com coordenadas enigmáticas. Sua missão é traçar uma rota segura e entender as paisagens de ${theme.toLowerCase()}. Cada acerto revela um novo ponto no mapa.`,
+      [
+        'Identifique o tipo de relevo dominante e seu impacto nas pessoas.',
+        'Reconheça o clima e explique como ele influencia a vegetação e a vida local.',
+        'Localize recursos hídricos e avalie sua importância para a região.',
+        'Descreva como as pessoas vivem e trabalham nesse espaço geográfico.'
+      ]
+    );
+  }
+
+  if (lowerSubject === 'português' || lowerSubject === 'portugues') {
+    return makeAdventure(
+      `Aventura das Palavras: ${theme}`,
+      `Você entra na Biblioteca Encantada, onde as palavras ganham vida. O Guardião dos Textos te desafia a decifrar segredos linguísticos sobre ${theme.toLowerCase()}.`,
+      [
+        'Classifique corretamente termos e identifique a função de cada um na frase.',
+        'Reescreva um enigma substituindo palavras por sinônimos adequados.',
+        'Corrija um texto curto mantendo coesão e coerência.',
+        'Crie um mini-parágrafo aplicando as regras estudadas.'
+      ]
+    );
+  }
+
+  if (lowerSubject === 'matemática' || lowerSubject === 'matematica') {
+    return makeAdventure(
+      `Desafio Matemático: ${theme}`,
+      `O Mestre dos Números propõe uma trilha de desafios sobre ${theme.toLowerCase()}. A cada acerto, uma nova parte do mapa é revelada até você encontrar o tesouro lógico.`,
+      [
+        'Resolva um problema simples para destrancar o primeiro cadeado.',
+        'Analise um padrão e explique a regra que o governa.',
+        'Escolha a operação correta para um problema de situação real.',
+        'Apresente a resposta final justificando cada etapa do raciocínio.'
+      ]
+    );
+  }
+
+  // Genérico (qualquer matéria)
+  return makeAdventure(
+    `${subject}: A Missão de ${theme}`,
+    `Você recebe um convite misterioso: concluir uma missão sobre ${theme.toLowerCase()} no ${schoolGrade}. Cada pista correta revela a próxima parte da história.`,
+    [
+      'Descubra os conceitos fundamentais ligados ao tema.',
+      'Conecte o tema com exemplos do dia a dia.',
+      'Resolva um desafio aplicado para provar seu entendimento.',
+      'Reúna tudo em uma conclusão que finalize a aventura.'
+    ]
+  );
 };
 
 // Gerar informações de personagem específicas
