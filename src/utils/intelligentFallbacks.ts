@@ -352,7 +352,7 @@ export const validateGeneratedContent = (content: any, gameParams: GameParameter
   const histAllow = ['história','romano','roma','egito','civilização','imperador','coliseu','gladiador','antigo'];
   const histDenyMathPatterns = [/\bquanto\s+é\b/, /\d+\s*[+\-×x*÷/]\s*\d+/];
 
-  const sciAllow = ['ciências','planeta','sistema solar','gravidade','órbita','coração','pulmões','respiração','neurônio','astronomia','animal','plantas','energia'];
+  const sciAllow = ['ciências','planeta','sistema solar','gravidade','órbita','coração','pulmões','respiração','neurônio','astronomia','animal','plantas','energia','dinossauro','dinossauros','fóssil','fósseis'];
   const sciDenyMath = [/\bquanto\s+é\b/, /\d+\s*[+\-×x*÷/]\s*\d+/];
 
   const geoAllow = ['geografia','mapa','capital','país','continente','coordenada','latitude','longitude','rio','montanha','clima'];

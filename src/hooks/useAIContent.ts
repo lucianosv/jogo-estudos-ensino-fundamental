@@ -240,10 +240,8 @@ export const useAIContent = (): AIContentHook => {
           word: `palavra${(questionIndex || 0) + 1}`
         };
       } else if (contentType === 'story') {
-        return {
-          title: `${gameParams.subject}: ${gameParams.theme}`,
-          content: `História educativa específica sobre ${gameParams.theme} em ${gameParams.subject}.`
-        };
+        // Use subject-specific adventure-style story as emergency fallback
+        return generateIntelligentFallback(gameParams, 'story');
       }
       
       return null;
