@@ -212,6 +212,20 @@ const expandedGranularFallbacks = {
           content: "A turma avançada de Astronomia do 6º ano embarcou numa missão virtual pelo Sistema Solar. Descobriram que Júpiter é tão grande que cabem 1.300 Terras dentro dele, que Saturno flutua na água devido à sua baixa densidade, que a Terra viaja a 108.000 km/h ao redor do Sol completando uma volta em 365 dias, e que estamos a exatos 150 milhões de quilômetros da nossa estrela. Cada descoberta os deixava mais fascinados pela imensidão e precisão do universo!"
         }
       }
+    },
+    '7º ano': {
+      'Sistema Solar': {
+        questions: [
+          { content: "Qual planeta é classificado como gigante gasoso?", choices: ["Marte", "Júpiter", "Mercúrio", "Terra"], answer: "Júpiter", word: "gasoso" },
+          { content: "Qual planeta tem o dia mais longo (rotação mais lenta)?", choices: ["Mercúrio", "Vênus", "Terra", "Marte"], answer: "Vênus", word: "rotação" },
+          { content: "Qual é a principal força que mantém os planetas em órbita?", choices: ["Magnetismo", "Atrito", "Gravidade", "Vento solar"], answer: "Gravidade", word: "gravidade" },
+          { content: "Qual conjunto de corpos celestes orbita diretamente uma estrela?", choices: ["Constelação", "Galáxia", "Sistema planetário", "Nebulosa"], answer: "Sistema planetário", word: "órbita" }
+        ],
+        story: {
+          title: "Ciências: Patrulha Orbital do 7º Ano",
+          content: "Sua equipe de 7º ano assume a Patrulha Orbital: investigar fenômenos de rotação, translação e gravidade, catalogando características dos gigantes gasosos e rochosos para um relatório interplanetário."
+        }
+      }
     }
   },
   'Matemática': {
