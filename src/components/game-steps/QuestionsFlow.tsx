@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
 import { validateUniqueQuestions, finalValidation } from "@/utils/uniqueContentValidator";
 import { generateIntelligentFallback } from "@/utils/intelligentFallbacks";
+import { getExpandedGranularFallback } from "@/utils/expandedGranularFallbacks";
 
 interface Question {
   content: string;
@@ -80,23 +81,41 @@ const QuestionsFlow = ({
           } as Question;
         });
 
-        // Ensure uniqueness by content/word; if dup, tweak word minimally
-        const seenContent = new Set<string>();
-        const seenWord = new Set<string>();
-        const unique = filled.map((q) => {
-          let contentKey = q.content.toLowerCase().trim();
-          let wordKey = q.word.toLowerCase().trim();
-          if (seenContent.has(contentKey)) {
-            contentKey = `${contentKey}-${Date.now()}`;
+        // Robust de-duplication: re-roll duplicates by content/word per index
+        const unique: Question[] = [];
+        for (let idx = 0; idx < filled.length; idx++) {
+          let candidate = filled[idx];
+          let attempts = 0;
+          const usedContents = new Set(unique.map(q => q.content.toLowerCase().trim()));
+          const usedWords = new Set(unique.map(q => q.word.toLowerCase().trim()));
+          
+          const isDup = (q: Question) => usedContents.has(q.content.toLowerCase().trim()) || usedWords.has(q.word.toLowerCase().trim());
+
+          while (attempts < 3 && isDup(candidate)) {
+            attempts++;
+            // Try granular fallback for this exact index
+            const granular = getExpandedGranularFallback(gameParams, 'question', idx) as any;
+            if (granular && granular.content && granular.choices && granular.answer && granular.word && !isDup(granular)) {
+              candidate = granular as Question;
+              break;
+            }
+            // Try one more API call via generateQuestion
+            const reroll = await generateQuestion(gameParams, idx);
+            if (reroll && reroll.content && reroll.choices && reroll.answer && reroll.word && !isDup(reroll)) {
+              candidate = reroll as Question;
+              break;
+            }
+            // Try intelligent fallback
+            const intel = generateIntelligentFallback(gameParams, 'question', idx) as any;
+            if (intel && intel.content && intel.choices && intel.answer && intel.word && !isDup(intel)) {
+              candidate = intel as Question;
+              break;
+            }
+            // Last resort: minimally tweak the secret word to ensure uniqueness (keep content)
+            candidate = { ...candidate, word: `${candidate.word}-${idx + 1}` };
           }
-          if (seenWord.has(wordKey)) {
-            q = { ...q, word: `${q.word}-x` };
-            wordKey = q.word.toLowerCase().trim();
-          }
-          seenContent.add(contentKey);
-          seenWord.add(wordKey);
-          return q;
-        });
+          unique.push(candidate);
+        }
 
         setGeneratedQuestions(unique);
         console.log('[QUESTIONS-FLOW] ✅ Prefetch completo das 4 questões');
