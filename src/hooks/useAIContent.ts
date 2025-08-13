@@ -63,32 +63,10 @@ export const useAIContent = (): AIContentHook => {
       
       console.log(`[AI-CONTENT] 🎯 GERANDO QUESTÃO ${questionIndex || 0}: ${sanitizedSubject} -> ${sanitizedTheme} -> ${sanitizedGrade}`);
 
-      // ✅ PRIORIDADE 1: FALLBACK EXPANDIDO GRANULAR COM ÍNDICE
-      if (contentType === 'question' && questionIndex !== undefined) {
-        console.log(`[AI-CONTENT] 🥇 PRIORIDADE 1: Tentando fallback expandido granular para questão ${questionIndex}`);
-        const expandedFallback = getExpandedGranularFallback(gameParams, 'question', questionIndex);
-        
-        if (expandedFallback && !Array.isArray(expandedFallback)) {
-          console.log(`[AI-CONTENT] ✅ SUCESSO PRIORIDADE 1: Questão ${questionIndex} específica do fallback expandido`);
-          return expandedFallback;
-        }
-      }
-
-      // 🥈 PRIORIDADE 2: FALLBACK INTELIGENTE COM SEED
-      console.log(`[AI-CONTENT] 🥈 PRIORIDADE 2: Tentando fallback inteligente com seed ${questionIndex}`);
-      const intelligentFallback = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info', questionIndex);
-      
-      if (intelligentFallback && validateGeneratedContent(intelligentFallback, gameParams)) {
-        console.log(`[AI-CONTENT] ✅ SUCESSO PRIORIDADE 2: Fallback inteligente validado para questão ${questionIndex}`);
-        return intelligentFallback;
-      }
-
-      // 🥉 PRIORIDADE 3: API GEMINI STREAMING COM SEED
-      console.log(`[AI-CONTENT] 🥉 PRIORIDADE 3: Tentando API Gemini STREAMING para questão ${questionIndex}`);
-      
+      // 🥇 PRIORIDADE 1: API GEMINI STREAMING COM SEED
       try {
         const ultraCacheKey = generateUltraSpecificCacheKey(contentType, gameParams, questionIndex);
-        console.log(`[AI-CONTENT] 🔑 Chave ultra-específica: ${ultraCacheKey}`);
+        console.log(`[AI-CONTENT] 🥇 PRIORIDADE 1: Tentando API Gemini STREAMING para ${contentType} ${questionIndex}`);
         
         const { data, error } = await supabase.functions.invoke('generate-game-content', {
           body: {
@@ -107,20 +85,40 @@ export const useAIContent = (): AIContentHook => {
         if (!error && data && validateGeneratedContent(data, gameParams)) {
           const dataStr = JSON.stringify(data).toLowerCase();
           if (!dataStr.includes('demônio') && !dataStr.includes('estava caminhando')) {
-            console.log(`[AI-CONTENT] ✅ SUCESSO PRIORIDADE 3: API Gemini STREAMING validada para questão ${questionIndex}`);
+            console.log(`[AI-CONTENT] ✅ SUCESSO PRIORIDADE 1: API Gemini validada para ${contentType} ${questionIndex}`);
             return data;
           } else {
-            console.log(`[AI-CONTENT] 🚨 API Gemini retornou conteúdo corrompido para questão ${questionIndex} - rejeitado`);
+            console.log(`[AI-CONTENT] 🚨 API Gemini retornou conteúdo corrompido para ${contentType} ${questionIndex} - rejeitado`);
           }
         } else {
-          console.log(`[AI-CONTENT] ❌ API Gemini STREAMING falhou para questão ${questionIndex}:`, error);
+          console.log(`[AI-CONTENT] ❌ API Gemini STREAMING falhou para ${contentType} ${questionIndex}:`, error);
         }
       } catch (apiError) {
-        console.log(`[AI-CONTENT] ❌ Erro na API Gemini STREAMING para questão ${questionIndex}:`, apiError);
+        console.log(`[AI-CONTENT] ❌ Erro na API Gemini STREAMING para ${contentType} ${questionIndex}:`, apiError);
+      }
+
+      // 🥈 PRIORIDADE 2: FALLBACK EXPANDIDO GRANULAR COM ÍNDICE
+      if (contentType === 'question' && questionIndex !== undefined) {
+        console.log(`[AI-CONTENT] 🥈 PRIORIDADE 2: Tentando fallback expandido granular para questão ${questionIndex}`);
+        const expandedFallback = getExpandedGranularFallback(gameParams, 'question', questionIndex);
+        
+        if (expandedFallback && !Array.isArray(expandedFallback)) {
+          console.log(`[AI-CONTENT] ✅ SUCESSO PRIORIDADE 2: Questão ${questionIndex} específica do fallback expandido`);
+          return expandedFallback;
+        }
+      }
+
+      // 🥉 PRIORIDADE 3: FALLBACK INTELIGENTE COM SEED
+      console.log(`[AI-CONTENT] 🥉 PRIORIDADE 3: Tentando fallback inteligente com seed ${questionIndex}`);
+      const intelligentFallback = generateIntelligentFallback(gameParams, contentType as 'story' | 'question' | 'character_info', questionIndex);
+      
+      if (intelligentFallback && validateGeneratedContent(intelligentFallback, gameParams)) {
+        console.log(`[AI-CONTENT] ✅ SUCESSO PRIORIDADE 3: Fallback inteligente validado para ${contentType} ${questionIndex}`);
+        return intelligentFallback;
       }
 
       // 🚨 EMERGÊNCIA: Usar fallback específico por índice
-      console.log(`[AI-CONTENT] 🚨 EMERGÊNCIA: Forçando fallback específico para questão ${questionIndex}`);
+      console.log(`[AI-CONTENT] 🚨 EMERGÊNCIA: Forçando fallback específico para ${contentType} ${questionIndex}`);
       
       // Criar questões específicas baseadas no índice para evitar duplicatas
       if (contentType === 'question') {
