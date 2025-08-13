@@ -86,7 +86,13 @@ const QuestionsFlow = ({
         for (let idx = 0; idx < filled.length; idx++) {
           let candidate = filled[idx];
           let attempts = 0;
-          const normalize = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
+          const normalize = (s: string) => s
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
           const usedContents = new Set(unique.map(q => normalize(q.content)));
           const usedWords = new Set(unique.map(q => normalize(q.word)));
           
