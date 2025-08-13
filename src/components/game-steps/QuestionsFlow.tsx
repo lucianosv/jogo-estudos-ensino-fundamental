@@ -45,6 +45,62 @@ const QuestionsFlow = ({
   const { generateQuestion, isLoading } = useAIContent();
   const prefetchingRef = useRef(false);
 
+  // Generate a synthetic question that is guaranteed to differ per index
+  const generateSyntheticQuestion = (params: GameParameters, idx: number): Question => {
+    const { subject, theme, schoolGrade } = params;
+    const lowerSubject = subject.toLowerCase();
+    if (lowerSubject.includes('matem')) {
+      // Rotate operations to ensure distinct problems
+      const a = 7 + idx * 3;
+      const b = 2 + idx;
+      const op = idx % 4;
+      if (op === 0) {
+        return {
+          content: `Matemática - ${theme} (${schoolGrade}): Quanto é ${a} + ${b}?`,
+          choices: [`${a + b - 1}`, `${a + b}`, `${a + b + 1}`, `${a + b + 2}`],
+          answer: `${a + b}`,
+          word: `soma-${idx + 1}`
+        };
+      } else if (op === 1) {
+        return {
+          content: `Matemática - ${theme} (${schoolGrade}): Quanto é ${a + b} − ${b}?`,
+          choices: [`${a - 1}`, `${a}`, `${a + 1}`, `${a + 2}`],
+          answer: `${a}`,
+          word: `subtracao-${idx + 1}`
+        };
+      } else if (op === 2) {
+        const m = 3 + (idx % 3);
+        return {
+          content: `Matemática - ${theme} (${schoolGrade}): Quanto é ${b} × ${m}?`,
+          choices: [`${b * m - 1}`, `${b * m}`, `${b * m + 1}`, `${b * m + 2}`],
+          answer: `${b * m}`,
+          word: `multiplicacao-${idx + 1}`
+        };
+      }
+      // Division (exact)
+      const d = 2 + (idx % 3);
+      return {
+        content: `Matemática - ${theme} (${schoolGrade}): Quanto é ${(a + b) * d} ÷ ${d}?`,
+        choices: [`${a + b - 1}`, `${a + b}`, `${a + b + 1}`, `${a + b + 2}`],
+        answer: `${a + b}`,
+        word: `divisao-${idx + 1}`
+      };
+    }
+    // Generic subject-safe template with index tags to stay distinct
+    const variant = [
+      'Investigue a afirmação correta.',
+      'Escolha o melhor conceito.',
+      'Identifique a alternativa certa.',
+      'Selecione a resposta adequada.'
+    ][idx % 4];
+    return {
+      content: `${subject} - ${theme} (${schoolGrade}): ${variant} [Q${idx + 1}]`,
+      choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
+      answer: "Opção A",
+      word: `chave-${idx + 1}`
+    };
+  };
+
   // Prefetch all 4 questions up front (respecting firstQuestion if provided)
   useEffect(() => {
     if (prefetchingRef.current) return;
@@ -98,7 +154,7 @@ const QuestionsFlow = ({
           
           const isDup = (q: Question) => usedContents.has(normalize(q.content)) || usedWords.has(normalize(q.word));
 
-          while (attempts < 3 && isDup(candidate)) {
+          while (attempts < 4 && isDup(candidate)) {
             attempts++;
             // Try granular fallback for this exact index
             const granular = getExpandedGranularFallback(gameParams, 'question', idx) as any;
@@ -118,8 +174,8 @@ const QuestionsFlow = ({
               candidate = intel as Question;
               break;
             }
-            // Last resort: minimally tweak the secret word to ensure uniqueness (keep content)
-            candidate = { ...candidate, word: `${candidate.word}-${idx + 1}` };
+            // Strict last resort: synthesize a distinct question for this slot
+            candidate = generateSyntheticQuestion(gameParams, idx);
           }
           unique.push(candidate);
         }
