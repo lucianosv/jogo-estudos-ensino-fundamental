@@ -130,27 +130,91 @@ const generateSubjectSpecificQuestion = (gameParams: GameParameters, questionInd
 
   // MATEMÁTICA - só como último recurso e respeitando o tema
   if (subject === 'Matemática') {
+    const idx = questionIndex ?? 0;
     if (grade >= 1 && grade <= 3) {
-      return {
-        content: `Matemática - ${theme} (${schoolGrade}): Quanto é 2 + 3?`,
-        choices: ["4", "5", "6", "7"],
-        answer: "5",
-        word: "soma"
-      };
+      const options = [
+        {
+          content: `Matemática - ${theme} (${schoolGrade}): Quanto é 2 + 3?`,
+          choices: ["4", "5", "6", "7"],
+          answer: "5",
+          word: "soma"
+        },
+        {
+          content: `Matemática - ${theme} (${schoolGrade}): Se você tem 7 balas e dá 2, com quantas fica?`,
+          choices: ["3", "4", "5", "6"],
+          answer: "5",
+          word: "tirar"
+        },
+        {
+          content: `Matemática - ${theme} (${schoolGrade}): Complete: 9 − 4 = ?`,
+          choices: ["3", "4", "5", "6"],
+          answer: "5",
+          word: "subtração"
+        },
+        {
+          content: `Matemática - ${theme} (${schoolGrade}): Conte: 3 + 2 = ?`,
+          choices: ["4", "5", "6", "7"],
+          answer: "5",
+          word: "contar"
+        }
+      ];
+      return options[idx % options.length];
     } else if (grade >= 4 && grade <= 6) {
-      return {
-        content: `Matemática - ${theme} (${schoolGrade}): Quanto é 6 × 4?`,
-        choices: ["20", "22", "24", "26"],
-        answer: "24",
-        word: "produto"
-      };
+      const options = [
+        {
+          content: `Matemática - ${theme} (${schoolGrade}): Quanto é 6 × 4?`,
+          choices: ["20", "22", "24", "26"],
+          answer: "24",
+          word: "produto"
+        },
+        {
+          content: `Matemática - ${theme} (${schoolGrade}): Resolva 45 ÷ 5`,
+          choices: ["7", "8", "9", "10"],
+          answer: "9",
+          word: "divisão"
+        },
+        {
+          content: `Matemática - ${theme} (${schoolGrade}): 18 + 27 = ?`,
+          choices: ["43", "44", "45", "46"],
+          answer: "45",
+          word: "soma"
+        },
+        {
+          content: `Matemática - ${theme} (${schoolGrade}): 100 − 37 = ?`,
+          choices: ["61", "62", "63", "64"],
+          answer: "63",
+          word: "subtração"
+        }
+      ];
+      return options[idx % options.length];
     } else {
-      return {
-        content: `Matemática - ${theme} (${schoolGrade}): Se x + 5 = 12, quanto vale x?`,
-        choices: ["5", "6", "7", "8"],
-        answer: "7",
-        word: "incógnita"
-      };
+      const options = [
+        {
+          content: `Matemática - ${theme} (${schoolGrade}): Se x + 5 = 12, x = ?`,
+          choices: ["5", "6", "7", "8"],
+          answer: "7",
+          word: "incógnita"
+        },
+        {
+          content: `Matemática - ${theme} (${schoolGrade}): Resolva 3y = 21. y = ?`,
+          choices: ["5", "6", "7", "8"],
+          answer: "7",
+          word: "variável"
+        },
+        {
+          content: `Matemática - ${theme} (${schoolGrade}): 2a − 4 = 10. a = ?`,
+          choices: ["5", "6", "7", "8"],
+          answer: "7",
+          word: "equação"
+        },
+        {
+          content: `Matemática - ${theme} (${schoolGrade}): Em uma expressão, o que representa 'x'?`,
+          choices: ["Número conhecido", "Operação", "Número desconhecido", "Fração"],
+          answer: "Número desconhecido",
+          word: "desconhecido"
+        }
+      ];
+      return options[idx % options.length];
     }
   }
 
