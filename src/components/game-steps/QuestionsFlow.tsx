@@ -207,8 +207,10 @@ const QuestionsFlow = ({
     setWasCorrect(true);
     setShowResult(true);
     if (generatedQuestions[currentIndex]) {
-      console.log(`[QUESTIONS-FLOW] ✅ Coletando palavra: ${generatedQuestions[currentIndex].word}`);
-      onCollectWord(generatedQuestions[currentIndex].word);
+      const rawWord = generatedQuestions[currentIndex].word;
+      const cleanWord = rawWord.replace(/[-_](?:\d+|x)+$/i, '');
+      console.log(`[QUESTIONS-FLOW] ✅ Coletando palavra: ${cleanWord}`);
+      onCollectWord(cleanWord);
     }
   };
 
