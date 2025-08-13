@@ -86,10 +86,11 @@ const QuestionsFlow = ({
         for (let idx = 0; idx < filled.length; idx++) {
           let candidate = filled[idx];
           let attempts = 0;
-          const usedContents = new Set(unique.map(q => q.content.toLowerCase().trim()));
-          const usedWords = new Set(unique.map(q => q.word.toLowerCase().trim()));
+          const normalize = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
+          const usedContents = new Set(unique.map(q => normalize(q.content)));
+          const usedWords = new Set(unique.map(q => normalize(q.word)));
           
-          const isDup = (q: Question) => usedContents.has(q.content.toLowerCase().trim()) || usedWords.has(q.word.toLowerCase().trim());
+          const isDup = (q: Question) => usedContents.has(normalize(q.content)) || usedWords.has(normalize(q.word));
 
           while (attempts < 3 && isDup(candidate)) {
             attempts++;

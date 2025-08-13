@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { GameParameters } from '@/components/GameSetup';
@@ -45,13 +45,11 @@ const generateUltraSpecificCacheKey = (contentType: string, gameParams: GamePara
 export const useAIContent = (): AIContentHook => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const inFlightCountRef = useRef(0);
 
   const callAIFunction = useCallback(async (contentType: string, gameParams: GameParameters, questionIndex?: number, customDifficulty?: string) => {
-    if (isLoading) {
-      console.log('[AI-CONTENT] 🔄 Já está carregando, ignorando nova chamada');
-      return null;
-    }
-
+    // Allow concurrent calls; track in-flight count for UI
+    inFlightCountRef.current += 1;
     setIsLoading(true);
     
     try {
@@ -248,7 +246,10 @@ export const useAIContent = (): AIContentHook => {
       console.error(`[AI-CONTENT] ❌ ERRO GERAL FINAL para questão ${questionIndex}:`, error);
       return null;
     } finally {
-      setIsLoading(false);
+      inFlightCountRef.current = Math.max(0, inFlightCountRef.current - 1);
+      if (inFlightCountRef.current === 0) {
+        setIsLoading(false);
+      }
     }
   }, [isLoading]);
 
