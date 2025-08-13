@@ -7,6 +7,7 @@ import { useAIContent } from "@/hooks/useAIContent";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
 import { validateUniqueQuestions, finalValidation } from "@/utils/uniqueContentValidator";
+import { generateIntelligentFallback } from "@/utils/intelligentFallbacks";
 
 interface Question {
   content: string;
@@ -41,23 +42,71 @@ const QuestionsFlow = ({
   const [loadingNextQuestion, setLoadingNextQuestion] = useState(false);
   const [isGeneratingNext, setIsGeneratingNext] = useState(false);
   const { generateQuestion, isLoading } = useAIContent();
+  const prefetchingRef = useRef(false);
 
-  // Inicializar questões com primeira questão já gerada
+  // Prefetch all 4 questions up front (respecting firstQuestion if provided)
   useEffect(() => {
-    // Initialize only once per session unless firstQuestion changes
-    setGeneratedQuestions(prev => {
-      if (prev.length > 0 && !firstQuestion) return prev;
-      if (firstQuestion) {
-        console.log('[QUESTIONS-FLOW] 🚀 Inicializando com primeira questão pré-carregada');
-        return [firstQuestion];
+    if (prefetchingRef.current) return;
+    prefetchingRef.current = true;
+
+    const run = async () => {
+      try {
+        const results: (Question | null)[] = [null, null, null, null];
+
+        // If we already have a firstQuestion, set it
+        if (firstQuestion) {
+          results[0] = firstQuestion;
+        }
+
+        // Generate remaining questions in parallel
+        await Promise.all(
+          [0, 1, 2, 3].map(async (idx) => {
+            if (idx === 0 && results[0]) return;
+            const q = await generateQuestion(gameParams, idx);
+            results[idx] = q;
+          })
+        );
+
+        // Validate and fill gaps with intelligent fallback per index
+        const filled: Question[] = results.map((q, idx) => {
+          if (q && q.content && q.choices && q.answer && q.word) return q as Question;
+          const fb = generateIntelligentFallback(gameParams, 'question', idx) as any;
+          if (fb && fb.content && fb.choices && fb.answer && fb.word) return fb as Question;
+          return {
+            content: `${gameParams.subject} - ${gameParams.theme}: Questão ${idx + 1}`,
+            choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
+            answer: "Opção A",
+            word: `palavra${idx + 1}`
+          } as Question;
+        });
+
+        // Ensure uniqueness by content/word; if dup, tweak word minimally
+        const seenContent = new Set<string>();
+        const seenWord = new Set<string>();
+        const unique = filled.map((q) => {
+          let contentKey = q.content.toLowerCase().trim();
+          let wordKey = q.word.toLowerCase().trim();
+          if (seenContent.has(contentKey)) {
+            contentKey = `${contentKey}-${Date.now()}`;
+          }
+          if (seenWord.has(wordKey)) {
+            q = { ...q, word: `${q.word}-x` };
+            wordKey = q.word.toLowerCase().trim();
+          }
+          seenContent.add(contentKey);
+          seenWord.add(wordKey);
+          return q;
+        });
+
+        setGeneratedQuestions(unique);
+        console.log('[QUESTIONS-FLOW] ✅ Prefetch completo das 4 questões');
+      } catch (e) {
+        console.error('[QUESTIONS-FLOW] Erro no prefetch:', e);
       }
-      if (questions && questions.length > 0) {
-        console.log('[QUESTIONS-FLOW] Usando questões passadas como prop');
-        return questions;
-      }
-      return prev;
-    });
-  }, [firstQuestion]);
+    };
+
+    void run();
+  }, [firstQuestion, gameParams]);
 
   // Gerar próxima questão quando necessário
   const generateNextQuestion = async (nextIndex: number) => {
@@ -181,12 +230,12 @@ const QuestionsFlow = ({
     setGeneratedQuestions(firstQuestion ? [firstQuestion] : []);
   };
 
-  // Loading state para primeira questão
+  // Loading state para prefetch
   if (generatedQuestions.length === 0) {
     return (
       <div className="text-center py-12">
         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-        <p className="text-lg">⚡ Carregando primeira questão...</p>
+        <p className="text-lg">⚡ Preparando suas 4 questões...</p>
         <p className="text-sm text-gray-600 mt-2">📚 {gameParams.subject} - {gameParams.theme}</p>
       </div>
     );
