@@ -14,7 +14,8 @@ import QuestionsFlow from "./game-steps/QuestionsFlow";
 import GameSetup from "./GameSetup";
 import { Loader2 } from "lucide-react";
 import { getDynamicTheme } from "@/utils/dynamicThemeUtils";
-import { useGameLogic } from "@/hooks/useGameLogic";
+import { useGameLogic } from "@/components/GameLogic";
+import { useStoryGenerator } from "@/components/StoryGenerator";
 
 // Interface para conteúdo pré-carregado
 interface PreloadedContent {
@@ -32,25 +33,26 @@ const GameEngine = () => {
     gameParams,
     dynamicStory,
     dynamicSteps,
-    isGeneratingStory,
-    isLoading,
     setCurrentStepIndex,
     setGameStarted,
     handleRestart,
     handleSetupComplete,
     handleCollectWord,
     handlePasswordSuccess,
+    setDynamicStoryData,
     currentStep,
     isQuestionStep,
     isStoryRevealStep
   } = useGameLogic();
+
+  const { generateDynamicStory, isGeneratingStory, isLoading } = useStoryGenerator();
 
   const handleFinishQuestions = () => {
     setCurrentStepIndex((idx) => idx + 1);
   };
 
   const handlePasswordSubmit = (password: string) => {
-    if (!selectedGame) return;
+    if (!selectedGame || !gameParams) return;
     const sanitizedPassword = sanitizeText(password);
 
     // Exigir que o usuário tenha coletado as 4 palavras
@@ -78,6 +80,10 @@ const GameEngine = () => {
 
     if (hasAllWords) {
       handlePasswordSuccess();
+      // Disparar geração da história
+      if (!dynamicStory && !isGeneratingStory) {
+        generateDynamicStory(gameParams, setDynamicStoryData);
+      }
     } else {
       logSecurityEvent('Incorrect password attempt', {
         expected: collectedWords.join(" "),
@@ -157,7 +163,7 @@ const GameEngine = () => {
           <div className="text-center py-12">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
             <p className="text-lg">Gerando sua história personalizada...</p>
-            <p className="text-sm text-gray-600 mt-2">{gameParams.subject} - {gameParams.theme}</p>
+            <p className="text-sm text-muted-foreground mt-2">{gameParams.subject} - {gameParams.theme}</p>
           </div>
         );
       }
@@ -241,11 +247,7 @@ const GameEngine = () => {
           <Button 
             onClick={handleRestart}
             variant="outline"
-            className={`bg-white/90 hover:bg-white border-2 font-bold py-3 px-6 rounded-full shadow-lg ${
-              dynamicTheme 
-                ? `border-${dynamicTheme.colors.primary} text-${dynamicTheme.colors.primary} hover:text-${dynamicTheme.colors.primary}-700`
-                : 'border-red-500 text-red-600 hover:text-red-700'
-            }`}
+            className="bg-background hover:bg-muted border-2 border-primary text-primary hover:text-primary/80 font-bold py-3 px-6 rounded-full shadow-lg"
           >
             🎮 Nova Aventura
           </Button>
