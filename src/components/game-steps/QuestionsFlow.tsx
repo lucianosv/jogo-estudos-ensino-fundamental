@@ -3,19 +3,12 @@ import QuestionStep from "./QuestionStep";
 import ResultDisplay from "./question/ResultDisplay";
 import { getThemeColors } from "./question/ThemeUtils";
 import { GameParameters } from "../GameSetup";
-import { useAIContent } from "@/hooks/useAIContent";
+import { useQuestionGeneration } from "@/hooks/useQuestionGeneration";
+import { Question } from "@/services/QuestionGenerationService";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
-import { validateUniqueQuestions, finalValidation } from "@/utils/uniqueContentValidator";
-import { generateIntelligentFallback } from "@/utils/intelligentFallbacks";
-import { getExpandedGranularFallback } from "@/utils/expandedGranularFallbacks";
 
-interface Question {
-  content: string;
-  choices: string[];
-  answer: string;
-  word: string;
-}
+// Question interface now imported from service
 
 interface QuestionsFlowProps {
   questions: Question[];
@@ -40,228 +33,70 @@ const QuestionsFlow = ({
   const [showResult, setShowResult] = useState(false);
   const [wasCorrect, setWasCorrect] = useState<boolean | null>(null);
   const [generatedQuestions, setGeneratedQuestions] = useState<Question[]>([]);
-  const [loadingNextQuestion, setLoadingNextQuestion] = useState(false);
-  const [isGeneratingNext, setIsGeneratingNext] = useState(false);
-  const { generateQuestion, isLoading } = useAIContent();
-  const prefetchingRef = useRef(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const { generateQuestionSet, generateSingleQuestion, isLoading, clearCache } = useQuestionGeneration();
+  const initializationRef = useRef(false);
 
-  // Generate a synthetic question that is guaranteed to differ per index
-  const generateSyntheticQuestion = (params: GameParameters, idx: number): Question => {
-    const { subject, theme, schoolGrade } = params;
-    const lowerSubject = subject.toLowerCase();
-    if (lowerSubject.includes('matem')) {
-      // Rotate operations to ensure distinct problems
-      const a = 7 + idx * 3;
-      const b = 2 + idx;
-      const op = idx % 4;
-      if (op === 0) {
-        return {
-          content: `Matemática - ${theme} (${schoolGrade}): Quanto é ${a} + ${b}?`,
-          choices: [`${a + b - 1}`, `${a + b}`, `${a + b + 1}`, `${a + b + 2}`],
-          answer: `${a + b}`,
-          word: `soma-${idx + 1}`
-        };
-      } else if (op === 1) {
-        return {
-          content: `Matemática - ${theme} (${schoolGrade}): Quanto é ${a + b} − ${b}?`,
-          choices: [`${a - 1}`, `${a}`, `${a + 1}`, `${a + 2}`],
-          answer: `${a}`,
-          word: `subtracao-${idx + 1}`
-        };
-      } else if (op === 2) {
-        const m = 3 + (idx % 3);
-        return {
-          content: `Matemática - ${theme} (${schoolGrade}): Quanto é ${b} × ${m}?`,
-          choices: [`${b * m - 1}`, `${b * m}`, `${b * m + 1}`, `${b * m + 2}`],
-          answer: `${b * m}`,
-          word: `multiplicacao-${idx + 1}`
-        };
-      }
-      // Division (exact)
-      const d = 2 + (idx % 3);
-      return {
-        content: `Matemática - ${theme} (${schoolGrade}): Quanto é ${(a + b) * d} ÷ ${d}?`,
-        choices: [`${a + b - 1}`, `${a + b}`, `${a + b + 1}`, `${a + b + 2}`],
-        answer: `${a + b}`,
-        word: `divisao-${idx + 1}`
-      };
-    }
-    // Generic subject-safe template with index tags to stay distinct
-    const variant = [
-      'Investigue a afirmação correta.',
-      'Escolha o melhor conceito.',
-      'Identifique a alternativa certa.',
-      'Selecione a resposta adequada.'
-    ][idx % 4];
-    return {
-      content: `${subject} - ${theme} (${schoolGrade}): ${variant} [Q${idx + 1}]`,
-      choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
-      answer: "Opção A",
-      word: `chave-${idx + 1}`
-    };
-  };
-
-  // Prefetch all 4 questions up front (respecting firstQuestion if provided)
+  // Inicialização única com novo serviço
   useEffect(() => {
-    if (prefetchingRef.current) return;
-    prefetchingRef.current = true;
+    if (initializationRef.current) return;
+    initializationRef.current = true;
 
-    const run = async () => {
+    const initializeQuestions = async () => {
+      setIsInitializing(true);
       try {
-        const results: (Question | null)[] = [null, null, null, null];
-
-        // If we already have a firstQuestion, set it
-        if (firstQuestion) {
-          results[0] = firstQuestion;
-        }
-
-        // Generate remaining questions in parallel
-        await Promise.all(
-          [0, 1, 2, 3].map(async (idx) => {
-            if (idx === 0 && results[0]) return;
-            const q = await generateQuestion(gameParams, idx);
-            results[idx] = q;
-          })
-        );
-
-        // Validate and fill gaps with intelligent fallback per index
-        const filled: Question[] = results.map((q, idx) => {
-          if (q && q.content && q.choices && q.answer && q.word) return q as Question;
-          const fb = generateIntelligentFallback(gameParams, 'question', idx) as any;
-          if (fb && fb.content && fb.choices && fb.answer && fb.word) return fb as Question;
-          return {
-            content: `${gameParams.subject} - ${gameParams.theme}: Questão ${idx + 1}`,
-            choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
-            answer: "Opção A",
-            word: `palavra${idx + 1}`
-          } as Question;
-        });
-
-        // Robust de-duplication: re-roll duplicates by content/word per index
-        const unique: Question[] = [];
-        for (let idx = 0; idx < filled.length; idx++) {
-          let candidate = filled[idx];
-          let attempts = 0;
-          const normalize = (s: string) => s
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9\s]/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-          const usedContents = new Set(unique.map(q => normalize(q.content)));
-          const usedWords = new Set(unique.map(q => normalize(q.word)));
-          
-          const isDup = (q: Question) => usedContents.has(normalize(q.content)) || usedWords.has(normalize(q.word));
-
-          while (attempts < 4 && isDup(candidate)) {
-            attempts++;
-            // Try granular fallback for this exact index
-            const granular = getExpandedGranularFallback(gameParams, 'question', idx) as any;
-            if (granular && granular.content && granular.choices && granular.answer && granular.word && !isDup(granular)) {
-              candidate = granular as Question;
-              break;
-            }
-            // Try one more API call via generateQuestion
-            const reroll = await generateQuestion(gameParams, idx);
-            if (reroll && reroll.content && reroll.choices && reroll.answer && reroll.word && !isDup(reroll)) {
-              candidate = reroll as Question;
-              break;
-            }
-            // Try intelligent fallback
-            const intel = generateIntelligentFallback(gameParams, 'question', idx) as any;
-            if (intel && intel.content && intel.choices && intel.answer && intel.word && !isDup(intel)) {
-              candidate = intel as Question;
-              break;
-            }
-            // Strict last resort: synthesize a distinct question for this slot
-            candidate = generateSyntheticQuestion(gameParams, idx);
-          }
-          unique.push(candidate);
-        }
-
-        setGeneratedQuestions(unique);
-        console.log('[QUESTIONS-FLOW] ✅ Prefetch completo das 4 questões');
-      } catch (e) {
-        console.error('[QUESTIONS-FLOW] Erro no prefetch:', e);
+        console.log('[QUESTIONS-FLOW] 🎮 Inicializando com novo serviço de questões');
+        
+        // Limpar cache anterior
+        clearCache();
+        
+        // Gerar conjunto completo de 4 questões únicas
+        const uniqueQuestions = await generateQuestionSet(gameParams);
+        
+        setGeneratedQuestions(uniqueQuestions);
+        console.log('[QUESTIONS-FLOW] ✅ Inicialização completa com 4 questões únicas');
+        
+      } catch (error) {
+        console.error('[QUESTIONS-FLOW] ❌ Erro na inicialização:', error);
+        
+        // Fallback de emergência
+        const emergencyQuestions: Question[] = Array.from({ length: 4 }, (_, idx) => ({
+          content: `${gameParams.subject} - ${gameParams.theme}: Questão ${idx + 1}`,
+          choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
+          answer: "Opção A",
+          word: `emergency_${idx + 1}`,
+          source: 'emergency' as const,
+          uniqueId: `emergency_${Date.now()}_${idx}`
+        }));
+        
+        setGeneratedQuestions(emergencyQuestions);
+        console.log('[QUESTIONS-FLOW] 🚨 Usando questões de emergência');
+      } finally {
+        setIsInitializing(false);
       }
     };
 
-    void run();
-  }, [firstQuestion, gameParams]);
+    void initializeQuestions();
+  }, [gameParams, generateQuestionSet, clearCache]);
 
-  // Gerar próxima questão quando necessário
-  const generateNextQuestion = async (nextIndex: number) => {
-    if (nextIndex >= 4 || isGeneratingNext) return;
-
-    setIsGeneratingNext(true);
-    setLoadingNextQuestion(true);
+  // Regenerar questão específica se necessário (raramente usado)
+  const regenerateSpecificQuestion = async (questionIndex: number) => {
+    if (questionIndex >= 4 || isLoading) return;
     
-    console.log(`[QUESTIONS-FLOW] 🎯 Gerando questão ${nextIndex + 1} sequencialmente...`);
+    console.log(`[QUESTIONS-FLOW] 🔄 Regenerando questão ${questionIndex + 1}`);
     
     try {
-      let attempt = 0;
-      const maxAttempts = 2;
-      let acceptedQuestion: Question | null = null;
-
-      while (attempt <= maxAttempts) {
-        const candidate = await generateQuestion(gameParams, nextIndex);
-
-        if (
-          candidate &&
-          candidate.content &&
-          candidate.choices &&
-          candidate.answer &&
-          candidate.word
-        ) {
-          const existingContents = generatedQuestions.map(q => q.content?.toLowerCase().trim());
-          const existingWords = generatedQuestions.map(q => q.word?.toLowerCase().trim());
-          const contentDup = existingContents.includes(candidate.content.toLowerCase().trim());
-          const wordDup = existingWords.includes(candidate.word.toLowerCase().trim());
-
-          if (!contentDup && !wordDup) {
-            acceptedQuestion = candidate as Question;
-            break;
-          } else {
-            console.log(`[QUESTIONS-FLOW] ♻️ Candidato rejeitado por duplicidade (contentDup=${contentDup}, wordDup=${wordDup}). Tentativa ${attempt + 1}/${maxAttempts + 1}`);
-          }
-        }
-        attempt++;
-      }
-
-      if (acceptedQuestion) {
-        setGeneratedQuestions(prev => [...prev, acceptedQuestion!]);
-        console.log(`[QUESTIONS-FLOW] ✅ Questão ${nextIndex + 1} gerada: ${acceptedQuestion.word}`);
-        return;
-      }
-
-      // Usar fallback sujeito/tema específico caso não consiga gerar única
-      console.log(`[QUESTIONS-FLOW] 🚨 Usando fallback sujeito/tema para questão ${nextIndex + 1}`);
-      const subjectFallback = generateIntelligentFallback(gameParams, 'question', nextIndex) as any;
-
-      const existingContents = generatedQuestions.map(q => q.content?.toLowerCase().trim());
-      const existingWords = generatedQuestions.map(q => q.word?.toLowerCase().trim());
-
-      let fallback: Question = subjectFallback && subjectFallback.content && subjectFallback.choices && subjectFallback.answer && subjectFallback.word
-        ? subjectFallback as Question
-        : {
-            content: `${gameParams.subject} - ${gameParams.theme}: Questão ${nextIndex + 1}`,
-            choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
-            answer: "Opção A",
-            word: `palavra${nextIndex + 1}`
-          };
-
-      // Evitar duplicidades
-      if (existingContents.includes(fallback.content.toLowerCase().trim()) || existingWords.includes(fallback.word.toLowerCase().trim())) {
-        fallback = { ...fallback, word: `${fallback.word}_${Date.now()}` } as Question;
-      }
-
-      setGeneratedQuestions(prev => [...prev, fallback]);
+      const newQuestion = await generateSingleQuestion(gameParams, questionIndex);
+      
+      setGeneratedQuestions(prev => {
+        const updated = [...prev];
+        updated[questionIndex] = newQuestion;
+        return updated;
+      });
+      
+      console.log(`[QUESTIONS-FLOW] ✅ Questão ${questionIndex + 1} regenerada`);
     } catch (error) {
-      console.error(`[QUESTIONS-FLOW] Erro ao gerar questão ${nextIndex + 1}:`, error);
-    } finally {
-      setIsGeneratingNext(false);
-      setLoadingNextQuestion(false);
+      console.error(`[QUESTIONS-FLOW] ❌ Erro ao regenerar questão ${questionIndex + 1}:`, error);
     }
   };
 
@@ -269,9 +104,14 @@ const QuestionsFlow = ({
     setWasCorrect(true);
     setShowResult(true);
     if (generatedQuestions[currentIndex]) {
-      const rawWord = generatedQuestions[currentIndex].word;
-      const cleanWord = rawWord.replace(/[-_](?:\d+|x)+$/i, '');
-      console.log(`[QUESTIONS-FLOW] ✅ Coletando palavra: ${cleanWord}`);
+      const currentQuestion = generatedQuestions[currentIndex];
+      // Limpar palavra de sufixos técnicos
+      const cleanWord = currentQuestion.word
+        .replace(/[-_]\d+$/g, '')
+        .replace(/[-_](emergency|fallback|gemini)$/g, '')
+        .replace(/[-_][a-z0-9]{6}$/g, '');
+      
+      console.log(`[QUESTIONS-FLOW] ✅ Coletando palavra limpa: "${cleanWord}" (original: "${currentQuestion.word}", fonte: ${currentQuestion.source})`);
       onCollectWord(cleanWord);
     }
   };
@@ -288,14 +128,7 @@ const QuestionsFlow = ({
     const nextIndex = currentIndex + 1;
     
     if (nextIndex < 4) {
-      // Se a próxima questão já existe, avançar
-      if (generatedQuestions[nextIndex]) {
-        setCurrentIndex(nextIndex);
-      } else {
-        // Gerar próxima questão em background
-        generateNextQuestion(nextIndex);
-        setCurrentIndex(nextIndex);
-      }
+      setCurrentIndex(nextIndex);
     } else {
       onFinish();
     }
@@ -306,21 +139,33 @@ const QuestionsFlow = ({
     setWasCorrect(null);
   };
 
-  const regenerateQuestions = async () => {
-    console.log('[QUESTIONS-FLOW] 🔄 REGENERANDO QUESTÕES');
+  const regenerateAllQuestions = async () => {
+    console.log('[QUESTIONS-FLOW] 🔄 REGENERANDO TODAS AS QUESTÕES');
     setCurrentIndex(0);
     setShowResult(false);
     setWasCorrect(null);
-    setGeneratedQuestions(firstQuestion ? [firstQuestion] : []);
+    setIsInitializing(true);
+    
+    try {
+      clearCache();
+      const newQuestions = await generateQuestionSet(gameParams);
+      setGeneratedQuestions(newQuestions);
+      console.log('[QUESTIONS-FLOW] ✅ Todas as questões regeneradas');
+    } catch (error) {
+      console.error('[QUESTIONS-FLOW] ❌ Erro ao regenerar questões:', error);
+    } finally {
+      setIsInitializing(false);
+    }
   };
 
-  // Loading state para prefetch
-  if (generatedQuestions.length === 0) {
+  // Loading state para inicialização
+  if (isInitializing || generatedQuestions.length === 0) {
     return (
       <div className="text-center py-12">
         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-        <p className="text-lg">⚡ Preparando suas 4 questões...</p>
+        <p className="text-lg">🎯 Gerando questões únicas...</p>
         <p className="text-sm text-gray-600 mt-2">📚 {gameParams.subject} - {gameParams.theme}</p>
+        <p className="text-xs text-gray-500 mt-1">✨ Sistema otimizado anti-duplicação</p>
       </div>
     );
   }
@@ -346,18 +191,17 @@ const QuestionsFlow = ({
     );
   }
 
-  // Pergunta atual ou loading da próxima
-  const thisQuestion = generatedQuestions[currentIndex];
+  // Questão atual
+  const currentQuestion = generatedQuestions[currentIndex];
   
-  // Se não existe a questão atual, disparar geração e mostrar loading
-  if (!thisQuestion && currentIndex < 4) {
-    if (!isGeneratingNext && !loadingNextQuestion) {
-      void generateNextQuestion(currentIndex);
-    }
+  // Se não existe a questão, erro crítico
+  if (!currentQuestion) {
     return (
       <div className="text-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-        <p className="text-sm">🎯 Gerando questão {currentIndex + 1}...</p>
+        <p className="text-lg text-red-600">❌ Erro: Questão não encontrada</p>
+        <Button onClick={regenerateAllQuestions} variant="outline" className="mt-4">
+          🔄 Regenerar Questões
+        </Button>
       </div>
     );
   }
@@ -369,14 +213,14 @@ const QuestionsFlow = ({
           📚 {gameParams.subject} - {gameParams.theme} | 🎓 {gameParams.schoolGrade}
         </p>
         <p className="text-xs text-gray-500">
-          ❓ Questão {currentIndex + 1} de {generatedQuestions.length}
+          ❓ Questão {currentIndex + 1} de 4 | 🔥 Fonte: {currentQuestion.source}
         </p>
       </div>
       
       <QuestionStep
-        content={thisQuestion.content}
-        choices={thisQuestion.choices}
-        answer={thisQuestion.answer}
+        content={currentQuestion.content}
+        choices={currentQuestion.choices}
+        answer={currentQuestion.answer}
         onCorrect={handleCorrect}
         onIncorrect={handleIncorrect}
         selectedGame={selectedGame}

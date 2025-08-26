@@ -16,6 +16,7 @@ import { Loader2 } from "lucide-react";
 import { getDynamicTheme } from "@/utils/dynamicThemeUtils";
 import { useGameLogic } from "@/components/GameLogic";
 import { useStoryGenerator } from "@/components/StoryGenerator";
+import { Question } from "@/services/QuestionGenerationService";
 
 // Interface para conteúdo pré-carregado
 interface PreloadedContent {
@@ -146,13 +147,27 @@ const GameEngine = () => {
     if (isQuestionStep && selectedGame) {
       return (
         <QuestionsFlow
-          questions={selectedGame?.questions || []}
+          questions={(selectedGame?.questions || []).map((q: any, idx: number) => ({
+            content: q.content,
+            choices: q.choices,
+            answer: q.answer,
+            word: q.word,
+            source: 'legacy' as const,
+            uniqueId: `legacy_${idx}_${Date.now()}`
+          } as Question))}
           onCollectWord={handleCollectWord}
           onFinish={handleFinishQuestions}
           selectedGame={selectedGame}
           onRestart={handleRestart}
           gameParams={gameParams}
-          firstQuestion={preloadedContent?.firstQuestion}
+          firstQuestion={preloadedContent?.firstQuestion ? {
+            content: preloadedContent.firstQuestion.content,
+            choices: preloadedContent.firstQuestion.choices,
+            answer: preloadedContent.firstQuestion.answer,
+            word: preloadedContent.firstQuestion.word,
+            source: 'preloaded' as const,
+            uniqueId: `preloaded_${Date.now()}`
+          } as Question : undefined}
         />
       );
     }

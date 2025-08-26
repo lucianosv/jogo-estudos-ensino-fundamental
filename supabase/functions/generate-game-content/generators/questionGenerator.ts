@@ -1,7 +1,7 @@
 import { generateWithGemini } from '../utils/geminiClient.ts';
 import { validateContent } from '../utils/contentValidator.ts';
 
-export const generateQuestion = async (subject: string, theme: string, schoolGrade: string, difficulty: string, questionIndex: number = 0, themeDetails?: string) => {
+export const generateQuestion = async (subject: string, theme: string, schoolGrade: string, difficulty: string, questionIndex: number = 0, themeDetails?: string, uniqueSessionId?: string, timestamp?: number, promptType?: string, promptInstruction?: string, antiDuplicationSeed?: string) => {
   const gradeNumber = parseInt(schoolGrade.charAt(0));
   let difficultyDescription = "";
   
@@ -39,11 +39,20 @@ export const generateQuestion = async (subject: string, theme: string, schoolGra
   
   const currentQuestionType = questionTypes[questionIndex % 4];
   
+  // Usar parâmetros anti-duplicação se fornecidos
+  const sessionId = uniqueSessionId || Math.random().toString(36).substring(2, 15);
+  const timeStamp = timestamp || Date.now();
+  const duplicationSeed = antiDuplicationSeed || `${sessionId}_${timeStamp}_${questionIndex}`;
+  
   const prompt = `
 INSTRUÇÕES ULTRA-ESPECÍFICAS PARA QUESTÃO ÚNICA (ANTI-DUPLICAÇÃO GEMINI):
 
-🎯 TIPO ESPECÍFICO DE QUESTÃO: ${currentQuestionType.type}
-Você DEVE criar uma questão de múltipla escolha FOCADA EM: ${currentQuestionType.focus}
+🆔 SESSÃO ÚNICA: ${sessionId}
+⏰ TIMESTAMP: ${timeStamp}
+🌱 SEED ANTI-DUPLICAÇÃO: ${duplicationSeed}
+
+🎯 TIPO ESPECÍFICO DE QUESTÃO: ${promptType || currentQuestionType.type}
+Você DEVE criar uma questão de múltipla escolha FOCADA EM: ${promptInstruction || currentQuestionType.focus}
 
 PARÂMETROS ESPECÍFICOS:
 - Matéria: ${subject}
@@ -51,6 +60,7 @@ PARÂMETROS ESPECÍFICOS:
 - Série: ${schoolGrade}
 - Questão Nº: ${questionIndex + 1} de 4
 - Estilo: ${currentQuestionType.style}
+- Sessão: ${sessionId}
 
 ⚠️ FOCO ULTRA-ESPECÍFICO PARA ESTA QUESTÃO:
 1. OBRIGATÓRIO: Foque APENAS em ${currentQuestionType.focus} sobre ${theme}
@@ -110,7 +120,7 @@ Retorne APENAS um JSON válido no formato:
   "content": "pergunta TIPO ${currentQuestionType.type} sobre ${theme}",
   "choices": ["opção A", "opção B", "opção C", "opção D"],
   "answer": "resposta correta exata",
-  "word": "palavra-${currentQuestionType.type.toLowerCase().replace(/\s+/g, '')}-${questionIndex}"
+  "word": "palavra-${currentQuestionType.type.toLowerCase().replace(/\s+/g, '')}-${questionIndex}-${sessionId.substring(0, 4)}"
 }
   `;
   
