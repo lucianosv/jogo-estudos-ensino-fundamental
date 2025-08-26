@@ -242,10 +242,21 @@ Retorne APENAS um JSON válido no formato:
       'Ciências': 'descoberta'
     };
     
+    // Gerar opções temáticas baseadas na matéria
+    const subjectChoices = {
+      'História': ['Descobrimento', 'Colonização', 'Independência', 'República'],
+      'Ciências': ['Natureza', 'Experimento', 'Observação', 'Teoria'],
+      'Geografia': ['Território', 'Clima', 'População', 'Economia'],
+      'Português': ['Texto', 'Palavra', 'Frase', 'Parágrafo'],
+      'Matemática': ['Número', 'Operação', 'Resultado', 'Cálculo']
+    };
+    
+    const choices = subjectChoices[subject as keyof typeof subjectChoices] || subjectChoices['Ciências'];
+    
     return {
       content: `${subject} (${schoolGrade}): Questão ${questionIndex + 1} sobre ${theme}`,
-      choices: ["Alternativa A", "Alternativa B", "Alternativa C", "Alternativa D"],
-      answer: "Alternativa A",
+      choices: choices,
+      answer: choices[0],
       word: `${subjectWords[subject] || "aprendizado"}${questionIndex + 1}`
     };
   }

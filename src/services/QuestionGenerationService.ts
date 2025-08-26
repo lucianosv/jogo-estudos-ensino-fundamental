@@ -270,9 +270,12 @@ class QuestionGenerationService {
     const subjectTemplates = templates[gameParams.subject as keyof typeof templates] || templates['Ciências'];
     const template = subjectTemplates[questionIndex % subjectTemplates.length];
     
+    // Gerar opções temáticas baseadas na matéria
+    const thematicChoices = this.generateThematicChoices(gameParams.subject, template.a);
+    
     const question: Question = {
       content: `${template.q} (${gameParams.theme})`,
-      choices: [template.a, 'Opção B', 'Opção C', 'Opção D'],
+      choices: [template.a, ...thematicChoices],
       answer: template.a,
       word: `${template.w}_${questionIndex}_${randomId}`,
       source: 'emergency',
@@ -281,6 +284,20 @@ class QuestionGenerationService {
 
     console.log(`[QUESTION-SERVICE] 🚨 Questão de emergência gerada para índice ${questionIndex}`);
     return question;
+  }
+
+  // Gerar opções temáticas alternativas
+  private generateThematicChoices(subject: string, correctAnswer: string): string[] {
+    const subjectChoices = {
+      'História': ['Idade Antiga', 'Revolução Industrial', 'Guerra Fria', 'Renascimento', 'Feudalismo', 'Império Romano'],
+      'Ciências': ['Fotossíntese', 'Gravidade', 'Átomo', 'Célula', 'Energia', 'Evolução'],
+      'Geografia': ['América do Sul', 'Europa', 'Ásia', 'África', 'Oceania', 'Antártida'],
+      'Português': ['Substantivo', 'Verbo', 'Adjetivo', 'Pronome', 'Advérbio', 'Preposição'],
+      'Matemática': ['Soma', 'Multiplicação', 'Divisão', 'Subtração', 'Fração', 'Porcentagem']
+    };
+    
+    const options = subjectChoices[subject as keyof typeof subjectChoices] || subjectChoices['Ciências'];
+    return options.filter(opt => opt !== correctAnswer).slice(0, 3);
   }
 
   // Método principal para gerar questão única

@@ -59,11 +59,23 @@ const QuestionsFlow = ({
       } catch (error) {
         console.error('[QUESTIONS-FLOW] ❌ Erro na inicialização:', error);
         
-        // Fallback de emergência
+        // Fallback de emergência com opções temáticas
+        const getSubjectChoices = (subject: string) => {
+          const subjectChoices = {
+            'História': ['Antiguidade', 'Idade Média', 'Era Moderna', 'Contemporâneo'],
+            'Ciências': ['Biologia', 'Física', 'Química', 'Astronomia'],
+            'Geografia': ['Continentes', 'Oceanos', 'Países', 'Capitais'],
+            'Português': ['Literatura', 'Gramática', 'Redação', 'Ortografia'],
+            'Matemática': ['Aritmética', 'Geometria', 'Álgebra', 'Estatística']
+          };
+          return subjectChoices[subject as keyof typeof subjectChoices] || subjectChoices['Ciências'];
+        };
+        
+        const choices = getSubjectChoices(gameParams.subject);
         const emergencyQuestions: Question[] = Array.from({ length: 4 }, (_, idx) => ({
           content: `${gameParams.subject} - ${gameParams.theme}: Questão ${idx + 1}`,
-          choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
-          answer: "Opção A",
+          choices: choices,
+          answer: choices[0],
           word: `emergency_${idx + 1}`,
           source: 'emergency' as const,
           uniqueId: `emergency_${Date.now()}_${idx}`

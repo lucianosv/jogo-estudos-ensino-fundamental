@@ -219,10 +219,20 @@ const generateSubjectSpecificQuestion = (gameParams: GameParameters, questionInd
   }
 
   // Fallback final respeitando a matéria selecionada
+  const subjectChoices = {
+    'História': ['Período Colonial', 'República', 'Império', 'Era Vargas'],
+    'Ciências': ['Reino Animal', 'Reino Vegetal', 'Reino Mineral', 'Reino Protista'],
+    'Geografia': ['Região Norte', 'Região Sul', 'Região Nordeste', 'Região Sudeste'],
+    'Português': ['Prosa', 'Verso', 'Drama', 'Épico'],
+    'Matemática': ['Adição', 'Subtração', 'Multiplicação', 'Divisão']
+  };
+  
+  const choices = subjectChoices[subject as keyof typeof subjectChoices] || subjectChoices['Ciências'];
+  
   return {
     content: `${subject} - ${theme} (${schoolGrade}): Questão sobre ${theme} em ${subject}`,
-    choices: ["Opção A", "Opção B", "Opção C", "Opção D"],
-    answer: "Opção A",
+    choices: choices,
+    answer: choices[0],
     word: "conhecimento"
   };
 };
