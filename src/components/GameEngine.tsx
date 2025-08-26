@@ -163,7 +163,7 @@ const GameEngine = () => {
           <div className="text-center py-12">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
             <p className="text-lg">Gerando sua história personalizada...</p>
-            <p className="text-sm text-muted-foreground mt-2">{gameParams.subject} - {gameParams.theme}</p>
+            <p className="text-sm text-gray-600 mt-2">{gameParams.subject} - {gameParams.theme}</p>
           </div>
         );
       }
@@ -247,7 +247,11 @@ const GameEngine = () => {
           <Button 
             onClick={handleRestart}
             variant="outline"
-            className="bg-background hover:bg-muted border-2 border-primary text-primary hover:text-primary/80 font-bold py-3 px-6 rounded-full shadow-lg"
+            className={`bg-white/90 hover:bg-white border-2 font-bold py-3 px-6 rounded-full shadow-lg ${
+              dynamicTheme 
+                ? `border-${dynamicTheme.colors.primary} text-${dynamicTheme.colors.primary} hover:text-${dynamicTheme.colors.primary}/90`
+                : 'border-red-500 text-red-600 hover:text-red-700'
+            }`}
           >
             🎮 Nova Aventura
           </Button>
