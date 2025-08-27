@@ -286,42 +286,139 @@ class QuestionGenerationService {
     return question;
   }
 
-  // Gerar opções temáticas alternativas
+  // Gerar opções temáticas contextualmente apropriadas
   private generateThematicChoices(subject: string, correctAnswer: string): string[] {
-    const subjectChoices = {
-      'História': [
-        'Idade Antiga', 'Revolução Industrial', 'Guerra Fria', 'Renascimento', 'Feudalismo', 'Império Romano',
-        'Revolução Francesa', 'Segunda Guerra Mundial', 'Idade Média', 'Era Napoleônica', 'Colonização',
-        'Independência do Brasil', 'Primeira Guerra Mundial', 'Império Bizantino', 'Civilização Grega'
-      ],
-      'Ciências': [
-        'Fotossíntese', 'Gravidade', 'Átomo', 'Célula', 'Energia', 'Evolução',
-        'DNA', 'Mitose', 'Respiração Celular', 'Sistema Solar', 'Magnetismo', 'Eletricidade',
-        'Reações Químicas', 'Biodiversidade', 'Ecossistema'
-      ],
-      'Geografia': [
-        'América do Sul', 'Europa', 'Ásia', 'África', 'Oceania', 'Antártida',
-        'Cordilheira dos Andes', 'Rio Amazonas', 'Deserto do Saara', 'Himalaia', 'Pantanal',
-        'Floresta Atlântica', 'Cerrado', 'Caatinga', 'Pampa'
-      ],
-      'Português': [
-        'Substantivo', 'Verbo', 'Adjetivo', 'Pronome', 'Advérbio', 'Preposição',
-        'Conjunção', 'Interjeição', 'Artigo', 'Numeral', 'Sujeito', 'Predicado',
-        'Sintaxe', 'Semântica', 'Morfologia'
-      ],
-      'Matemática': [
-        'Soma', 'Multiplicação', 'Divisão', 'Subtração', 'Fração', 'Porcentagem',
-        'Equação', 'Geometria', 'Álgebra', 'Trigonometria', 'Logaritmo', 'Raiz Quadrada',
-        'Função', 'Derivada', 'Integral'
-      ]
+    // Detectar o tipo de resposta para gerar opções similares
+    const answerType = this.detectAnswerType(correctAnswer);
+    
+    switch (answerType) {
+      case 'year':
+        return this.generateYearOptions(correctAnswer);
+      case 'number':
+        return this.generateNumberOptions(correctAnswer);
+      case 'person':
+        return this.generatePersonOptions(subject);
+      case 'place':
+        return this.generatePlaceOptions(subject);
+      case 'concept':
+        return this.generateConceptOptions(subject, correctAnswer);
+      default:
+        return this.generateGenericOptions(subject, correctAnswer);
+    }
+  }
+
+  // Detectar o tipo de resposta correta
+  private detectAnswerType(answer: string): string {
+    // Ano (4 dígitos)
+    if (/^\d{4}$/.test(answer)) return 'year';
+    
+    // Número
+    if (/^\d+/.test(answer)) return 'number';
+    
+    // Pessoa (contém nome próprio)
+    if (/^[A-Z][a-z]+ [A-Z]/.test(answer) || answer.includes('Dom ') || answer.includes('Presidente ')) {
+      return 'person';
+    }
+    
+    // Lugar (contém indicadores geográficos)
+    if (answer.includes('Rio ') || answer.includes('Serra ') || answer.includes('Oceano ') || 
+        answer.includes('Continente ') || answer.includes('Capital ')) {
+      return 'place';
+    }
+    
+    return 'concept';
+  }
+
+  // Gerar opções de anos próximos
+  private generateYearOptions(correctYear: string): string[] {
+    const year = parseInt(correctYear);
+    const options = [];
+    
+    // Gerar anos próximos mas diferentes
+    const offsets = [-50, -25, -10, -5, 5, 10, 25, 50, 100];
+    for (const offset of offsets) {
+      const newYear = year + offset;
+      if (newYear > 1400 && newYear < 2100 && newYear.toString() !== correctYear) {
+        options.push(newYear.toString());
+      }
+    }
+    
+    return options.slice(0, 3);
+  }
+
+  // Gerar opções numéricas similares
+  private generateNumberOptions(correctNumber: string): string[] {
+    const num = parseInt(correctNumber.replace(/\D/g, ''));
+    const unit = correctNumber.replace(/\d/g, '').trim();
+    
+    const options = [];
+    const variations = [num - 2, num - 1, num + 1, num + 2, num * 2, Math.floor(num / 2)];
+    
+    for (const variation of variations) {
+      if (variation > 0 && variation !== num) {
+        options.push(unit ? `${variation} ${unit}` : variation.toString());
+      }
+    }
+    
+    return options.slice(0, 3);
+  }
+
+  // Gerar opções de pessoas por matéria
+  private generatePersonOptions(subject: string): string[] {
+    const personsBySubject = {
+      'História': ['Dom Pedro II', 'Getúlio Vargas', 'Tiradentes', 'Princesa Isabel', 'Santos Dumont', 'Zumbi dos Palmares'],
+      'Ciências': ['Charles Darwin', 'Albert Einstein', 'Marie Curie', 'Isaac Newton', 'Gregor Mendel', 'Louis Pasteur'],
+      'Geografia': ['Vasco da Gama', 'Cristóvão Colombo', 'Ferdinand Magellan', 'James Cook', 'Marco Polo', 'Américo Vespúcio'],
+      'Português': ['Machado de Assis', 'José de Alencar', 'Carlos Drummond', 'Clarice Lispector', 'Monteiro Lobato', 'Castro Alves'],
+      'Matemática': ['Pitágoras', 'Euclides', 'Arquimedes', 'René Descartes', 'Isaac Newton', 'Leonhard Euler']
     };
     
-    const options = subjectChoices[subject as keyof typeof subjectChoices] || subjectChoices['Ciências'];
-    const availableOptions = options.filter(opt => opt !== correctAnswer);
+    const persons = personsBySubject[subject as keyof typeof personsBySubject] || personsBySubject['História'];
+    return persons.sort(() => Math.random() - 0.5).slice(0, 3);
+  }
+
+  // Gerar opções de lugares por matéria
+  private generatePlaceOptions(subject: string): string[] {
+    const placesBySubject = {
+      'História': ['Roma', 'Atenas', 'Egito', 'França', 'Inglaterra', 'Espanha'],
+      'Ciências': ['Laboratório', 'Universidade', 'Observatório', 'Instituto', 'Academia', 'Centro de Pesquisa'],
+      'Geografia': ['Brasil', 'Argentina', 'Chile', 'Peru', 'Colômbia', 'Venezuela'],
+      'Português': ['Portugal', 'Angola', 'Moçambique', 'Cabo Verde', 'São Tomé', 'Guiné-Bissau'],
+      'Matemática': ['Grécia', 'Babilônia', 'Índia', 'China', 'Egito', 'Mesopotâmia']
+    };
     
-    // Embaralhar e selecionar 3 opções diferentes
-    const shuffled = [...availableOptions].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 3);
+    const places = placesBySubject[subject as keyof typeof placesBySubject] || placesBySubject['Geografia'];
+    return places.sort(() => Math.random() - 0.5).slice(0, 3);
+  }
+
+  // Gerar opções conceituais por matéria
+  private generateConceptOptions(subject: string, correctAnswer: string): string[] {
+    const conceptsBySubject = {
+      'História': ['Monarquia', 'República', 'Império', 'Revolução', 'Independência', 'Colonização', 'Abolição', 'Proclamação'],
+      'Ciências': ['Fotossíntese', 'Respiração', 'Digestão', 'Circulação', 'Reprodução', 'Evolução', 'Seleção Natural', 'Hereditariedade'],
+      'Geografia': ['Clima', 'Relevo', 'Vegetação', 'Hidrografia', 'População', 'Economia', 'Região', 'Território'],
+      'Português': ['Sujeito', 'Predicado', 'Objeto', 'Complemento', 'Adjunto', 'Aposto', 'Vocativo', 'Agente'],
+      'Matemática': ['Adição', 'Subtração', 'Multiplicação', 'Divisão', 'Potenciação', 'Radiciação', 'Logaritmo', 'Função']
+    };
+    
+    const concepts = conceptsBySubject[subject as keyof typeof conceptsBySubject] || conceptsBySubject['História'];
+    const available = concepts.filter(concept => concept !== correctAnswer);
+    return available.sort(() => Math.random() - 0.5).slice(0, 3);
+  }
+
+  // Fallback para opções genéricas (mantém lógica anterior como última opção)
+  private generateGenericOptions(subject: string, correctAnswer: string): string[] {
+    const genericBySubject = {
+      'História': ['Período Colonial', 'Era Imperial', 'República Velha', 'Era Vargas', 'Regime Militar', 'Nova República'],
+      'Ciências': ['Biologia', 'Química', 'Física', 'Astronomia', 'Geologia', 'Ecologia'],
+      'Geografia': ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul', 'Região Amazônica'],
+      'Português': ['Gramática', 'Literatura', 'Redação', 'Interpretação', 'Linguística', 'Semântica'],
+      'Matemática': ['Aritmética', 'Álgebra', 'Geometria', 'Trigonometria', 'Estatística', 'Probabilidade']
+    };
+    
+    const options = genericBySubject[subject as keyof typeof genericBySubject] || genericBySubject['História'];
+    const available = options.filter(opt => opt !== correctAnswer);
+    return available.sort(() => Math.random() - 0.5).slice(0, 3);
   }
 
   // Método principal para gerar questão única
