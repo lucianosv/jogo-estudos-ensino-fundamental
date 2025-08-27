@@ -294,12 +294,18 @@ class QuestionGenerationService {
     switch (answerType) {
       case 'year':
         return this.generateYearOptions(correctAnswer);
+      case 'body_quantity':
+        return this.generateBodyQuantityOptions(correctAnswer);
+      case 'number_unit':
+        return this.generateNumberUnitOptions(correctAnswer);
       case 'number':
         return this.generateNumberOptions(correctAnswer);
       case 'person':
         return this.generatePersonOptions(subject);
       case 'place':
         return this.generatePlaceOptions(subject);
+      case 'organ':
+        return this.generateOrganOptions();
       case 'concept':
         return this.generateConceptOptions(subject, correctAnswer);
       default:
@@ -309,21 +315,36 @@ class QuestionGenerationService {
 
   // Detectar o tipo de resposta correta
   private detectAnswerType(answer: string): string {
+    const answerLower = answer.toLowerCase();
+    
     // Ano (4 dígitos)
     if (/^\d{4}$/.test(answer)) return 'year';
     
-    // Número
-    if (/^\d+/.test(answer)) return 'number';
+    // Quantidade + órgão/parte do corpo
+    if (/^(um|uma|dois|duas|três|quatro|cinco)\s+(pulmão|pulmões|rim|rins|olho|olhos|braço|braços|perna|pernas)/.test(answerLower)) {
+      return 'body_quantity';
+    }
+    
+    // Número + unidade
+    if (/^\d+\s+/.test(answer)) return 'number_unit';
+    
+    // Só número
+    if (/^\d+$/.test(answer)) return 'number';
     
     // Pessoa (contém nome próprio)
     if (/^[A-Z][a-z]+ [A-Z]/.test(answer) || answer.includes('Dom ') || answer.includes('Presidente ')) {
       return 'person';
     }
     
-    // Lugar (contém indicadores geográficos)
-    if (answer.includes('Rio ') || answer.includes('Serra ') || answer.includes('Oceano ') || 
-        answer.includes('Continente ') || answer.includes('Capital ')) {
+    // Lugar/Capital
+    if (answerLower.includes('brasília') || answerLower.includes('rio') || answerLower.includes('são paulo') || 
+        answer.includes('Capital') || /^[A-Z][a-z]+ília$/.test(answer)) {
       return 'place';
+    }
+    
+    // Órgão do corpo
+    if (/(coração|cérebro|fígado|estômago|intestino|pâncreas|baço|vesícula)/.test(answerLower)) {
+      return 'organ';
     }
     
     return 'concept';
@@ -361,6 +382,59 @@ class QuestionGenerationService {
     }
     
     return options.slice(0, 3);
+  }
+
+  // Gerar opções para quantidade de partes do corpo
+  private generateBodyQuantityOptions(correctAnswer: string): string[] {
+    const match = correctAnswer.toLowerCase().match(/^(um|uma|dois|duas|três|quatro|cinco)\s+(pulmão|pulmões|rim|rins|olho|olhos|braço|braços|perna|pernas)/);
+    if (!match) return this.generateNumberOptions(correctAnswer);
+    
+    const [, , organ] = match;
+    const organSingular = organ.replace(/s$/, '');
+    const organPlural = organ.endsWith('s') ? organ : organ + 's';
+    
+    // Gerar variações de quantidade para o mesmo órgão
+    const quantities = ['Um', 'Dois', 'Três', 'Quatro'];
+    const options = [];
+    
+    for (const qty of quantities) {
+      const option = qty === 'Um' ? `${qty} ${organSingular}` : `${qty} ${organPlural}`;
+      if (option.toLowerCase() !== correctAnswer.toLowerCase()) {
+        options.push(option);
+      }
+    }
+    
+    return options.slice(0, 3);
+  }
+
+  // Gerar opções para número + unidade
+  private generateNumberUnitOptions(correctAnswer: string): string[] {
+    const match = correctAnswer.match(/^(\d+)\s+(.+)$/);
+    if (!match) return this.generateNumberOptions(correctAnswer);
+    
+    const [, numStr, unit] = match;
+    const num = parseInt(numStr);
+    
+    const variations = [num - 50, num - 10, num + 10, num + 50, num * 2, Math.floor(num / 2)];
+    const options = [];
+    
+    for (const variation of variations) {
+      if (variation > 0 && variation !== num) {
+        options.push(`${variation} ${unit}`);
+      }
+    }
+    
+    return options.slice(0, 3);
+  }
+
+  // Gerar opções de órgãos do corpo
+  private generateOrganOptions(): string[] {
+    const organs = [
+      'Coração', 'Cérebro', 'Fígado', 'Estômago', 'Intestino', 'Pâncreas', 
+      'Baço', 'Vesícula', 'Pulmão', 'Rim', 'Bexiga', 'Próstata'
+    ];
+    
+    return organs.sort(() => Math.random() - 0.5).slice(0, 3);
   }
 
   // Gerar opções de pessoas por matéria
