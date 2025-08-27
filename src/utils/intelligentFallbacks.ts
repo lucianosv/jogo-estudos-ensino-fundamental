@@ -241,17 +241,9 @@ const generateSubjectSpecificQuestion = (gameParams: GameParameters, questionInd
 const generateSubjectSpecificStory = (gameParams: GameParameters): FallbackContent['story'] => {
   const { subject, theme, schoolGrade } = gameParams;
 
-  const makeAdventure = (title: string, hook: string, beats: string[]): FallbackContent['story'] => ({
+  const makeAdventure = (title: string, story: string): FallbackContent['story'] => ({
     title,
-    content: [
-      `Você está prestes a começar uma missão em ${subject.toLowerCase()}!`,
-      hook,
-      '',
-      `Sua aventura:`,
-      ...beats.map((b, i) => `${i + 1}. ${b}`),
-      '',
-      'Complete os desafios, colete as palavras secretas e desbloqueie o final desta missão!',
-    ].join('\n')
+    content: story
   });
 
   const lowerTheme = theme.toLowerCase();
@@ -260,104 +252,136 @@ const generateSubjectSpecificStory = (gameParams: GameParameters): FallbackConte
   if (lowerSubject === 'história') {
     if (lowerTheme.includes('roma')) {
       return makeAdventure(
-        'Jornada Histórica: Segredos de Roma Antiga',
-        'Você viaja no tempo para Roma Antiga. Nas ruas movimentadas, sente o cheiro de pão recém-assado e ouve o som distante de um gladiador treinando. Uma pergamina misteriosa revela uma missão: encontrar três pistas escondidas pela cidade para decifrar um segredo do Senado.',
-        [
-          'Investigue o Coliseu para entender por que ele era tão importante para os romanos.',
-          'Descubra o caminho da água nos aquedutos e como Roma se mantinha abastecida.',
-          'Converse com um mercador no fórum e aprenda sobre as leis e moedas romanas.',
-          'Retorne ao Senado para decifrar a mensagem final com seu novo conhecimento.'
-        ]
+        'A Aventura de Marco em Roma Antiga',
+        `Era uma vez um garoto romano chamado Marco que vivia nas ruas movimentadas de Roma. Uma manhã, seu avô, um senador respeitado, lhe deu uma missão especial.
+
+"Marco", disse o avô com um sorriso misterioso, "preciso que você descubra os segredos da nossa grande cidade. Cada lugar que visitar te ensinará algo importante sobre Roma."
+
+Marco ficou animado! Primeiro, foi ao Coliseu, onde conheceu um gladiador chamado Marcus. "Aqui lutamos para entreter o povo", explicou Marcus. "O Coliseu mostra a força e o poder de Roma!"
+
+Depois, Marco seguiu os aquedutos que traziam água fresca para a cidade. Um engenheiro lhe mostrou como a água viajava por quilômetros. "Sem água limpa, Roma não poderia ter tantos habitantes", disse o homem.
+
+No fórum, Marco conversou com mercadores de várias terras. Eles usavam moedas romanas e seguiam as leis criadas pelo Senado. "Roma une todo o mundo conhecido", explicou um comerciante.
+
+Ao voltar para casa, Marco estava cheio de orgulho. Agora entendia que Roma era especial porque cuidava do seu povo, construía coisas incríveis e criava leis justas para todos.`
       );
     }
 
     return makeAdventure(
-      `Jornada Histórica: ${theme}`,
-      `Você acorda em uma época distante e precisa registrar os fatos mais importantes sobre ${theme.toLowerCase()}. Um historiador te presenteia com um caderno e uma dica: cada resposta correta revela uma nova pista sobre o passado.`,
-      [
-        'Localize os personagens-chave e entenda suas motivações.',
-        'Visite um local histórico e identifique seus símbolos e seu propósito.',
-        'Colete informações sobre cultura, economia e sociedade da época.',
-        'Monte a linha do tempo e apresente sua conclusão histórica.'
-      ]
+      `Aventura no Tempo: ${theme}`,
+      `Era uma vez uma menina chamada Clara que encontrou um relógio mágico no sótão da vovó. Quando o tocou, uma luz dourada a envolveu e ela viajou para uma época muito antiga!
+
+"Onde estou?", perguntou Clara, olhando ao redor com curiosidade. As pessoas usavam roupas diferentes e viviam de forma muito especial.
+
+Uma criança da sua idade se aproximou. "Bem-vinda ao passado! Sou João e vou te mostrar como era nossa vida."
+
+Clara descobriu como as pessoas daquela época faziam suas casas, que comidas tinham, como se vestiam e que trabalhos faziam. Cada descoberta era mais interessante que a anterior!
+
+Ela viu como as pessoas eram corajosas e inteligentes, criando soluções incríveis para seus problemas do dia a dia. Participou de uma festa tradicional e aprendeu músicas e danças antigas.
+
+Quando o relógio brilhou novamente, Clara estava de volta ao presente. Mas agora sabia que o passado estava cheio de pessoas especiais que construíram o mundo que conhecemos hoje. Cada época tinha suas próprias aventuras e heróis!`
     );
   }
 
   if (lowerSubject === 'ciências') {
     if (lowerTheme.includes('sistema solar') || lowerTheme.includes('solar') || lowerTheme.includes('planeta')) {
       return makeAdventure(
-        'Expedição Científica: A Missão do Sistema Solar',
-        'Você entra a bordo da nave Argos-6. Seu objetivo é visitar mundos diferentes para coletar dados essenciais. Cada acerto energiza os motores; cada erro exige recalibrar os instrumentos.',
-        [
-          'Estabeleça órbita ao redor de um planeta gasoso e identifique suas camadas.',
-          'Pouse em uma lua gelada e descubra pistas sobre a presença de água.',
-          'Analise a gravidade de um planeta rochoso e registre o dia e a noite.',
-          'Retorne à base com um relatório que explique por que cada mundo é único.'
-        ]
+        'A Aventura de Luna no Sistema Solar',
+        `Era uma vez uma menina chamada Luna que sonhava em conhecer o espaço. Uma noite, enquanto observava as estrelas, um pequeno robô chamado Astro apareceu em seu quintal!
+
+"Oi Luna! Sou o robô Astro e preciso de sua ajuda para explorar os planetas do Sistema Solar", disse ele com luzes piscando.
+
+Juntos, eles subiram numa nave espacial mágica. Primeiro visitaram Mercúrio, o planeta mais próximo do Sol. "Nossa, que calor!", disse Luna. "É por isso que não tem vida aqui."
+
+Depois foram a Vênus, coberto de nuvens grossas. Em Marte, Luna ficou impressionada com as rochas vermelhas por todo lado. "Parece um deserto!", exclamou.
+
+Quando chegaram a Júpiter, Luna não acreditou no tamanho! "É gigante! E tem uma mancha vermelha enorme!" Saturno a deixou ainda mais encantada com seus lindos anéis brilhantes.
+
+Ao retornar à Terra, Luna olhou para seu planeta azul com novo carinho. "Astro, nossa Terra é realmente especial - tem água, ar e vida!" disse ela, agora sonhando em ser uma grande exploradora espacial.`
       );
     }
 
     return makeAdventure(
-      `Missão Científica: ${theme}`,
-      `Você recebeu um crachá de pesquisador e um laboratório portátil. Seu time precisa desvendar um mistério de ${theme.toLowerCase()}. Cada hipótese correta libera um novo equipamento para a investigação.`,
-      [
-        'Observe o fenômeno e descreva o que consegue medir (tempo, massa, temperatura).',
-        'Forme hipóteses e compare com conhecimentos anteriores.',
-        'Realize um experimento mental ou prático para testar suas ideias.',
-        'Explique a conclusão usando termos científicos do seu ano escolar.'
-      ]
+      `A Descoberta Científica de Ana`,
+      `Era uma vez uma menina chamada Ana que adorava fazer experiências. Um dia, ela encontrou um laboratório secreto no porão de sua escola!
+
+"Bem-vinda, jovem cientista!", disse uma voz misteriosa. Era o Professor Sábio, um cientista muito antigo. "Você pode me ajudar a desvendar os mistérios da natureza?"
+
+Ana ficou super animada! O professor lhe deu um jaleco pequeno e óculos de proteção. Juntos, eles começaram a observar diferentes fenômenos naturais.
+
+Primeiro, Ana aprendeu sobre os animais - como respiram, onde vivem, o que comem. Depois descobriu as plantas - como crescem, por que precisam de luz solar, como fazem seu próprio alimento.
+
+Quando estudaram o corpo humano, Ana ficou impressionada! "Professor, nosso coração bate o dia todo sem parar!", disse ela maravilhada.
+
+No final do dia, Ana estava radiante. "Ciência é incrível! Tudo na natureza tem um propósito especial", disse ela, decidindo que queria ser cientista para sempre.`
     );
   }
 
   if (lowerSubject === 'geografia') {
     return makeAdventure(
-      `Rota Geográfica: ${theme}`,
-      `Você abre um mapa com coordenadas enigmáticas. Sua missão é traçar uma rota segura e entender as paisagens de ${theme.toLowerCase()}. Cada acerto revela um novo ponto no mapa.`,
-      [
-        'Identifique o tipo de relevo dominante e seu impacto nas pessoas.',
-        'Reconheça o clima e explique como ele influencia a vegetação e a vida local.',
-        'Localize recursos hídricos e avalie sua importância para a região.',
-        'Descreva como as pessoas vivem e trabalham nesse espaço geográfico.'
-      ]
+      `A Grande Viagem de Carlos pelo Brasil`,
+      `Era uma vez um menino chamado Carlos que ganhou um mapa mágico do seu avô. O mapa mostrava todos os lugares incríveis do Brasil!
+
+"Carlos", disse o avô com um sorriso, "este mapa vai te levar numa aventura por todo nosso país. Você vai conhecer lugares que nem imagina!"
+
+Carlos tocou o mapa e, como num passe de mágica, se viu voando pelo Brasil! Primeiro, sobrevoou as montanhas do Sudeste - que altas! Depois viu as praias lindas do Nordeste, com águas azuis cristalinas.
+
+No Norte, Carlos ficou impressionado com a floresta amazônica. "É gigante! E cheia de animais diferentes!", exclamou. No Sul, viu plantações enormes e pessoas trabalhando no campo.
+
+O menino descobriu rios gigantes como o Amazonas, montanhas altíssimas e cidades movimentadas como São Paulo e Rio de Janeiro. Em Brasília, viu a capital com seus prédios modernos.
+
+Quando voltou para casa, Carlos estava cheio de orgulho do seu país. "Vovô, o Brasil é imenso e cheio de lugares diferentes e especiais!", disse ele, prometendo visitar todos um dia.`
     );
   }
 
   if (lowerSubject === 'português' || lowerSubject === 'portugues') {
     return makeAdventure(
-      `Aventura das Palavras: ${theme}`,
-      `Você entra na Biblioteca Encantada, onde as palavras ganham vida. O Guardião dos Textos te desafia a decifrar segredos linguísticos sobre ${theme.toLowerCase()}.`,
-      [
-        'Classifique corretamente termos e identifique a função de cada um na frase.',
-        'Reescreva um enigma substituindo palavras por sinônimos adequados.',
-        'Corrija um texto curto mantendo coesão e coerência.',
-        'Crie um mini-parágrafo aplicando as regras estudadas.'
-      ]
+      `Maria e a Biblioteca Mágica das Palavras`,
+      `Era uma vez uma menina chamada Maria que adorava ler e escrever. Um dia, ela descobriu uma biblioteca muito especial onde as palavras saltavam dos livros!
+
+"Olá, Maria!", disse uma voz melodiosa. Era a Fada das Palavras, guardião da biblioteca. "Quer aprender os segredos da língua portuguesa comigo?"
+
+Maria ficou encantada! A fada lhe mostrou como as palavras tinham diferentes famílias: os substantivos que davam nomes às coisas, os verbos que mostravam ações, e os adjetivos que descreviam tudo.
+
+"Veja só!", disse a fada, fazendo as vogais dançarem no ar: "A, E, I, O, U! Elas são as estrelas do alfabeto!" Maria riu vendo as letrinhas coloridas voando ao redor.
+
+A fada ensinou Maria sobre frases bonitas, histórias emocionantes e poemas rimados. "Cada palavra tem sua magia especial", explicou.
+
+Quando chegou a hora de ir embora, Maria estava radiante. "Fada, agora sei que as palavras são como ferramentas mágicas para contar histórias!", disse ela, prometendo voltar sempre para aprender mais.`
     );
   }
 
   if (lowerSubject === 'matemática' || lowerSubject === 'matematica') {
     return makeAdventure(
-      `Desafio Matemático: ${theme}`,
-      `O Mestre dos Números propõe uma trilha de desafios sobre ${theme.toLowerCase()}. A cada acerto, uma nova parte do mapa é revelada até você encontrar o tesouro lógico.`,
-      [
-        'Resolva um problema simples para destrancar o primeiro cadeado.',
-        'Analise um padrão e explique a regra que o governa.',
-        'Escolha a operação correta para um problema de situação real.',
-        'Apresente a resposta final justificando cada etapa do raciocínio.'
-      ]
+      `João e o Reino dos Números`,
+      `Era uma vez um menino chamado João que pensava que matemática era difícil. Mas um dia, ele encontrou uma porta secreta que o levou ao Reino dos Números!
+
+"Bem-vindo!", disse um número 7 saltitante. "Sou o Sete Sábio! Aqui você vai descobrir que matemática é divertida!"
+
+João conheceu a família dos números. Os pequeninos de 1 a 10 estavam sempre brincando de somar e subtrair. "Olha só!", disse o número 2, "quando me junto com o 3, viramos 5!"
+
+Depois João conheceu os números maiores, que adoravam multiplicar e dividir. "É como uma dança!", explicou o número 8. "Quando danço com o 3, viramos 24!"
+
+João aprendeu que os números estavam em toda parte - contando seus dedos, medindo sua altura, dividindo pizza com os amigos. "Nossa, vocês são úteis mesmo!", disse ele admirado.
+
+Quando voltou para casa, João estava sorrindo. "Mamãe, matemática é incrível! Os números são nossos amigos e nos ajudam todos os dias!", disse ele, agora ansioso para a aula de matemática.`
     );
   }
 
   // Genérico (qualquer matéria)
   return makeAdventure(
-    `${subject}: A Missão de ${theme}`,
-    `Você recebe um convite misterioso: concluir uma missão sobre ${theme.toLowerCase()} no ${schoolGrade}. Cada pista correta revela a próxima parte da história.`,
-    [
-      'Descubra os conceitos fundamentais ligados ao tema.',
-      'Conecte o tema com exemplos do dia a dia.',
-      'Resolva um desafio aplicado para provar seu entendimento.',
-      'Reúna tudo em uma conclusão que finalize a aventura.'
-    ]
+    `A Aventura do Conhecimento`,
+    `Era uma vez uma criança muito curiosa que adorava aprender coisas novas. Um dia, ela encontrou um livro mágico que brilhava quando tocado!
+
+"Olá, pequeno explorador!", disse uma voz gentil saindo do livro. "Sou o Guardião do Conhecimento. Quer descobrir segredos incríveis sobre ${theme}?"
+
+A criança aceitou na hora! O livro a levou para um mundo onde podia ver e tocar tudo que queria aprender. Era como se os conceitos ganhassem vida bem na sua frente!
+
+Durante a aventura, ela fez descobertas surpreendentes sobre ${theme}. Cada pergunta que fazia levava a respostas ainda mais interessantes. Era como montar um quebra-cabeça gigante onde cada peça revelava algo novo.
+
+Quando a aventura terminou, a criança estava radiante de felicidade. Agora sabia que aprender era a coisa mais divertida do mundo e que sempre haveria algo novo para descobrir!
+
+"Obrigada, Guardião! Agora sei que o conhecimento é o maior tesouro que existe!", disse ela, prometendo nunca parar de fazer perguntas e explorar o mundo.`
   );
 };
 
