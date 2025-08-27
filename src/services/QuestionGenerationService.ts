@@ -289,15 +289,39 @@ class QuestionGenerationService {
   // Gerar opções temáticas alternativas
   private generateThematicChoices(subject: string, correctAnswer: string): string[] {
     const subjectChoices = {
-      'História': ['Idade Antiga', 'Revolução Industrial', 'Guerra Fria', 'Renascimento', 'Feudalismo', 'Império Romano'],
-      'Ciências': ['Fotossíntese', 'Gravidade', 'Átomo', 'Célula', 'Energia', 'Evolução'],
-      'Geografia': ['América do Sul', 'Europa', 'Ásia', 'África', 'Oceania', 'Antártida'],
-      'Português': ['Substantivo', 'Verbo', 'Adjetivo', 'Pronome', 'Advérbio', 'Preposição'],
-      'Matemática': ['Soma', 'Multiplicação', 'Divisão', 'Subtração', 'Fração', 'Porcentagem']
+      'História': [
+        'Idade Antiga', 'Revolução Industrial', 'Guerra Fria', 'Renascimento', 'Feudalismo', 'Império Romano',
+        'Revolução Francesa', 'Segunda Guerra Mundial', 'Idade Média', 'Era Napoleônica', 'Colonização',
+        'Independência do Brasil', 'Primeira Guerra Mundial', 'Império Bizantino', 'Civilização Grega'
+      ],
+      'Ciências': [
+        'Fotossíntese', 'Gravidade', 'Átomo', 'Célula', 'Energia', 'Evolução',
+        'DNA', 'Mitose', 'Respiração Celular', 'Sistema Solar', 'Magnetismo', 'Eletricidade',
+        'Reações Químicas', 'Biodiversidade', 'Ecossistema'
+      ],
+      'Geografia': [
+        'América do Sul', 'Europa', 'Ásia', 'África', 'Oceania', 'Antártida',
+        'Cordilheira dos Andes', 'Rio Amazonas', 'Deserto do Saara', 'Himalaia', 'Pantanal',
+        'Floresta Atlântica', 'Cerrado', 'Caatinga', 'Pampa'
+      ],
+      'Português': [
+        'Substantivo', 'Verbo', 'Adjetivo', 'Pronome', 'Advérbio', 'Preposição',
+        'Conjunção', 'Interjeição', 'Artigo', 'Numeral', 'Sujeito', 'Predicado',
+        'Sintaxe', 'Semântica', 'Morfologia'
+      ],
+      'Matemática': [
+        'Soma', 'Multiplicação', 'Divisão', 'Subtração', 'Fração', 'Porcentagem',
+        'Equação', 'Geometria', 'Álgebra', 'Trigonometria', 'Logaritmo', 'Raiz Quadrada',
+        'Função', 'Derivada', 'Integral'
+      ]
     };
     
     const options = subjectChoices[subject as keyof typeof subjectChoices] || subjectChoices['Ciências'];
-    return options.filter(opt => opt !== correctAnswer).slice(0, 3);
+    const availableOptions = options.filter(opt => opt !== correctAnswer);
+    
+    // Embaralhar e selecionar 3 opções diferentes
+    const shuffled = [...availableOptions].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 3);
   }
 
   // Método principal para gerar questão única

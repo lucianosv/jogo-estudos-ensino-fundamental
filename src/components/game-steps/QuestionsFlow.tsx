@@ -7,6 +7,7 @@ import { useQuestionGeneration } from "@/hooks/useQuestionGeneration";
 import { Question } from "@/services/QuestionGenerationService";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
+import { getDisplayWord } from "@/utils/wordCleaner";
 
 // Question interface now imported from service
 
@@ -117,11 +118,7 @@ const QuestionsFlow = ({
     setShowResult(true);
     if (generatedQuestions[currentIndex]) {
       const currentQuestion = generatedQuestions[currentIndex];
-      // Limpar palavra de sufixos técnicos
-      const cleanWord = currentQuestion.word
-        .replace(/[-_]\d+$/g, '')
-        .replace(/[-_](emergency|fallback|gemini)$/g, '')
-        .replace(/[-_][a-z0-9]{6}$/g, '');
+      const cleanWord = getDisplayWord(currentQuestion.word);
       
       console.log(`[QUESTIONS-FLOW] ✅ Coletando palavra limpa: "${cleanWord}" (original: "${currentQuestion.word}", fonte: ${currentQuestion.source})`);
       onCollectWord(cleanWord);
@@ -187,7 +184,7 @@ const QuestionsFlow = ({
   // Página de feedback após resposta
   if (showResult) {
     const current = generatedQuestions[currentIndex];
-    const correctResponse = current ? `🎉 Excelente! A palavra secreta é **${current.word}**.` : "🎉 Excelente!";
+    const correctResponse = current ? `🎉 Excelente! A palavra secreta é **${getDisplayWord(current.word)}**.` : "🎉 Excelente!";
     const incorrectResponse = "❌ Resposta incorreta! Tente novamente.";
 
     return (
