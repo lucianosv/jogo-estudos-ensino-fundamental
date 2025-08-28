@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { GameParameters } from '@/components/GameSetup';
+import { getDisplayWord } from '@/utils/wordCleaner';
 
 interface GameStep {
   type: "text" | "choice" | "question" | "input" | "story_reveal";
@@ -107,8 +108,10 @@ export const useGameLogic = () => {
   }, []);
 
   const handleCollectWord = useCallback((word: string) => {
+    const cleanWord = getDisplayWord(word);
+    console.log(`[GAME-LOGIC] Coletando palavra limpa: "${cleanWord}" (original: "${word}")`);
     setCollectedWords((prev) =>
-      prev.includes(word) ? prev : [...prev, word]
+      prev.includes(cleanWord) ? prev : [...prev, cleanWord]
     );
   }, []);
 

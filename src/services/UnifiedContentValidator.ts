@@ -113,8 +113,12 @@ export const validateUniqueQuestions = (questions: any[]): ValidationResult => {
     }
   });
 
-  // Verificar palavras secretas duplicadas
-  const words = questions.map(q => q?.word?.toLowerCase().trim()).filter(Boolean);
+  // Verificar palavras secretas duplicadas (usando getDisplayWord)
+  const words = questions.map(q => {
+    if (!q?.word) return '';
+    const cleanWord = require('@/utils/wordCleaner').getDisplayWord(q.word);
+    return cleanWord?.toLowerCase().trim() || '';
+  }).filter(Boolean);
   const wordCounts = new Map<string, number>();
   
   words.forEach(word => {
@@ -171,7 +175,8 @@ export const forceUniqueGeneration = (questions: any[], gameParams?: any): any[]
     return questions.map((question, index) => ({
       ...question,
       content: question.content ? `${question.content} [Q${index + 1}]` : `Questão ${index + 1}`,
-      word: question.word ? `${question.word}_${Date.now()}_${index}` : `palavra${index}_${Date.now()}`,
+      word: question.word || `palavra${index}`,
+      _internalId: `${question.word || `palavra${index}`}_${Date.now()}_${index}`,
       _forceUnique: true
     }));
   }

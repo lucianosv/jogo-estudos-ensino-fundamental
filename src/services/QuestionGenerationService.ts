@@ -8,6 +8,7 @@ import { getExpandedGranularFallback } from '@/utils/expandedGranularFallbacks';
 import { generateThematicFallback } from '@/utils/thematicFallbacks';
 import { validateUniqueQuestions, finalValidation } from '@/services/UnifiedContentValidator';
 import { unifiedFallbackSystem, StoryData } from '@/services/UnifiedFallbackSystem';
+import { getDisplayWord } from '@/utils/wordCleaner';
 
 interface Question {
   content: string;
@@ -54,9 +55,8 @@ class QuestionGenerationService {
 
   // Normalizar palavra para detectar duplicações
   private normalizeWord(word: string): string {
-    return word
+    return getDisplayWord(word)
       .toLowerCase()
-      .replace(/[-_]\d+$/g, '') // Remove sufixos numéricos
       .replace(/[^a-z]/g, '');
   }
 
@@ -265,7 +265,8 @@ class QuestionGenerationService {
         // Adicionar unicidade ao temático baseada no índice (só no ID interno)
         const uniqueThematicData = {
           ...thematicData,
-          word: `${thematicData.word}_t${questionIndex}`
+        word: thematicData.word,
+        _internalId: `${thematicData.word}_t${questionIndex}`
         };
         
         const question: Question = {

@@ -14,6 +14,7 @@ import QuestionsFlow from "./game-steps/QuestionsFlow";
 import GameSetup from "./GameSetup";
 import { Loader2 } from "lucide-react";
 import { getDynamicTheme } from "@/utils/dynamicThemeUtils";
+import { getDisplayWord } from "@/utils/wordCleaner";
 import { useGameLogic } from "@/components/GameLogic";
 import { useStoryGenerator } from "@/components/StoryGenerator";
 import { Question } from "@/services/QuestionGenerationService";
