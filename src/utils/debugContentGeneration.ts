@@ -3,7 +3,7 @@ import { GameParameters } from "@/components/GameSetup";
 import { generateIntelligentFallback } from "@/utils/intelligentFallbacks";
 import { getExpandedGranularFallback } from "@/utils/expandedGranularFallbacks";
 import { getRomaQuestionByIndex } from "@/utils/expandedRomaFallbacks";
-import { validateUniqueQuestions } from "@/utils/uniqueContentValidator";
+import { validateUniqueQuestions } from "@/utils/ContentValidator";
 
 // Teste específico para História - Roma Antiga - 6º ano
 export const testRomaAntiga6Ano = () => {

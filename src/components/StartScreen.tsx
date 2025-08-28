@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sword, Star, Sparkles, Loader2, CheckCircle } from "lucide-react";
 import { GameParameters } from "./GameSetup";
 import { getDynamicTheme, getSubjectIcon } from "@/utils/dynamicThemeUtils";
-import { useAIContent } from "@/hooks/useAIContent";
+import { useQuestionGeneration } from "@/hooks/useQuestionGeneration";
 import { useToast } from "@/hooks/use-toast";
-import { validateQuestionUniqueness, logQuestionDetails } from "@/utils/antiDuplicationValidator";
+import { validateUniqueQuestions, logQuestionDetails } from "@/utils/ContentValidator";
 
 interface StartScreenProps {
   title: string;
@@ -34,7 +34,7 @@ const StartScreen = ({ title, description, onStart, gameParams }: StartScreenPro
   const [preloadedContent, setPreloadedContent] = useState<PreloadedContent | null>(null);
   const [startPreloading, setStartPreloading] = useState(false);
   
-  const { generateStory, generateQuestion, isLoading } = useAIContent();
+  const { generateSingleQuestion, isLoading } = useQuestionGeneration();
   const { toast } = useToast();
 
   const dynamicTheme = gameParams ? getDynamicTheme(gameParams) : null;
@@ -62,7 +62,7 @@ const StartScreen = ({ title, description, onStart, gameParams }: StartScreenPro
       setLoadingState(prev => ({ ...prev, firstQuestion: 'loading' }));
       
       console.log('⚡ Gerando primeira questão...');
-      const firstQuestion = await generateQuestion(gameParams, 0);
+      const firstQuestion = await generateSingleQuestion(gameParams, 0);
       
       if (firstQuestion) {
         console.log('✅ Primeira questão gerada:', firstQuestion.content?.substring(0, 50) || 'N/A');

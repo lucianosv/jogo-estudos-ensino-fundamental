@@ -4,6 +4,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import { GameParameters } from '@/components/GameSetup';
 import { generateIntelligentFallback } from '@/utils/intelligentFallbacks';
+import { getExpandedGranularFallback } from '@/utils/expandedGranularFallbacks';
+import { generateThematicFallback } from '@/utils/thematicFallbacks';
+import { validateUniqueQuestions, finalValidation } from '@/utils/ContentValidator';
 
 interface Question {
   content: string;
@@ -187,42 +190,104 @@ class QuestionGenerationService {
     }
   }
 
-  // Gerar questão via fallback inteligente
+  // HIERARQUIA CLARA DE FALLBACKS
+  // 1. Intelligent → 2. Granular → 3. Thematic → 4. Emergency
   private generateViaFallback(
     gameParams: GameParameters, 
     questionIndex: number
   ): Question | null {
+    // PRIORIDADE 1: Fallback Inteligente
     try {
-      console.log(`[QUESTION-SERVICE] 🥈 Tentando fallback para questão ${questionIndex}`);
+      console.log(`[QUESTION-SERVICE] 🥈 P1: Tentando fallback inteligente para questão ${questionIndex}`);
       
-      const fallbackData = generateIntelligentFallback(gameParams, 'question', questionIndex);
+      const intelligentData = generateIntelligentFallback(gameParams, 'question', questionIndex);
       
-      if (!fallbackData || !fallbackData.content || !fallbackData.choices || 
-          !fallbackData.answer || !fallbackData.word) {
-        return null;
+      if (intelligentData && intelligentData.content && intelligentData.choices && 
+          intelligentData.answer && intelligentData.word) {
+        
+        const question: Question = {
+          content: intelligentData.content,
+          choices: intelligentData.choices,
+          answer: intelligentData.answer,
+          word: intelligentData.word,
+          source: 'fallback',
+          uniqueId: `intelligent_${Date.now()}_${questionIndex}`
+        };
+
+        if (this.isQuestionUnique(question)) {
+          console.log(`[QUESTION-SERVICE] ✅ P1: Fallback inteligente gerou questão única`);
+          return question;
+        }
       }
-
-      const question: Question = {
-        content: fallbackData.content,
-        choices: fallbackData.choices,
-        answer: fallbackData.answer,
-        word: fallbackData.word,
-        source: 'fallback',
-        uniqueId: `fallback_${Date.now()}_${questionIndex}`
-      };
-
-      if (this.isQuestionUnique(question)) {
-        console.log(`[QUESTION-SERVICE] ✅ Fallback gerou questão única para índice ${questionIndex}`);
-        return question;
-      } else {
-        console.log(`[QUESTION-SERVICE] ❌ Fallback gerou questão duplicada`);
-        return null;
-      }
-
     } catch (error) {
-      console.error(`[QUESTION-SERVICE] ❌ Erro no fallback:`, error);
-      return null;
+      console.log(`[QUESTION-SERVICE] ❌ P1: Erro no fallback inteligente:`, error);
     }
+
+    // PRIORIDADE 2: Fallback Granular 
+    try {
+      console.log(`[QUESTION-SERVICE] 🥉 P2: Tentando fallback granular para questão ${questionIndex}`);
+      
+      const granularData = getExpandedGranularFallback(gameParams, 'question', questionIndex);
+      
+      // Verificar se retornou uma questão válida (não array ou story)
+      if (granularData && typeof granularData === 'object' && !Array.isArray(granularData) && 
+          'content' in granularData && 'choices' in granularData && 
+          'answer' in granularData && 'word' in granularData) {
+        
+        const question: Question = {
+          content: granularData.content,
+          choices: granularData.choices,
+          answer: granularData.answer,
+          word: granularData.word,
+          source: 'fallback',
+          uniqueId: `granular_${Date.now()}_${questionIndex}`
+        };
+
+        if (this.isQuestionUnique(question)) {
+          console.log(`[QUESTION-SERVICE] ✅ P2: Fallback granular gerou questão única`);
+          return question;
+        }
+      }
+    } catch (error) {
+      console.log(`[QUESTION-SERVICE] ❌ P2: Erro no fallback granular:`, error);
+    }
+
+    // PRIORIDADE 3: Fallback Temático
+    try {
+      console.log(`[QUESTION-SERVICE] 🏅 P3: Tentando fallback temático para questão ${questionIndex}`);
+      
+      const thematicData = generateThematicFallback(gameParams);
+      
+      if (thematicData && thematicData.content && thematicData.choices && 
+          thematicData.answer && thematicData.word) {
+        
+        // Adicionar unicidade ao temático baseada no índice
+        const uniqueThematicData = {
+          ...thematicData,
+          content: `${thematicData.content} [T${questionIndex + 1}]`,
+          word: `${thematicData.word}_t${questionIndex}`
+        };
+        
+        const question: Question = {
+          content: uniqueThematicData.content,
+          choices: uniqueThematicData.choices,
+          answer: uniqueThematicData.answer,
+          word: uniqueThematicData.word,
+          source: 'fallback',
+          uniqueId: `thematic_${Date.now()}_${questionIndex}`
+        };
+
+        if (this.isQuestionUnique(question)) {
+          console.log(`[QUESTION-SERVICE] ✅ P3: Fallback temático gerou questão única`);
+          return question;
+        }
+      }
+    } catch (error) {
+      console.log(`[QUESTION-SERVICE] ❌ P3: Erro no fallback temático:`, error);
+    }
+
+    console.log(`[QUESTION-SERVICE] ❌ Todos os fallbacks falharam para questão ${questionIndex}`);
+    return null;
   }
 
   // Gerar questão de emergência garantidamente única

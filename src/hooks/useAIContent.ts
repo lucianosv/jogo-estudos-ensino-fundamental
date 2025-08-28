@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { GameParameters } from '@/components/GameSetup';
 import { generateIntelligentFallback, validateGeneratedContent } from '@/utils/intelligentFallbacks';
 import { getExpandedGranularFallback, ensureUniqueKeywords } from '@/utils/expandedGranularFallbacks';
-import { validateUniqueQuestions, finalValidation } from '@/utils/uniqueContentValidator';
+import { validateUniqueQuestions, finalValidation } from '@/utils/ContentValidator';
 import { getRomaQuestionByIndex } from '@/utils/expandedRomaFallbacks';
 
 interface AIContentHook {
