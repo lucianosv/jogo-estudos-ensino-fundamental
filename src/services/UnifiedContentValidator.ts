@@ -1,13 +1,88 @@
-// VALIDADOR UNIFICADO DE CONTEÚDO - CONSOLIDAÇÃO DOS VALIDADORES
-// Unifica uniqueContentValidator.ts e antiDuplicationValidator.ts
+// VALIDADOR UNIFICADO - BACKEND E FRONTEND CONSISTENTES
+// Substitui tanto src/utils/ContentValidator.ts quanto supabase/.../contentValidator.ts
 
-interface ValidationResult {
+export interface ValidationResult {
   isValid: boolean;
   issues: string[];
   duplicateContents: string[];
   duplicateWords: string[];
 }
 
+// Validação de conteúdo única para backend e frontend
+export const validateContent = (content: any, subject: string, theme: string): boolean => {
+  if (!content) return false;
+  
+  const contentStr = JSON.stringify(content).toLowerCase();
+  const themeLower = theme.toLowerCase();
+  const subjectLower = subject.toLowerCase();
+  
+  console.log(`[UNIFIED-VALIDATOR] Analisando: ${subject} - ${theme}`);
+  
+  // VALIDAÇÃO DEMON SLAYER CONTEXTUAL
+  const isDemonSlayerTheme = themeLower.includes('demon slayer') || 
+                             themeLower.includes('tanjiro') || 
+                             themeLower.includes('nezuko') || 
+                             themeLower.includes('zenitsu') || 
+                             themeLower.includes('inosuke');
+  
+  // Permitir demônios apenas em contexto Demon Slayer ou fantasia
+  if (contentStr.includes('demônio') || contentStr.includes('demons')) {
+    if (!isDemonSlayerTheme && !themeLower.includes('anime') && !themeLower.includes('fantasia') && !themeLower.includes('mitologia')) {
+      console.log(`[UNIFIED-VALIDATOR] ❌ REJEITADO: Demônios fora de contexto apropriado`);
+      return false;
+    }
+  }
+  
+  // ANTI-TEMPLATE RIGOROSO
+  const mathTemplatePatterns = [
+    'estava caminhando pela floresta',
+    'encontrou um grupo de demônios',
+    'quantos demônios',
+    'quantos golpes',
+    'para derrotá-los',
+    'precisava calcular',
+    'se derrotou 3',
+    'pela manhã e 5 à tarde',
+    'quantos derrotou no total'
+  ];
+  
+  const hasMathTemplate = mathTemplatePatterns.some(pattern => 
+    contentStr.includes(pattern)
+  );
+  
+  if (hasMathTemplate) {
+    console.log(`[UNIFIED-VALIDATOR] ❌ REJEITADO: Template matemático inadequado`);
+    return false;
+  }
+  
+  // VALIDAÇÃO ESPECÍFICA POR MATÉRIA
+  if (subjectLower !== 'matemática') {
+    if (contentStr.includes('quanto é') && (contentStr.includes(' + ') || contentStr.includes(' - ') || contentStr.includes(' x ') || contentStr.includes(' ÷ '))) {
+      console.log(`[UNIFIED-VALIDATOR] ❌ REJEITADO: ${subject} com questão matemática inadequada`);
+      return false;
+    }
+  }
+  
+  // VALIDAÇÃO CONTEÚDO EDUCATIVO
+  const inappropriateWords = [
+    'sangue', 'blood', 'morte', 'death', 'violência', 'violence',
+    'matador', 'assassino', 'killer', 'luta', 'batalha', 'guerra'
+  ];
+  
+  const hasInappropriateContent = inappropriateWords.some(word => 
+    contentStr.includes(word)
+  );
+  
+  if (hasInappropriateContent) {
+    console.log(`[UNIFIED-VALIDATOR] ❌ REJEITADO: Conteúdo inadequado para educação`);
+    return false;
+  }
+  
+  console.log(`[UNIFIED-VALIDATOR] ✅ APROVADO: Conteúdo válido`);
+  return true;
+};
+
+// Validação de unicidade de questões
 export const validateUniqueQuestions = (questions: any[]): ValidationResult => {
   const result: ValidationResult = {
     isValid: true,
@@ -84,15 +159,15 @@ export const validateUniqueQuestions = (questions: any[]): ValidationResult => {
   return result;
 };
 
+// Força geração única para evitar duplicatas
 export const forceUniqueGeneration = (questions: any[], gameParams?: any): any[] => {
-  console.log('[CONTENT-VALIDATOR] Forçando geração única para evitar duplicatas');
+  console.log('[UNIFIED-VALIDATOR] Forçando geração única para evitar duplicatas');
   
   const validation = validateUniqueQuestions(questions);
   
   if (!validation.isValid) {
     console.log('🔄 FORÇANDO REGENERAÇÃO POR DUPLICATAS');
     
-    // Criar questões únicas baseadas em índice específico com timestamp
     return questions.map((question, index) => ({
       ...question,
       content: question.content ? `${question.content} [Q${index + 1}]` : `Questão ${index + 1}`,
@@ -104,18 +179,16 @@ export const forceUniqueGeneration = (questions: any[], gameParams?: any): any[]
   return questions;
 };
 
-// Verificação final antes de retornar questões ao jogo
+// Validação final antes de retornar questões ao jogo
 export const finalValidation = (questions: any[]): boolean => {
   const validation = validateUniqueQuestions(questions);
   
   if (!validation.isValid) {
-    console.error('[FINAL-VALIDATION] ❌ FALHA CRÍTICA:', validation.issues);
-    console.error('[FINAL-VALIDATION] ❌ Conteúdos duplicados:', validation.duplicateContents);
-    console.error('[FINAL-VALIDATION] ❌ Palavras duplicadas:', validation.duplicateWords);
+    console.error('[UNIFIED-VALIDATOR] ❌ FALHA CRÍTICA:', validation.issues);
     return false;
   }
   
-  console.log('[FINAL-VALIDATION] ✅ Todas as questões são únicas e válidas');
+  console.log('[UNIFIED-VALIDATOR] ✅ Todas as questões são únicas e válidas');
   return true;
 };
 

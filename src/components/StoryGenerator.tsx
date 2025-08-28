@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { GameParameters } from '@/components/GameSetup';
-import { useAIContent } from '@/hooks/useAIContent';
+import QuestionGenerationService from '@/services/QuestionGenerationService';
 import { generateIntelligentFallback } from '@/utils/intelligentFallbacks';
 
 interface StoryData {
@@ -10,7 +10,7 @@ interface StoryData {
 
 export const useStoryGenerator = () => {
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
-  const { generateStory, isLoading } = useAIContent();
+  const questionService = QuestionGenerationService.getInstance();
 
   const generateDynamicStory = useCallback(async (
     gameParams: GameParameters,
@@ -21,7 +21,7 @@ export const useStoryGenerator = () => {
     setIsGeneratingStory(true);
     try {
       console.log('Gerando história para:', gameParams.subject, gameParams.theme);
-      const storyData = await generateStory(gameParams);
+      const storyData = await questionService.generateStory(gameParams);
 
       const looksAdventure = (s: any) => {
         const content = (s?.content || '').toLowerCase();
@@ -36,20 +36,20 @@ export const useStoryGenerator = () => {
         onStoryGenerated(storyData);
       } else {
         const fallbackStory = generateIntelligentFallback(gameParams, 'story');
-        onStoryGenerated(fallbackStory);
+        onStoryGenerated(fallbackStory?.story || { title: 'Aventura Educativa', content: 'Uma jornada de aprendizado te espera!' });
       }
     } catch (error) {
       console.error('Erro ao gerar história:', error);
       const fallbackStory = generateIntelligentFallback(gameParams, 'story');
-      onStoryGenerated(fallbackStory);
+      onStoryGenerated(fallbackStory?.story || { title: 'Aventura Educativa', content: 'Uma jornada de aprendizado te espera!' });
     } finally {
       setIsGeneratingStory(false);
     }
-  }, [generateStory, isGeneratingStory]);
+  }, [questionService, isGeneratingStory]);
 
   return {
     generateDynamicStory,
     isGeneratingStory,
-    isLoading
+    isLoading: isGeneratingStory
   };
 };

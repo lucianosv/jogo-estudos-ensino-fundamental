@@ -6,8 +6,7 @@ export const validateContent = (content: any, subject: string, theme: string): b
   const themeLower = theme.toLowerCase();
   const subjectLower = subject.toLowerCase();
   
-  console.log(`[VALIDATOR] Analisando conteúdo para: ${subject} - ${theme}`);
-  console.log(`[VALIDATOR] Conteúdo: ${contentStr.substring(0, 200)}...`);
+  console.log(`[BACKEND-VALIDATOR] Analisando: ${subject} - ${theme}`);
   
   // VALIDAÇÃO ANTI-TEMPLATE RIGOROSA
   // Detectar padrões matemáticos genéricos inadequados
@@ -32,9 +31,15 @@ export const validateContent = (content: any, subject: string, theme: string): b
     return false;
   }
   
-  // Rejeitar qualquer conteúdo com "demônios" quando não for sobre anime/fantasia
+  // Permitir conteúdo relacionado a Demon Slayer quando tema apropriado
   if (contentStr.includes('demônio') || contentStr.includes('demons')) {
-    if (!themeLower.includes('anime') && !themeLower.includes('fantasia') && !themeLower.includes('mitologia')) {
+    const isDemonSlayerTheme = themeLower.includes('demon slayer') || 
+                               themeLower.includes('tanjiro') || 
+                               themeLower.includes('nezuko') || 
+                               themeLower.includes('zenitsu') || 
+                               themeLower.includes('inosuke');
+    
+    if (!isDemonSlayerTheme && !themeLower.includes('anime') && !themeLower.includes('fantasia') && !themeLower.includes('mitologia')) {
       console.log(`[VALIDATOR] ❌ REJEITADO: Conteúdo inadequado com demônios fora de contexto`);
       return false;
     }

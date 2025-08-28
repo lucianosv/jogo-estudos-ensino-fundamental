@@ -67,7 +67,7 @@ PARÂMETROS ESPECÍFICOS:
 2. PROIBIDO: Qualquer outro tipo de pergunta que não seja sobre ${currentQuestionType.type}
 3. Use ${difficultyDescription} apropriados para ${schoolGrade}
 4. Tenha EXATAMENTE 4 alternativas diferentes
-5. JAMAIS use: demônios, violência, anime, lutas, sangue, morte
+5. JAMAIS use violência, lutas, sangue, morte. Para Demon Slayer: use referências educativas aos personagens
 6. JAMAIS faça questões matemáticas se a matéria NÃO for Matemática
 7. A palavra secreta deve relacionar-se ao aspecto específico: ${currentQuestionType.focus}
 8. Esta questão Nº${questionIndex + 1} DEVE ser sobre ${currentQuestionType.type} - NÃO misture com outros tipos
@@ -79,7 +79,7 @@ PARÂMETROS ESPECÍFICOS:
 - "quantos golpes"
 - "para derrotá-los"
 - "precisava calcular"
-- Qualquer referência a anime, luta, violência
+- Qualquer referência a luta, violência, sangue
 
 ✅ EXEMPLOS ULTRA-ESPECÍFICOS PARA ${currentQuestionType.type}:
 

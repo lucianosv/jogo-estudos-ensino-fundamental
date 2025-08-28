@@ -7,7 +7,7 @@ import { GameParameters } from "./GameSetup";
 import { getDynamicTheme, getSubjectIcon } from "@/utils/dynamicThemeUtils";
 import { useQuestionGeneration } from "@/hooks/useQuestionGeneration";
 import { useToast } from "@/hooks/use-toast";
-import { validateUniqueQuestions, logQuestionDetails } from "@/utils/ContentValidator";
+import { validateUniqueQuestions, logQuestionDetails } from "@/services/UnifiedContentValidator";
 
 interface StartScreenProps {
   title: string;

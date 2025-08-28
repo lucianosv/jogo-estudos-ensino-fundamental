@@ -6,7 +6,8 @@ import { GameParameters } from '@/components/GameSetup';
 import { generateIntelligentFallback } from '@/utils/intelligentFallbacks';
 import { getExpandedGranularFallback } from '@/utils/expandedGranularFallbacks';
 import { generateThematicFallback } from '@/utils/thematicFallbacks';
-import { validateUniqueQuestions, finalValidation } from '@/utils/ContentValidator';
+import { validateUniqueQuestions, finalValidation } from '@/services/UnifiedContentValidator';
+import { unifiedFallbackSystem, StoryData } from '@/services/UnifiedFallbackSystem';
 
 interface Question {
   content: string;
@@ -634,12 +635,46 @@ class QuestionGenerationService {
     }
   }
 
+  // Gerar história usando sistema unificado
+  async generateStory(gameParams: GameParameters): Promise<StoryData | null> {
+    console.log('[QUESTION-SERVICE] Gerando história via sistema unificado');
+    
+    try {
+      // Tentar Supabase primeiro
+      const { data, error } = await supabase.functions.invoke('generate-game-content', {
+        body: {
+          type: 'story',
+          subject: gameParams.subject,
+          theme: gameParams.theme,
+          schoolGrade: gameParams.schoolGrade,
+          difficulty: 'medium'
+        }
+      });
+
+      if (!error && data?.content?.title && data?.content?.content) {
+        console.log('[QUESTION-SERVICE] ✅ História gerada via Supabase');
+        return {
+          title: data.content.title,
+          content: data.content.content
+        };
+      }
+    } catch (error) {
+      console.log('[QUESTION-SERVICE] Erro no Supabase, usando fallback:', error);
+    }
+
+    // Usar sistema unificado de fallbacks
+    const fallbackStory = unifiedFallbackSystem.generateFallbackStory(gameParams);
+    console.log('[QUESTION-SERVICE] ✅ História gerada via fallback unificado');
+    return fallbackStory;
+  }
+
   // Limpar cache e estado
   public clearCache(): void {
     this.questionCache.clear();
     this.usedContentHashes.clear();
     this.usedWords.clear();
-    console.log(`[QUESTION-SERVICE] 🧹 Cache limpo`);
+    unifiedFallbackSystem.clearCache();
+    console.log('[QUESTION-SERVICE] Cache limpo');
   }
 }
 
