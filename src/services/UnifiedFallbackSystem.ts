@@ -127,9 +127,24 @@ export class UnifiedFallbackSystem {
   private generateEmergencyStory(gameParams: GameParameters): StoryData {
     const { subject, theme } = gameParams;
     
+    const storyTemplates = {
+      'História': `Era uma vez uma jovem arqueóloga chamada Ana que descobriu pistas misteriosas sobre ${theme}. Com sua lupa mágica, ela podia ver o passado se desenrolar diante de seus olhos. Ana descobriu pessoas corajosas, eventos importantes e como as decisões do passado moldaram nosso presente. Cada descoberta a fazia entender melhor como a história conecta todas as épocas.`,
+      
+      'Ciências': `Era uma vez um menino chamado Pedro que ganhou um microscópio mágico de seu avô cientista. Ao observar o mundo através dele, Pedro descobriu os segredos de ${theme}. Ele viu como a natureza funciona, como os seres vivos se relacionam e como tudo no universo está conectado. Pedro ficou fascinado com as maravilhas da ciência!`,
+      
+      'Geografia': `Era uma vez uma menina chamada Sofia que encontrou um mapa-múndi que ganhava vida ao ser tocado. Através dele, ela viajou virtualmente e aprendeu sobre ${theme}. Sofia descobriu paisagens incríveis, conheceu diferentes culturas e entendeu como as pessoas vivem em lugares distantes. Cada lugar tinha sua própria beleza e importância especial.`,
+      
+      'Português': `Era uma vez um garoto chamado Lucas que descobriu uma biblioteca encantada onde as palavras saltavam dos livros! Junto com a Fada das Letras, ele explorou o mundo de ${theme}. Lucas aprendeu que as palavras têm poder para contar histórias, expressar sentimentos e conectar pessoas. Cada palavra era como uma pequena magia!`,
+      
+      'Matemática': `Era uma vez uma menina chamada Clara que encontrou um calculador mágico que resolvia problemas do dia a dia. Com ele, Clara descobriu que ${theme} estava presente em tudo ao seu redor - na natureza, nos jogos, na música e até nas estrelas! Ela percebeu que a matemática era uma linguagem universal que ajudava a entender o mundo.`
+    };
+    
+    const storyContent = storyTemplates[subject as keyof typeof storyTemplates] || 
+      `Era uma vez um estudante corajoso que se aventurou pelo fascinante mundo de ${theme}. Em sua jornada de descobertas, encontrou desafios interessantes e aprendeu lições valiosas. Cada passo o levava a compreender melhor os mistérios de ${subject}, transformando sua curiosidade em verdadeiro conhecimento.`;
+    
     return {
-      title: `Aventura em ${subject}: ${theme}`,
-      content: `Era uma vez um estudante curioso que embarcou numa aventura de aprendizado sobre ${theme}. Durante sua jornada, ele descobriu que cada matéria tinha seus próprios segredos e mistérios esperando para serem desvendados. Essa aventura transformou sua forma de ver o mundo e o conhecimento.`
+      title: `A Grande Aventura de ${subject}: ${theme}`,
+      content: storyContent
     };
   }
 

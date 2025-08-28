@@ -140,21 +140,21 @@ const generateSubjectSpecificQuestion = (gameParams: GameParameters, questionInd
           word: "soma"
         },
         {
-          content: `Matemática - ${theme} (${schoolGrade}): Se você tem 7 balas e dá 2, com quantas fica?`,
-          choices: ["3", "4", "5", "6"],
-          answer: "5",
-          word: "tirar"
+          content: `Matemática - ${theme} (${schoolGrade}): Se você tem 4 lápis e ganha 2, com quantos fica?`,
+          choices: ["5", "6", "7", "8"],
+          answer: "6",
+          word: "ganhar"
         },
         {
-          content: `Matemática - ${theme} (${schoolGrade}): Complete: 9 − 4 = ?`,
-          choices: ["3", "4", "5", "6"],
+          content: `Matemática - ${theme} (${schoolGrade}): Complete: 8 − 3 = ?`,
+          choices: ["4", "5", "6", "7"],
           answer: "5",
           word: "subtração"
         },
         {
-          content: `Matemática - ${theme} (${schoolGrade}): Conte: 3 + 2 = ?`,
-          choices: ["4", "5", "6", "7"],
-          answer: "5",
+          content: `Matemática - ${theme} (${schoolGrade}): Conte: 6 + 1 = ?`,
+          choices: ["6", "7", "8", "9"],
+          answer: "7",
           word: "contar"
         }
       ];
@@ -402,17 +402,25 @@ export const generateIntelligentFallback = (
   contentType: 'story' | 'question' | 'character_info',
   questionIndex: number = 0
 ): any => {
-  console.log(`[INTELLIGENT-FALLBACK] Gerando ${contentType} (índice: ${questionIndex}) para ${gameParams.subject}/${gameParams.theme}/${gameParams.schoolGrade}`);
+  console.log(`[INTELLIGENT-FALLBACK] 🧠 Gerando ${contentType} (índice: ${questionIndex}) para ${gameParams.subject}/${gameParams.theme}/${gameParams.schoolGrade}`);
   
-  switch (contentType) {
-    case 'story':
-      return generateSubjectSpecificStory(gameParams);
-    case 'question':
-      return generateSubjectSpecificQuestion(gameParams, questionIndex);
-    case 'character_info':
-      return generateSubjectSpecificCharacterInfo(gameParams);
-    default:
-      return null;
+  try {
+    switch (contentType) {
+      case 'story':
+        // Para histórias, retornar no formato que StoryGenerator.tsx espera
+        const storyData = generateSubjectSpecificStory(gameParams);
+        return { story: storyData };
+      case 'question':
+        return generateSubjectSpecificQuestion(gameParams, questionIndex);
+      case 'character_info':
+        return generateSubjectSpecificCharacterInfo(gameParams);
+      default:
+        console.warn(`[INTELLIGENT-FALLBACK] ⚠️ Tipo não reconhecido: ${contentType}`);
+        return null;
+    }
+  } catch (error) {
+    console.error(`[INTELLIGENT-FALLBACK] ❌ Erro ao gerar ${contentType}:`, error);
+    return null;
   }
 };
 

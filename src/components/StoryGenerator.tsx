@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { GameParameters } from '@/components/GameSetup';
 import QuestionGenerationService from '@/services/QuestionGenerationService';
-import { generateIntelligentFallback } from '@/utils/intelligentFallbacks';
+import { unifiedFallbackSystem } from '@/services/UnifiedFallbackSystem';
 
 interface StoryData {
   title: string;
@@ -33,15 +33,18 @@ export const useStoryGenerator = () => {
       };
 
       if (storyData && storyData.title && storyData.content && looksAdventure(storyData)) {
+        console.log('✅ História gerada com sucesso via Gemini');
         onStoryGenerated(storyData);
       } else {
-        const fallbackStory = generateIntelligentFallback(gameParams, 'story');
-        onStoryGenerated(fallbackStory?.story || { title: 'Aventura Educativa', content: 'Uma jornada de aprendizado te espera!' });
+        console.log('⚠️ Gemini falhou, usando sistema de fallbacks hierárquico');
+        const fallbackStory = unifiedFallbackSystem.generateFallbackStory(gameParams);
+        onStoryGenerated(fallbackStory);
       }
     } catch (error) {
-      console.error('Erro ao gerar história:', error);
-      const fallbackStory = generateIntelligentFallback(gameParams, 'story');
-      onStoryGenerated(fallbackStory?.story || { title: 'Aventura Educativa', content: 'Uma jornada de aprendizado te espera!' });
+      console.error('❌ Erro ao gerar história:', error);
+      console.log('🚨 Usando sistema de fallbacks de emergência');
+      const fallbackStory = unifiedFallbackSystem.generateFallbackStory(gameParams);
+      onStoryGenerated(fallbackStory);
     } finally {
       setIsGeneratingStory(false);
     }

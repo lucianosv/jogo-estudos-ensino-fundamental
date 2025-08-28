@@ -262,10 +262,9 @@ class QuestionGenerationService {
       if (thematicData && thematicData.content && thematicData.choices && 
           thematicData.answer && thematicData.word) {
         
-        // Adicionar unicidade ao temático baseada no índice
+        // Adicionar unicidade ao temático baseada no índice (só no ID interno)
         const uniqueThematicData = {
           ...thematicData,
-          content: `${thematicData.content} [T${questionIndex + 1}]`,
           word: `${thematicData.word}_t${questionIndex}`
         };
         
