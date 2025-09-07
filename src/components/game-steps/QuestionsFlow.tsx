@@ -18,7 +18,6 @@ interface QuestionsFlowProps {
   selectedGame: any;
   onRestart: () => void;
   gameParams: GameParameters;
-  firstQuestion?: Question;
 }
 
 const QuestionsFlow = ({
@@ -28,7 +27,6 @@ const QuestionsFlow = ({
   selectedGame,
   onRestart,
   gameParams,
-  firstQuestion,
 }: QuestionsFlowProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showResult, setShowResult] = useState(false);

@@ -19,11 +19,6 @@ import { useGameLogic } from "@/components/GameLogic";
 import { useStoryGenerator } from "@/components/StoryGenerator";
 import { Question } from "@/services/QuestionGenerationService";
 
-// Interface para conteúdo pré-carregado
-interface PreloadedContent {
-  firstQuestion: any;
-  story: any;
-}
 
 const GameEngine = () => {
   const { toast } = useToast();
@@ -110,15 +105,6 @@ const GameEngine = () => {
     }
   };
 
-  const [preloadedContent, setPreloadedContent] = useState<PreloadedContent | null>(null);
-
-  // Função para lidar com o início da aventura com conteúdo pré-carregado
-  const handleStartWithPreloadedContent = (content: PreloadedContent) => {
-    console.log('🚀 Iniciando aventura com primeira questão pré-carregada');
-    setPreloadedContent(content);
-    setGameStarted(true);
-    setCurrentStepIndex(0);
-  };
 
   if (!gameParams) {
     return <GameSetup onSetupComplete={handleSetupComplete} />;
@@ -129,7 +115,11 @@ const GameEngine = () => {
       <StartScreen 
         title={`Aventura de ${gameParams.subject}: ${gameParams.theme}`}
         description={`Prepare-se para desafios de ${gameParams.subject.toLowerCase()}!`}
-        onStart={handleStartWithPreloadedContent}
+        onStart={() => {
+          console.log('🚀 Iniciando aventura - questões via sistema unificado');
+          setGameStarted(true);
+          setCurrentStepIndex(0);
+        }}
         gameParams={gameParams}
       />
     );
@@ -161,14 +151,6 @@ const GameEngine = () => {
           selectedGame={selectedGame}
           onRestart={handleRestart}
           gameParams={gameParams}
-          firstQuestion={preloadedContent?.firstQuestion ? {
-            content: preloadedContent.firstQuestion.content,
-            choices: preloadedContent.firstQuestion.choices,
-            answer: preloadedContent.firstQuestion.answer,
-            word: preloadedContent.firstQuestion.word,
-            source: 'preloaded' as const,
-            uniqueId: `preloaded_${Date.now()}`
-          } as Question : undefined}
         />
       );
     }
