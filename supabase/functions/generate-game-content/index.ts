@@ -5,6 +5,7 @@ import { GenerateContentRequest } from './types.ts';
 import { generateStory } from './generators/storyGenerator.ts';
 import { generateQuestion } from './generators/questionGenerator.ts';
 import { generateCharacterInfo } from './generators/characterGenerator.ts';
+import { generateCompleteGameContent } from './generators/gameContentGenerator.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -97,6 +98,9 @@ serve(async (req) => {
     console.log(`🚀 Gerando conteúdo via API Gemini STREAMING...`);
     
     switch (contentType) {
+      case 'complete_game':
+        generatedContent = await generateCompleteGameContent(subject, theme, schoolGrade, themeDetails);
+        break;
       case 'story':
         generatedContent = await generateStory(subject, theme, schoolGrade, themeDetails);
         break;

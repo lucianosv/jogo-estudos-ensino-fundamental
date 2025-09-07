@@ -13,8 +13,8 @@ export const cleanSecretWord = (word: string): string => {
     .replace(/[-_]t\d+$/g, '')
     // Remove sufixos numericos simples (_2, _3, etc.)
     .replace(/[-_]\d+$/g, '')
-    // Remove sufixos com palavras (_emergency, _fallback, _gemini)
-    .replace(/[-_](emergency|fallback|gemini)$/g, '')
+    // Remove sufixos com palavras (_emergency, _fallback, _gemini, _unified)
+    .replace(/[-_](emergency|fallback|gemini|unified)$/g, '')
     // Remove códigos alfanuméricos curtos (_a1b2c3)
     .replace(/[-_][a-z0-9]{6}$/g, '')
     // Remove múltiplos sufixos concatenados

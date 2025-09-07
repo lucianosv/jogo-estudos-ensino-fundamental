@@ -33,10 +33,10 @@ export const useStoryGenerator = () => {
       };
 
       if (storyData && storyData.title && storyData.content && looksAdventure(storyData)) {
-        console.log('✅ História gerada com sucesso via Gemini');
+        console.log('✅ História gerada com sucesso via Prompt Unificado');
         onStoryGenerated(storyData);
       } else {
-        console.log('⚠️ Gemini falhou, usando sistema de fallbacks hierárquico');
+        console.log('⚠️ Prompt Unificado falhou, usando sistema de fallbacks hierárquico');
         const fallbackStory = unifiedFallbackSystem.generateFallbackStory(gameParams);
         onStoryGenerated(fallbackStory);
       }

@@ -30,6 +30,7 @@ class QuestionGenerationService {
   private questionCache = new Map<string, Question>();
   private usedContentHashes = new Set<string>();
   private usedWords = new Set<string>();
+  private cachedNarrative: any = null;
   private readonly config: GenerationConfig = {
     maxRetries: 2,
     timeoutMs: 8000,
@@ -586,14 +587,81 @@ class QuestionGenerationService {
     return question;
   }
 
-  // Gerar conjunto completo de 4 questões únicas
+  // Gerar conjunto completo via gerador unificado
   public async generateQuestionSet(gameParams: GameParameters): Promise<Question[]> {
-    console.log(`[QUESTION-SERVICE] 🎮 Gerando conjunto completo de questões para ${gameParams.subject} - ${gameParams.theme}`);
-    
-    // Limpar estado anterior
+    // Limpar estado anterior para garantir novo conjunto
     this.usedContentHashes.clear();
     this.usedWords.clear();
     
+    console.log(`[QUESTION-SERVICE] 🎯 === GERANDO CONJUNTO VIA PROMPT UNIFICADO ===`);
+    console.log(`[QUESTION-SERVICE] 📚 Matéria: ${gameParams.subject} | Tema: ${gameParams.theme} | Série: ${gameParams.schoolGrade}`);
+    
+    try {
+      // Tentar geração unificada
+      const { data, error } = await supabase.functions.invoke('generate-game-content', {
+        body: {
+          contentType: 'complete_game',
+          subject: gameParams.subject,
+          theme: gameParams.theme,
+          schoolGrade: gameParams.schoolGrade,
+          themeDetails: gameParams.themeDetails,
+          forceRegenerate: true
+        }
+      });
+
+      if (error || !data) {
+        throw new Error(`Unified generation failed: ${error?.message || 'No data received'}`);
+      }
+
+      // Validar estrutura da resposta
+      if (!data.questions || !Array.isArray(data.questions) || data.questions.length !== 4) {
+        throw new Error('Invalid unified response structure');
+      }
+
+      // Converter para formato interno
+      const questions: Question[] = data.questions.map((q: any, index: number) => ({
+        content: q.content,
+        choices: q.choices,
+        answer: q.answer,
+        word: q.word,
+        source: 'gemini' as const,
+        uniqueId: `unified_${Date.now()}_${index}`
+      }));
+
+      // Validar unicidade
+      for (const question of questions) {
+        if (!this.isQuestionUnique(question)) {
+          throw new Error('Unified generation produced duplicate questions');
+        }
+        this.markQuestionAsUsed(question);
+      }
+
+      // Armazenar narrativa separadamente para acesso posterior
+      if (data.narrative) {
+        this.cachedNarrative = data.narrative;
+      }
+
+      console.log(`[QUESTION-SERVICE] ✅ Conjunto unificado gerado com sucesso`);
+      console.log(`[QUESTION-SERVICE] 📊 Resumo:`, questions.map((q, i) => ({
+        index: i + 1,
+        word: q.word,
+        source: q.source,
+        preview: q.content.substring(0, 40) + '...'
+      })));
+
+      return questions;
+
+    } catch (error) {
+      console.error(`[QUESTION-SERVICE] ❌ Geração unificada falhou:`, error);
+      console.log(`[QUESTION-SERVICE] 🔄 Caindo para método individual...`);
+      
+      // Fallback para método individual
+      return this.generateQuestionSetIndividual(gameParams);
+    }
+  }
+
+  // Método fallback - geração individual (mantém lógica original)
+  private async generateQuestionSetIndividual(gameParams: GameParameters): Promise<Question[]> {
     const questions: Question[] = [];
     
     // Gerar questões sequencialmente para garantir unicidade
@@ -610,7 +678,7 @@ class QuestionGenerationService {
     // Validação final
     this.validateQuestionSet(questions);
     
-    console.log(`[QUESTION-SERVICE] ✅ Conjunto completo gerado com ${questions.length} questões únicas`);
+    console.log(`[QUESTION-SERVICE] ✅ Conjunto individual completo gerado com ${questions.length} questões únicas`);
     return questions;
   }
 
@@ -635,37 +703,42 @@ class QuestionGenerationService {
     }
   }
 
-  // Gerar história usando sistema unificado
+  // Gerar história - agora usa narrativa do conjunto unificado se disponível
   async generateStory(gameParams: GameParameters): Promise<StoryData | null> {
-    console.log('[QUESTION-SERVICE] Gerando história via sistema unificado');
-    
+    // Se temos narrativa do conjunto unificado, usar ela
+    if (this.cachedNarrative) {
+      console.log(`[QUESTION-SERVICE] ✅ Usando narrativa do conjunto unificado`);
+      const narrative = this.cachedNarrative;
+      this.cachedNarrative = null; // Limpar cache após uso
+      return narrative;
+    }
+
     try {
-      // Tentar Supabase primeiro
+      console.log(`[QUESTION-SERVICE] 📖 Gerando história individual para ${gameParams.subject} - ${gameParams.theme}`);
+      
       const { data, error } = await supabase.functions.invoke('generate-game-content', {
         body: {
-          type: 'story',
+          contentType: 'story',
           subject: gameParams.subject,
           theme: gameParams.theme,
           schoolGrade: gameParams.schoolGrade,
-          difficulty: 'medium'
+          themeDetails: gameParams.themeDetails,
+          forceRegenerate: true
         }
       });
 
-      if (!error && data?.content?.title && data?.content?.content) {
-        console.log('[QUESTION-SERVICE] ✅ História gerada via Supabase');
-        return {
-          title: data.content.title,
-          content: data.content.content
-        };
+      if (error || !data) {
+        console.log(`[QUESTION-SERVICE] ❌ Supabase falhou para história:`, error);
+        return null;
       }
-    } catch (error) {
-      console.log('[QUESTION-SERVICE] Erro no Supabase, usando fallback:', error);
-    }
 
-    // Usar sistema unificado de fallbacks
-    const fallbackStory = unifiedFallbackSystem.generateFallbackStory(gameParams);
-    console.log('[QUESTION-SERVICE] ✅ História gerada via fallback unificado');
-    return fallbackStory;
+      console.log(`[QUESTION-SERVICE] ✅ História individual gerada via Supabase`);
+      return data;
+      
+    } catch (error) {
+      console.error(`[QUESTION-SERVICE] ❌ Erro ao gerar história:`, error);
+      return unifiedFallbackSystem.generateFallbackStory(gameParams);
+    }
   }
 
   // Limpar cache e estado
@@ -673,8 +746,9 @@ class QuestionGenerationService {
     this.questionCache.clear();
     this.usedContentHashes.clear();
     this.usedWords.clear();
+    this.cachedNarrative = null;
     unifiedFallbackSystem.clearCache();
-    console.log('[QUESTION-SERVICE] Cache limpo');
+    console.log('[QUESTION-SERVICE] 🧹 Cache e estado limpos');
   }
 }
 
