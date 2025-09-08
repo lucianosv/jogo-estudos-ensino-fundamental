@@ -15,7 +15,7 @@ interface Question {
   choices: string[];
   answer: string;
   word: string;
-  source: 'gemini' | 'fallback' | 'emergency' | 'legacy' | 'preloaded';
+  source: 'gemini' | 'fallback' | 'emergency' | 'legacy' | 'preloaded' | 'database' | 'granular' | 'intelligent' | 'thematic';
   uniqueId: string;
 }
 
@@ -290,6 +290,28 @@ class QuestionGenerationService {
 
     console.log(`[QUESTION-SERVICE] ❌ Todos os fallbacks falharam para questão ${questionIndex}`);
     return null;
+  }
+
+  // GARANTIR QUESTÃO VÁLIDA - NUNCA RETORNA NULL
+  // Método que SEMPRE retorna uma questão válida, usando fallback robusto
+  private async guaranteedQuestion(
+    gameParams: GameParameters, 
+    questionIndex: number
+  ): Promise<Question> {
+    try {
+      // Tentar sistema unificado de fallbacks primeiro
+      const fallbackQuestion = await unifiedFallbackSystem.generateFallbackQuestion(gameParams, questionIndex);
+      if (fallbackQuestion) {
+        console.log(`[QUESTION-SERVICE] ✅ Sistema unificado gerou questão`);
+        return fallbackQuestion;
+      }
+    } catch (error) {
+      console.error(`[QUESTION-SERVICE] ❌ Sistema unificado falhou:`, error);
+    }
+
+    // GARANTIA FINAL: Gerar questão de emergência
+    console.log(`[QUESTION-SERVICE] 🚨 Gerando questão de emergência GARANTIDA`);
+    return this.generateEmergencyQuestion(gameParams, questionIndex);
   }
 
   // Gerar questão de emergência garantidamente única

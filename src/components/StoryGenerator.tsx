@@ -36,14 +36,14 @@ export const useStoryGenerator = () => {
         console.log('✅ História gerada com sucesso via Prompt Unificado');
         onStoryGenerated(storyData);
       } else {
-        console.log('⚠️ Prompt Unificado falhou, usando sistema de fallbacks hierárquico');
-        const fallbackStory = unifiedFallbackSystem.generateFallbackStory(gameParams);
+        console.log('⚠️ Prompt Unificado falhou, usando sistema de fallbacks hierárquico robusto');
+        const fallbackStory = await unifiedFallbackSystem.generateFallbackStory(gameParams);
         onStoryGenerated(fallbackStory);
       }
     } catch (error) {
       console.error('❌ Erro ao gerar história:', error);
-      console.log('🚨 Usando sistema de fallbacks de emergência');
-      const fallbackStory = unifiedFallbackSystem.generateFallbackStory(gameParams);
+      console.log('🚨 Usando sistema de fallbacks de emergência GARANTIDO');
+      const fallbackStory = await unifiedFallbackSystem.generateFallbackStory(gameParams);
       onStoryGenerated(fallbackStory);
     } finally {
       setIsGeneratingStory(false);

@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import TextStep from "./game-steps/TextStep";
@@ -18,10 +17,17 @@ import { getDisplayWord } from "@/utils/wordCleaner";
 import { useGameLogic } from "@/components/GameLogic";
 import { useStoryGenerator } from "@/components/StoryGenerator";
 import { Question } from "@/services/QuestionGenerationService";
+import FallbackNotification from "@/components/FallbackNotification";
 
 
 const GameEngine = () => {
   const { toast } = useToast();
+  const [fallbackNotification, setFallbackNotification] = React.useState<{
+    show: boolean;
+    type: 'question' | 'story';
+    source: string;
+  }>({ show: false, type: 'question', source: '' });
+  
   const {
     currentStepIndex,
     collectedWords,
@@ -105,6 +111,13 @@ const GameEngine = () => {
     }
   };
 
+  // Configurar callback para notificações de fallback
+  React.useEffect(() => {
+    const { unifiedFallbackSystem } = require('@/services/UnifiedFallbackSystem');
+    unifiedFallbackSystem.setNotificationCallback((type: 'question' | 'story', source: string) => {
+      setFallbackNotification({ show: true, type, source });
+    });
+  }, []);
 
   if (!gameParams) {
     return <GameSetup onSetupComplete={handleSetupComplete} />;
@@ -225,6 +238,13 @@ const GameEngine = () => {
   return (
     <div className="w-full max-w-3xl mx-auto relative min-h-screen">
       <BackgroundImages selectedGame={selectedGame} gameParams={gameParams} />
+      
+      <FallbackNotification
+        type={fallbackNotification.type}
+        source={fallbackNotification.source as any}
+        show={fallbackNotification.show}
+        onClose={() => setFallbackNotification({ ...fallbackNotification, show: false })}
+      />
 
       <GameHeader 
         currentStepIndex={currentStepIndex}

@@ -1,18 +1,20 @@
-// SISTEMA UNIFICADO DE FALLBACKS HIERÁRQUICOS
-// Substitui múltiplos arquivos de fallback por uma hierarquia organizada
+// SISTEMA UNIFICADO DE FALLBACKS HIERÁRQUICOS ROBUSTO
+// NOVA HIERARQUIA: Supabase DB → Granular → Intelligent → Thematic → Emergency
 
 import { GameParameters } from '@/components/GameSetup';
 import { getGranularFallback } from '@/utils/granularFallbacks';
 import { generateThematicFallback } from '@/utils/thematicFallbacks';
 import { generateIntelligentFallback } from '@/utils/intelligentFallbacks';
+import { databaseFallbackService, DatabaseQuestion, DatabaseStory } from '@/services/DatabaseFallbackService';
 
 export interface Question {
   content: string;
   choices: string[];
   answer: string;
   word: string;
-  source?: string;
+  source: 'database' | 'granular' | 'intelligent' | 'thematic' | 'emergency' | 'gemini' | 'fallback' | 'legacy' | 'preloaded';
   id?: string;
+  uniqueId: string;
 }
 
 export interface StoryData {
@@ -22,9 +24,10 @@ export interface StoryData {
 
 export type ContentType = 'question' | 'story' | 'character_info';
 
-// HIERARQUIA ÚNICA DE FALLBACKS: Granular → Intelligent → Thematic → Emergency
+// NOVA HIERARQUIA ROBUSTA: Supabase DB → Granular → Intelligent → Thematic → Emergency
 export class UnifiedFallbackSystem {
   private static instance: UnifiedFallbackSystem;
+  private fallbackNotificationCallback?: (type: 'question' | 'story', source: string) => void;
 
   static getInstance(): UnifiedFallbackSystem {
     if (!UnifiedFallbackSystem.instance) {
@@ -33,19 +36,52 @@ export class UnifiedFallbackSystem {
     return UnifiedFallbackSystem.instance;
   }
 
-  // Gerar questão única seguindo hierarquia
-  generateFallbackQuestion(gameParams: GameParameters, questionIndex: number = 0): Question {
+  // Configurar callback para notificações
+  setNotificationCallback(callback: (type: 'question' | 'story', source: string) => void) {
+    this.fallbackNotificationCallback = callback;
+  }
+
+  private notifyFallbackUsed(type: 'question' | 'story', source: string) {
+    if (this.fallbackNotificationCallback) {
+      this.fallbackNotificationCallback(type, source);
+    }
+  }
+
+  // Gerar questão única seguindo nova hierarquia robusta
+  async generateFallbackQuestion(gameParams: GameParameters, questionIndex: number = 0): Promise<Question> {
     console.log(`[UNIFIED-FALLBACK] Gerando questão ${questionIndex} para ${gameParams.subject} - ${gameParams.theme}`);
+
+    // NÍVEL 0: Supabase Database (prioritário)
+    try {
+      const databaseQuestions = await databaseFallbackService.getFallbackQuestions(gameParams);
+      if (databaseQuestions.length > 0) {
+        const dbQuestion = databaseQuestions[questionIndex % databaseQuestions.length];
+        console.log(`[UNIFIED-FALLBACK] ✅ Usando fallback DATABASE: ${dbQuestion.content.substring(0, 50)}...`);
+        this.notifyFallbackUsed('question', 'database');
+        return {
+          content: dbQuestion.content,
+          choices: dbQuestion.choices,
+          answer: dbQuestion.answer,
+          word: dbQuestion.word,
+          source: 'fallback' as const,
+          uniqueId: `database_${questionIndex}_${Date.now()}`
+        };
+      }
+    } catch (error) {
+      console.log(`[UNIFIED-FALLBACK] ⚠️ Database fallback falhou:`, error);
+    }
 
     // NÍVEL 1: Granular (mais específico)
     const granularResult = getGranularFallback(gameParams, 'question');
     if (granularResult && Array.isArray(granularResult)) {
       const question = granularResult[questionIndex % granularResult.length];
       console.log(`[UNIFIED-FALLBACK] ✅ Usando fallback GRANULAR: ${question.content.substring(0, 50)}...`);
+      this.notifyFallbackUsed('question', 'intelligent');
       return {
         ...question,
-        source: 'granular',
-        id: `granular_${questionIndex}_${Date.now()}`
+        source: 'fallback' as const,
+        uniqueId: `granular_${questionIndex}_${Date.now()}`,
+        word: question.word || `granular_word_${questionIndex}`
       };
     }
 
@@ -53,10 +89,12 @@ export class UnifiedFallbackSystem {
     const intelligentResult = generateIntelligentFallback(gameParams, 'question', questionIndex);
     if (intelligentResult?.question) {
       console.log(`[UNIFIED-FALLBACK] ✅ Usando fallback INTELLIGENT: ${intelligentResult.question.content.substring(0, 50)}...`);
+      this.notifyFallbackUsed('question', 'intelligent');
       return {
         ...intelligentResult.question,
-        source: 'intelligent',
-        id: `intelligent_${questionIndex}_${Date.now()}`
+        source: 'fallback' as const,
+        uniqueId: `intelligent_${questionIndex}_${Date.now()}`,
+        word: intelligentResult.question.word || `intelligent_word_${questionIndex}`
       };
     }
 
@@ -64,26 +102,46 @@ export class UnifiedFallbackSystem {
     const thematicResult = generateThematicFallback(gameParams);
     if (thematicResult) {
       console.log(`[UNIFIED-FALLBACK] ✅ Usando fallback THEMATIC: ${thematicResult.content.substring(0, 50)}...`);
+      this.notifyFallbackUsed('question', 'thematic');
       return {
         ...thematicResult,
-        source: 'thematic',
-        id: `thematic_${questionIndex}_${Date.now()}`
+        source: 'fallback' as const,
+        uniqueId: `thematic_${questionIndex}_${Date.now()}`,
+        word: thematicResult.word || `thematic_word_${questionIndex}`
       };
     }
 
-    // NÍVEL 4: Emergency (último recurso)
-    console.log(`[UNIFIED-FALLBACK] ⚠️ Usando fallback EMERGENCY`);
+    // NÍVEL 4: Emergency (GARANTIDO - nunca falha)
+    console.log(`[UNIFIED-FALLBACK] 🚨 Usando fallback EMERGENCY GARANTIDO`);
+    this.notifyFallbackUsed('question', 'emergency');
     return this.generateEmergencyQuestion(gameParams, questionIndex);
   }
 
-  // Gerar história seguindo hierarquia
-  generateFallbackStory(gameParams: GameParameters): StoryData {
+  // Gerar história seguindo nova hierarquia robusta
+  async generateFallbackStory(gameParams: GameParameters): Promise<StoryData> {
     console.log(`[UNIFIED-FALLBACK] Gerando história para ${gameParams.subject} - ${gameParams.theme}`);
+
+    // NÍVEL 0: Supabase Database (prioritário)
+    try {
+      const databaseStories = await databaseFallbackService.getFallbackStories(gameParams);
+      if (databaseStories.length > 0) {
+        const dbStory = databaseStories[0]; // Pegar primeira história disponível
+        console.log(`[UNIFIED-FALLBACK] ✅ Usando história DATABASE: ${dbStory.title}`);
+        this.notifyFallbackUsed('story', 'database');
+        return {
+          title: dbStory.title,
+          content: dbStory.content
+        };
+      }
+    } catch (error) {
+      console.log(`[UNIFIED-FALLBACK] ⚠️ Database story fallback falhou:`, error);
+    }
 
     // NÍVEL 1: Granular
     const granularResult = getGranularFallback(gameParams, 'story') as StoryData;
     if (granularResult?.title && granularResult?.content) {
       console.log(`[UNIFIED-FALLBACK] ✅ Usando história GRANULAR: ${granularResult.title}`);
+      this.notifyFallbackUsed('story', 'intelligent');
       return granularResult;
     }
 
@@ -91,11 +149,13 @@ export class UnifiedFallbackSystem {
     const intelligentResult = generateIntelligentFallback(gameParams, 'story');
     if (intelligentResult?.story) {
       console.log(`[UNIFIED-FALLBACK] ✅ Usando história INTELLIGENT: ${intelligentResult.story.title}`);
+      this.notifyFallbackUsed('story', 'intelligent');
       return intelligentResult.story;
     }
 
-    // NÍVEL 3: Emergency
-    console.log(`[UNIFIED-FALLBACK] ⚠️ Usando história EMERGENCY`);
+    // NÍVEL 3: Emergency (GARANTIDO - nunca falha)
+    console.log(`[UNIFIED-FALLBACK] 🚨 Usando história EMERGENCY GARANTIDA`);
+    this.notifyFallbackUsed('story', 'emergency');
     return this.generateEmergencyStory(gameParams);
   }
 
@@ -118,8 +178,8 @@ export class UnifiedFallbackSystem {
       choices: choices,
       answer: choices[0],
       word: `emergency${questionIndex}_${Date.now()}`,
-      source: 'emergency',
-      id: `emergency_${questionIndex}_${Date.now()}`
+      source: 'emergency' as const,
+      uniqueId: `emergency_${questionIndex}_${Date.now()}`
     };
   }
 
