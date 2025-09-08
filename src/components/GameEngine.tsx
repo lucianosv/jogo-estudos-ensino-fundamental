@@ -18,6 +18,7 @@ import { useGameLogic } from "@/components/GameLogic";
 import { useStoryGenerator } from "@/components/StoryGenerator";
 import { Question } from "@/services/QuestionGenerationService";
 import FallbackNotification from "@/components/FallbackNotification";
+import { unifiedFallbackSystem } from "@/services/UnifiedFallbackSystem";
 
 
 const GameEngine = () => {
@@ -113,7 +114,6 @@ const GameEngine = () => {
 
   // Configurar callback para notificações de fallback
   React.useEffect(() => {
-    const { unifiedFallbackSystem } = require('@/services/UnifiedFallbackSystem');
     unifiedFallbackSystem.setNotificationCallback((type: 'question' | 'story', source: string) => {
       setFallbackNotification({ show: true, type, source });
     });

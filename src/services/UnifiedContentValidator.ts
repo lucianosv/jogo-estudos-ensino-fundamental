@@ -1,6 +1,8 @@
 // VALIDADOR UNIFICADO - BACKEND E FRONTEND CONSISTENTES
 // Substitui tanto src/utils/ContentValidator.ts quanto supabase/.../contentValidator.ts
 
+import { getDisplayWord } from '@/utils/wordCleaner';
+
 export interface ValidationResult {
   isValid: boolean;
   issues: string[];
@@ -116,7 +118,7 @@ export const validateUniqueQuestions = (questions: any[]): ValidationResult => {
   // Verificar palavras secretas duplicadas (usando getDisplayWord)
   const words = questions.map(q => {
     if (!q?.word) return '';
-    const cleanWord = require('@/utils/wordCleaner').getDisplayWord(q.word);
+    const cleanWord = getDisplayWord(q.word);
     return cleanWord?.toLowerCase().trim() || '';
   }).filter(Boolean);
   const wordCounts = new Map<string, number>();
